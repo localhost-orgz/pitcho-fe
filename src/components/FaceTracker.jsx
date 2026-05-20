@@ -10,6 +10,7 @@ export default function FaceTracker() {
     status,
     lookAwayCount,
     isFaceDetected,
+    detectionMode,
     recordedVideoUrl,
     lookAwayEvents,
     currentDevX,
@@ -435,7 +436,14 @@ export default function FaceTracker() {
                   <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">
                     Live Focus Guard
                   </span>
-                  <h1 className="text-3xl font-bold tracking-tight text-white mt-1">Gaze Monitor</h1>
+                  <div className="flex items-center gap-2 mt-1">
+                    <h1 className="text-3xl font-bold tracking-tight text-white">Gaze Monitor</h1>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
+                      detectionMode === "eye" ? "bg-violet-500/20 text-violet-400" : "bg-indigo-500/20 text-indigo-400"
+                    }`}>
+                      {detectionMode === "eye" ? "Eye Mode" : "Head Mode"}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Status pill badge */}
@@ -509,7 +517,7 @@ export default function FaceTracker() {
                 {/* Yaw setting */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-zinc-400 font-medium">
-                    <span>Horizontal Gaze Limit (Yaw)</span>
+                    <span>{detectionMode === "eye" ? "Horizontal Eye Limit" : "Horizontal Gaze Limit (Yaw)"}</span>
                     <span className="font-mono">{settings.thresholdX}</span>
                   </div>
                   <input
@@ -526,7 +534,7 @@ export default function FaceTracker() {
                 {/* Pitch setting */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-zinc-400 font-medium">
-                    <span>Vertical Gaze Limit (Pitch)</span>
+                    <span>{detectionMode === "eye" ? "Vertical Eye Limit" : "Vertical Gaze Limit (Pitch)"}</span>
                     <span className="font-mono">{settings.thresholdY}</span>
                   </div>
                   <input
@@ -562,7 +570,7 @@ export default function FaceTracker() {
               {isSessionActive && (
                 <div className="pt-4 border-t border-zinc-800/80 grid grid-cols-2 gap-4 text-xs font-mono">
                   <div className="bg-zinc-800/20 border border-zinc-800/50 p-3 rounded-xl space-y-1">
-                    <div className="text-zinc-500">Yaw Deviation</div>
+                    <div className="text-zinc-500">{detectionMode === "eye" ? "Horizontal Eye Dev" : "Yaw Deviation"}</div>
                     <div className="flex justify-between items-baseline mt-1">
                       <span className="text-sm font-semibold text-zinc-300">{currentDevX}</span>
                       <span className="text-[10px] text-zinc-500">Limit: {settings.thresholdX}</span>
@@ -576,7 +584,7 @@ export default function FaceTracker() {
                   </div>
 
                   <div className="bg-zinc-800/20 border border-zinc-800/50 p-3 rounded-xl space-y-1">
-                    <div className="text-zinc-500">Pitch Deviation</div>
+                    <div className="text-zinc-500">{detectionMode === "eye" ? "Vertical Eye Dev" : "Pitch Deviation"}</div>
                     <div className="flex justify-between items-baseline mt-1">
                       <span className="text-sm font-semibold text-zinc-300">{currentDevY}</span>
                       <span className="text-[10px] text-zinc-500">Limit: {settings.thresholdY}</span>
