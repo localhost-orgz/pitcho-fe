@@ -10,8 +10,11 @@ import {
   Calendar,
   ChevronRight,
   Clock,
+  ArrowRight,
+  Lightbulb,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function StationPage() {
   const stats = [
@@ -71,7 +74,13 @@ export default function StationPage() {
   return (
     <div className="space-y-3">
       <div className="flex bg-white fixed right-20 px-5 py-3 gap-3 items-center rounded-2xl border-2 border-b-4 border-r-4">
-        <Image className="w-8 h-8" src={"/star.png"} height={100} width={100} />
+        <Image
+          className="w-8 h-8"
+          src={"/star.png"}
+          height={100}
+          width={100}
+          alt="star"
+        />
         <div className="flex flex-col">
           <h3 className="font-bold text-xl">2.450</h3>
           <span className="text-sm text-gray-500 font-medium">
@@ -140,29 +149,186 @@ export default function StationPage() {
             <path
               d="M14.4178 148.652H1016.5M14.4178 148.652V159.293M94.6499 96.2667H42.2534L0.5 135.556V148.652H14.4178M1016.5 148.652H0.5M1016.5 148.652V159.293M1016.5 148.652V135.556M1016.5 135.556H0.5M1016.5 135.556L977.203 96.2667H94.6499M1016.5 135.556V45.5185M1016.5 159.293V219.863L14.4178 221.5V159.293M1016.5 159.293H14.4178M94.6499 96.2667V45.5185M94.6499 37.3333H1016.5M94.6499 37.3333V45.5185M1016.5 25.8741V0.5H111.024L81.5508 25.8741V37.3333H94.6499M1016.5 37.3333V45.5185M1016.5 37.3333H81.5508M1016.5 37.3333V25.8741M1016.5 45.5185H94.6499M1016.5 25.8741H81.5508M81.5508 25.8741C91.3751 17.4161 111.024 0.5 111.024 0.5"
               stroke="black"
-              stroke-opacity="0.25"
+              strokeOpacity="0.25"
             />
           </svg>
         </div>
       </div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-sky-400 to-indigo-500 text-white rounded-3xl p-6 md:p-8 shadow-xl">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-black tracking-tight leading-tight uppercase">
-            Selamat Datang, Presenter!
-          </h1>
-          <p className="text-sky-100 font-medium text-sm md:text-base max-w-md">
-            Latih kemampuan presentasi Anda dan tingkatkan kontak mata dengan
-            audiens secara real-time.
-          </p>
+      <div className="grid grid-cols-3 gap-6">
+        <div className="w-full col-span-2 p-6 bg-white rounded-2xl border-bold">
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-bold">Today's plan</h2>
+            <p className="text-slate-500 mt-1">Let's get better togather!</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-5 mt-7">
+            <div className="w-full bg-white border-2 rounded-2xl p-5 gap-7 col-span-1 flex flex-col">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold">Today's Goal</span>
+                <span className="text-sm text-slate-500">
+                  Practice for 15 minutes
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-end gap-0.5">
+                  <span className="text-lg font-bold">0 / 15</span>
+                  <span className="font-medium text-sm mb-0.5 text-slate-500">
+                    min
+                  </span>
+                </div>
+                <div className="w-full bg-border h-1 rounded-2xl"></div>
+              </div>
+            </div>
+
+            <div className="w-full bg-linear-to-br from-white via-white to-sky-200/20 border-bold relative p-5 col-span-2 flex flex-col justify-between ">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-slate-800">
+                  Suggested for you
+                </span>
+                <span className="text-xs font-bold text-slate-400 mt-1 leading-normal">
+                  Focus on maintaining eye contact and reducing filler words.
+                </span>
+              </div>
+              <Link
+                className="text-xs font-extrabold flex items-center text-main group-hover:text-sky-600 transition-colors mt-4"
+                href={"/"}
+              >
+                See tips{" "}
+                <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </div>
         </div>
-        <Button
-          variant="default"
-          size="lg"
-          className="bg-white hover:bg-slate-100 text-sky-600 font-extrabold shadow-[0_5px_0_#e2e8f0] hover:shadow-[0_5px_0_#cbd5e1] border-none shrink-0 self-start md:self-auto"
-        >
-          <Play className="size-5 fill-current mr-2" />
-          Mulai Latihan
-        </Button>
+
+        <div className="w-full col-span-1 flex flex-col gap-3">
+          <div className="w-full bg-orange-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src={"/streak.svg"}
+              width={100}
+              height={100}
+              className="w-9 h-9 mb-1"
+              alt="streak"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">12 Days Streak</span>
+              <span className="text-sm text-slate-500">keep it going!</span>
+            </div>
+          </div>
+          <div className="w-full bg-indigo-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src={"/target.svg"}
+              width={100}
+              height={100}
+              className="w-9 h-9 mb-1"
+              alt="dart"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">12 Days Streak</span>
+              <span className="text-sm text-slate-500">keep it going!</span>
+            </div>
+          </div>
+          <div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src={"/trophy.svg"}
+              width={100}
+              height={100}
+              className="w-9 h-9 mb-1"
+              alt="trophy"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">12 Days Streak</span>
+              <span className="text-sm text-slate-500">keep it going!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-6">
+        <div className="w-full col-span-2 p-6 bg-white rounded-2xl border-bold">
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-bold">Today's plan</h2>
+            <p className="text-slate-500 mt-1">Let's get better togather!</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-5 mt-7">
+            <div className="w-full bg-white border-2 rounded-2xl p-5 gap-7 col-span-1 flex flex-col">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold">Today's Goal</span>
+                <span className="text-sm text-slate-500">
+                  Practice for 15 minutes
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-end gap-0.5">
+                  <span className="text-lg font-bold">0 / 15</span>
+                  <span className="font-medium text-sm mb-0.5 text-slate-500">
+                    min
+                  </span>
+                </div>
+                <div className="w-full bg-border h-1 rounded-2xl"></div>
+              </div>
+            </div>
+
+            <div className="w-full bg-linear-to-br from-white via-white to-sky-200/20 border-bold relative p-5 col-span-2 flex flex-col justify-between ">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-slate-800">
+                  Suggested for you
+                </span>
+                <span className="text-xs font-bold text-slate-400 mt-1 leading-normal">
+                  Focus on maintaining eye contact and reducing filler words.
+                </span>
+              </div>
+              <Link
+                className="text-xs font-extrabold flex items-center text-main group-hover:text-sky-600 transition-colors mt-4"
+                href={"/"}
+              >
+                See tips{" "}
+                <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full col-span-1 flex flex-col gap-3">
+          <div className="w-full bg-orange-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src={"/streak.svg"}
+              width={100}
+              height={100}
+              className="w-9 h-9 mb-1"
+              alt="streak"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">12 Days Streak</span>
+              <span className="text-sm text-slate-500">keep it going!</span>
+            </div>
+          </div>
+          <div className="w-full bg-indigo-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src={"/target.svg"}
+              width={100}
+              height={100}
+              className="w-9 h-9 mb-1"
+              alt="dart"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">12 Days Streak</span>
+              <span className="text-sm text-slate-500">keep it going!</span>
+            </div>
+          </div>
+          <div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src={"/trophy.svg"}
+              width={100}
+              height={100}
+              className="w-9 h-9 mb-1"
+              alt="trophy"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">12 Days Streak</span>
+              <span className="text-sm text-slate-500">keep it going!</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats Section */}
