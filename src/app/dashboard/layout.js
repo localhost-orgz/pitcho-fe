@@ -1,0 +1,27 @@
+import React from "react";
+import Sidebar from "@/components/Sidebar";
+import MobileHeader from "@/components/MobileHeader";
+
+export const metadata = {
+  title: "Dashboard - Presenta",
+  description: "Presenta dashboard untuk memantau latihan presentasi Anda.",
+};
+
+export default function DashboardLayout({ children }) {
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      {/* Responsive Left Sidebar */}
+      <Sidebar />
+
+      {/* Mobile Top Header */}
+      <MobileHeader />
+
+      {/* Main Content Area */}
+      <main className="flex-1 md:pl-20 lg:pl-64 min-h-screen">
+        <div className="max-w-[1056px] mx-auto p-4 md:p-8 lg:p-10">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}

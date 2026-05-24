@@ -1,21 +1,69 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
+html,
+body,
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  @apply h-full;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-nunito);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
+    }
   }
 }
 
@@ -25,6 +73,210 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+.duolingo-button {
+  /* Styling dasar tombolnya */
+  background-color: #58cc02; /* Warna ijo Duolingo */
+  color: white;
+  font-family: sans-serif;
+  font-size: 1.2rem;
+  font-weight: bold;
+
+  border: none; /* Kita nggak pake border */
+  /* border-radius: 16px; Bikin melengkung */
+  padding: 16px 32px;
+  cursor: pointer;
+
+  /* === INI BAGIAN PENTINGNYA === */
+
+  /* 1. Bikin 'tepian' 3D pake box-shadow */
+  /* Format: [X-offset] [Y-offset] [Blur] [Warna] */
+  box-shadow: 0 6px 0 #58a700; /* 6px ke bawah, 0 blur, warna lebih gelap */
+
+  /* 2. Bikin transisi biar alus (tapi cepet) */
+  transition: all 0.1s ease-in-out;
+}
+
+/* === INI BAGIAN AJAIBNYA PAS DIPENCET === */
+.duolingo-button:active {
+  /* 1. Gerakin tombolnya ke bawah 6px (setebal shadow-nya) */
+  transform: translateY(6px);
+
+  /* 2. Hilangin shadow-nya, karena tombolnya udah 'tiduran' */
+  box-shadow: 0 0 0 #58a700;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  --primary: oklch(0.208 0.042 265.755);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.704 0.04 256.788);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* 🧩 Container utama */
+  .material {
+    @apply text-gray-800 leading-relaxed;
+  }
+
+  /* 🧠 Heading Styles */
+  .material h1 {
+    @apply text-3xl font-bold mt-6 mb-4 text-gray-900;
+  }
+  .material h2 {
+    @apply text-2xl font-semibold mt-5 mb-3 text-gray-900;
+  }
+  .material h3 {
+    @apply text-xl font-semibold mt-4 mb-2 text-gray-900;
+  }
+  .material h4 {
+    @apply text-lg font-medium mt-3 mb-1 text-gray-800;
+  }
+  .material h5 {
+    @apply text-base font-medium mt-2 mb-1 text-gray-800;
+  }
+  .material h6 {
+    @apply text-sm font-medium mt-2 mb-1 text-gray-700;
+  }
+
+  /* 📖 Paragraph & Text */
+  .material p {
+    @apply mb-4 text-base text-gray-700;
+  }
+
+  .material strong {
+    @apply font-semibold text-gray-900;
+  }
+
+  .material em {
+    @apply italic text-gray-800;
+  }
+
+  .material a {
+    @apply text-blue-600 underline hover:text-blue-800;
+  }
+
+  /* 📋 List */
+  .material ul {
+    @apply list-disc list-inside mb-4;
+  }
+  .material ol {
+    @apply list-decimal list-inside mb-4;
+  }
+  .material li {
+    @apply mb-1;
+  }
+
+  /* 📊 Table */
+  .material table {
+    @apply w-full border border-gray-300 border-collapse my-6;
+  }
+  .material th {
+    @apply bg-gray-100 border border-gray-300 px-3 py-2 text-left font-semibold;
+  }
+  .material td {
+    @apply border border-gray-300 px-3 py-2;
+  }
+
+  /* 🧾 Blockquote */
+  .material blockquote {
+    @apply border-l-4 border-blue-400 pl-4 italic text-gray-700 my-4;
+  }
+
+  /* 💡 Code block */
+  .material pre {
+    @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+  }
+
+  .material code {
+    @apply bg-gray-100 text-red-600 px-1 rounded;
+  }
+
+  /* 📷 Image */
+  .material img {
+    @apply my-4 rounded-lg shadow-sm;
+  }
+
+  /* 🧱 Horizontal Line */
+  .material hr {
+    @apply my-6 border-t border-gray-300;
+  }
+
+  /* 🧠 Small text */
+  .material small {
+    @apply text-sm text-gray-600;
+  }
+}
+
+/* 🌀 Existing pitcho-fe custom keyframes and utility classes */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -39,3 +291,19 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes soundWave {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.animate-wave-1 { animation: soundWave 0.5s ease-in-out infinite alternate; }
+.animate-wave-2 { animation: soundWave 0.8s ease-in-out infinite alternate 0.1s; }
+.animate-wave-3 { animation: soundWave 0.6s ease-in-out infinite alternate 0.2s; }
+.animate-wave-4 { animation: soundWave 0.4s ease-in-out infinite alternate 0.3s; }
+.animate-wave-5 { animation: soundWave 0.7s ease-in-out infinite alternate 0.15s; }
+.animate-wave-6 { animation: soundWave 0.55s ease-in-out infinite alternate 0.25s; }

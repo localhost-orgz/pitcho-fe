@@ -71,12 +71,12 @@ export default function FaceTrackerModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-zinc-900 border border-zinc-800 text-white shadow-2xl transition-all duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/60 backdrop-blur-xs p-4">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white border border-zinc-200 text-zinc-950 shadow-2xl transition-all duration-300">
         
         {/* Progress bar */}
-        <div className="flex h-1 bg-zinc-800 w-full">
-          <div className="bg-indigo-500 h-full transition-all duration-300" style={{ width: `${(step / 2) * 100}%` }} />
+        <div className="flex h-1 bg-zinc-100 w-full">
+          <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${(step / 2) * 100}%` }} />
         </div>
 
         <div className="p-8">
@@ -84,14 +84,14 @@ export default function FaceTrackerModal({
           {/* ─── Step 1: Mode Selection + Info ─── */}
           {step === 1 && (
             <div className="flex flex-col items-center text-center space-y-6 animate-fade-in">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-zinc-100">Choose Your Tracking Mode</h2>
-              <p className="text-zinc-400 text-sm leading-relaxed max-w-sm">
+              <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Choose Your Tracking Mode</h2>
+              <p className="text-zinc-650 text-sm leading-relaxed max-w-sm">
                 Pick the tracking precision level for your practice session. Your camera data is processed 100% locally — never uploaded.
               </p>
               
@@ -102,13 +102,13 @@ export default function FaceTrackerModal({
                   onClick={() => switchDetectionMode("head")}
                   className={`w-full text-left rounded-2xl border p-4 transition-all duration-200 group ${
                     detectionMode === "head"
-                      ? "bg-indigo-950/30 border-indigo-500/60 shadow-md shadow-indigo-500/10"
-                      : "bg-zinc-800/30 border-zinc-800 hover:border-zinc-700"
+                      ? "bg-indigo-50/50 border-indigo-200 shadow-xs"
+                      : "bg-zinc-50 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100/50"
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl transition ${
-                      detectionMode === "head" ? "bg-indigo-500/20 text-indigo-400" : "bg-zinc-800 text-zinc-500"
+                      detectionMode === "head" ? "bg-indigo-100 text-indigo-600" : "bg-zinc-200 text-zinc-500"
                     }`}>
                       <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -116,12 +116,12 @@ export default function FaceTrackerModal({
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-zinc-100">Head Gaze Detector</span>
+                        <span className="font-bold text-sm text-zinc-900">Head Gaze Detector</span>
                         {detectionMode === "head" && (
-                          <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-semibold px-1.5 py-0.5 rounded-md">Selected</span>
+                          <span className="text-[10px] bg-indigo-100 text-indigo-850 font-semibold px-1.5 py-0.5 rounded-md">Selected</span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                      <p className="text-xs text-zinc-550 mt-1 leading-relaxed">
                         Tracks your head rotation. Triggers when you turn your face away from the camera. Best for general focus monitoring.
                       </p>
                     </div>
@@ -133,13 +133,13 @@ export default function FaceTrackerModal({
                   onClick={() => switchDetectionMode("eye")}
                   className={`w-full text-left rounded-2xl border p-4 transition-all duration-200 group ${
                     detectionMode === "eye"
-                      ? "bg-violet-950/30 border-violet-500/60 shadow-md shadow-violet-500/10"
-                      : "bg-zinc-800/30 border-zinc-800 hover:border-zinc-700"
+                      ? "bg-violet-50/50 border-violet-200 shadow-xs"
+                      : "bg-zinc-50 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100/50"
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl transition ${
-                      detectionMode === "eye" ? "bg-violet-500/20 text-violet-400" : "bg-zinc-800 text-zinc-500"
+                      detectionMode === "eye" ? "bg-violet-100 text-violet-600" : "bg-zinc-200 text-zinc-500"
                     }`}>
                       <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -148,12 +148,12 @@ export default function FaceTrackerModal({
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-zinc-100">Eye Focus Detector</span>
+                        <span className="font-bold text-sm text-zinc-900">Eye Focus Detector</span>
                         {detectionMode === "eye" && (
-                          <span className="text-[10px] bg-violet-500/20 text-violet-400 font-semibold px-1.5 py-0.5 rounded-md">Selected</span>
+                          <span className="text-[10px] bg-violet-100 text-violet-850 font-semibold px-1.5 py-0.5 rounded-md">Selected</span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                      <p className="text-xs text-zinc-550 mt-1 leading-relaxed">
                         Tracks your iris position. Detects when your eyes look away even if your head stays still — catches script-reading. Ideal for public speaking practice.
                       </p>
                     </div>
@@ -164,13 +164,13 @@ export default function FaceTrackerModal({
               <div className="flex w-full gap-3 pt-2">
                 <button
                   onClick={onClose}
-                  className="flex-1 rounded-xl bg-zinc-800 px-4 py-3 text-sm font-semibold hover:bg-zinc-700 transition duration-200"
+                  className="flex-1 rounded-xl bg-zinc-100 text-zinc-700 px-4 py-3 text-sm font-semibold hover:bg-zinc-200 transition duration-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleProceedToCamera}
-                  className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 transition duration-200"
+                  className="flex-1 rounded-xl bg-indigo-600 text-white px-4 py-3 text-sm font-semibold hover:bg-indigo-500 shadow-sm transition duration-200"
                 >
                   Continue
                 </button>
@@ -182,20 +182,20 @@ export default function FaceTrackerModal({
           {step === 2 && (
             <div className="flex flex-col items-center text-center space-y-5 animate-fade-in">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-zinc-100">
+                <h2 className="text-xl font-bold text-zinc-900">
                   {status === "calibrating" ? "Calibrating..." : "Position Your Face"}
                 </h2>
                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
                   detectionMode === "eye"
-                    ? "bg-violet-500/20 text-violet-400"
-                    : "bg-indigo-500/20 text-indigo-400"
+                    ? "bg-violet-100 text-violet-750"
+                    : "bg-indigo-100 text-indigo-755"
                 }`}>
                   {detectionMode === "eye" ? "Eye Mode" : "Head Mode"}
                 </span>
               </div>
               
               {/* Webcam Preview */}
-              <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-2xl bg-black border border-zinc-800 shadow-inner">
+              <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-200 shadow-inner">
                 <video ref={videoRef} className="h-full w-full object-cover transform scale-x-[-1]" muted playsInline />
                 
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -211,11 +211,11 @@ export default function FaceTrackerModal({
                 </div>
 
                 {status === "calibrating" && (
-                  <div className="absolute bottom-3 left-3 right-3 bg-black/60 backdrop-blur-md rounded-xl p-2 text-left border border-white/5">
-                    <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md rounded-xl p-3 text-left border border-zinc-200 shadow-sm">
+                    <div className="w-full bg-zinc-200 h-1.5 rounded-full overflow-hidden">
                       <div className={`h-full transition-all duration-100 ${detectionMode === "eye" ? "bg-violet-500" : "bg-indigo-500"}`} style={{ width: `${calibrationProgress}%` }} />
                     </div>
-                    <div className="flex justify-between mt-1 text-[10px] text-zinc-400 font-mono">
+                    <div className="flex justify-between mt-1 text-[10px] text-zinc-550 font-mono">
                       <span>{detectionMode === "eye" ? "Calibrating iris baseline..." : "Calibrating resting pose..."}</span>
                       <span>{Math.round(calibrationProgress)}%</span>
                     </div>
@@ -226,24 +226,24 @@ export default function FaceTrackerModal({
               {/* Status Message */}
               <div className="h-12 flex items-center justify-center">
                 {isLoading ? (
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                  <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-650 border-t-transparent" />
                     <span>Loading face mesh models...</span>
                   </div>
                 ) : error ? (
-                  <p className="text-red-400 text-sm font-medium">{error}</p>
+                  <p className="text-red-650 text-sm font-medium">{error}</p>
                 ) : (status === "ready" || status === "idle") && !isFaceDetected ? (
-                  <p className="text-zinc-400 text-sm animate-pulse">Waiting for face detection...</p>
+                  <p className="text-zinc-550 text-sm animate-pulse">Waiting for face detection...</p>
                 ) : (status === "ready" || status === "idle") && isFaceDetected ? (
-                  <p className={`text-sm font-semibold animate-pulse ${detectionMode === "eye" ? "text-violet-400" : "text-indigo-400"}`}>
+                  <p className={`text-sm font-semibold animate-pulse ${detectionMode === "eye" ? "text-violet-650" : "text-indigo-650"}`}>
                     {detectionMode === "eye" ? "Face detected! Look straight at the camera, then calibrate." : "Face aligned. Tap calibrate to lock baseline!"}
                   </p>
                 ) : status === "calibrating" ? (
-                  <p className="text-sm font-medium text-zinc-300">
+                  <p className="text-sm font-medium text-zinc-650">
                     {detectionMode === "eye" ? "Keep your eyes focused directly on the camera..." : "Keep looking straight at the screen..."}
                   </p>
                 ) : status === "tracking" ? (
-                  <p className="text-emerald-400 text-sm font-semibold flex items-center gap-1.5">
+                  <p className="text-emerald-600 text-sm font-semibold flex items-center gap-1.5">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
@@ -256,7 +256,7 @@ export default function FaceTrackerModal({
               <div className="flex w-full gap-3 pt-2">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex-1 rounded-xl bg-zinc-800 px-4 py-3 text-sm font-semibold hover:bg-zinc-700 transition duration-200"
+                  className="flex-1 rounded-xl bg-zinc-100 text-zinc-700 px-4 py-3 text-sm font-semibold hover:bg-zinc-200 transition duration-200"
                 >
                   Back
                 </button>
@@ -264,7 +264,7 @@ export default function FaceTrackerModal({
                 {status === "tracking" ? (
                   <button
                     onClick={() => { if (videoRef.current) onStartTracking(videoRef.current); }}
-                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold hover:bg-emerald-500 shadow-lg shadow-emerald-600/25 transition duration-200"
+                    className="flex-1 rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-semibold hover:bg-emerald-500 shadow-sm transition duration-200"
                   >
                     Start Session
                   </button>
@@ -275,9 +275,9 @@ export default function FaceTrackerModal({
                     className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition duration-200 ${
                       isFaceDetected && !isLoading
                         ? (detectionMode === "eye"
-                          ? "bg-violet-600 hover:bg-violet-500 shadow-lg shadow-violet-600/25"
-                          : "bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/25")
-                        : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-800"
+                          ? "bg-violet-600 hover:bg-violet-500 text-white shadow-xs"
+                          : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs")
+                        : "bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200"
                     }`}
                   >
                     {detectionMode === "eye" ? "Calibrate Eyes" : "Calibrate Angle"}
