@@ -17,10 +17,8 @@ export default function DashboardLayout({ children }) {
       <MobileHeader />
 
       {/* Main Content Area */}
-      <main className="flex-1 md:pl-20 lg:pl-64 min-h-screen">
-        <div className="max-w-[1056px] mx-auto p-4 md:p-8 lg:p-10">
-          {children}
-        </div>
+      <main className="flex-1 md:pl-20 lg:pl-64 min-h-screen bg-[#f3f7fd]">
+        <div className=" mx-auto p-4 md:p-8 lg:p-10">{children}</div>
       </main>
     </div>
   );
