@@ -360,7 +360,7 @@ export default function PresentationSetupPage() {
 
           <div className="flex flex-col mt-5">
             <div className="flex items-center gap-1">
-              <h6 className="text-sm font-bold">Distractions Intentsity</h6>
+              <h6 className="text-sm font-bold">Session Length</h6>
               <CircleQuestionMark className="text-slate-400" size={15} />
             </div>
             <div className="grid grid-cols-5 gap-3 mt-3">
