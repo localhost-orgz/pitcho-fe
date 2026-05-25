@@ -13,6 +13,8 @@ import {
   Clock,
   ArrowRight,
   Lightbulb,
+  AudioLines,
+  Timer,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -428,32 +430,40 @@ export default function StationPage() {
       </div>
 
       {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={i}
-              className="bg-card border-2 border-border rounded-2xl p-5 flex items-center justify-between shadow-sm"
-            >
-              <div className="space-y-1.5">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  {stat.label}
-                </span>
-                <div className="text-2xl font-black text-slate-800">
-                  {stat.value}
+      <div className="w-full grid grid-cols-3 gap-6">
+        <div className="w-full p-10 rounded-2xl border-bold px-5 py-4 col-span-2">
+          <h3 className="text-xl font-bold">Your Speaking Summary</h3>
+          <div className="grid grid-cols-3 gap-6 mt-7">
+            <div className="w-full col-span-1 rounded-xl bg-blue-100/50 p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-blue-500/20 w-fit rounded-full">
+                  <Eye size={20} className="text-blue-500" />
                 </div>
-                <span className="text-[11px] font-bold text-slate-500 block flex items-center gap-1">
-                  <TrendingUp className="size-3.5 text-green-500 inline" />
-                  {stat.change}
-                </span>
+                <span className="font-bold">Eye Contact</span>
               </div>
-              <div className={`p-3.5 rounded-xl border-2 ${stat.color}`}>
-                <Icon className="size-6" />
-              </div>
+              <span className="font-extrabold text-xl mt-5">78%</span>
             </div>
-          );
-        })}
+            <div className="w-full col-span-1 rounded-xl bg-orange-100/50 p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-orange-500/20 w-fit rounded-full">
+                  <AudioLines size={20} className="text-orange-500" />
+                </div>
+                <span className="font-bold">Filler Words</span>
+              </div>
+              <span className="font-extrabold text-xl mt-5">78%</span>
+            </div>
+            <div className="w-full col-span-1 rounded-xl bg-emerald-100/50 p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-500/20 w-fit rounded-full">
+                  <Timer size={20} className="text-emerald-500" />
+                </div>
+                <span className="font-bold">Eye Contact</span>
+              </div>
+              <span className="font-extrabold text-xl mt-5">78%</span>
+            </div>
+          </div>
+        </div>
+        <div className="w-full h-10 border-bold rounded-2xl"></div>
       </div>
 
       {/* Main Grid Content */}
