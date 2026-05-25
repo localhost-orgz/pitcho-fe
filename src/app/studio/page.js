@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import PerformanceCircle from "@/components/UI/PerformanceCircle";
 
 export default function StationPage() {
   const stats = [
@@ -307,8 +308,13 @@ export default function StationPage() {
 
             <div className="flex flex-col gap-3 mb-2">
               <h6 className="font-bold">Performance Overview</h6>
-              <div className="flex gap-4">
-                <div className="h-20 w-20 rounded-full bg-slate-500 shrink-0"></div>
+              <div className="flex gap-4 items-center">
+                <PerformanceCircle
+                  value={94}
+                  color="#10b981"
+                  size={72}
+                  strokeWidth={5.5}
+                />
                 <div className="flex flex-col">
                   <span className="font-bold">Good Job!</span>
                   <span className="text-slate-500 text-xs w-[70%]">
@@ -321,6 +327,9 @@ export default function StationPage() {
                 </div>
               </div>
             </div>
+          </div>
+          <div className="flex items-center">
+            <div></div>
           </div>
         </div>
       </div>
