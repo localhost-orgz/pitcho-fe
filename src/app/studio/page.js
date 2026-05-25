@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/UI/button";
 import {
   Play,
@@ -9,6 +9,7 @@ import {
   Activity,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   Clock,
   ArrowRight,
   Lightbulb,
@@ -42,35 +43,58 @@ export default function StationPage() {
     },
   ];
 
+  const [activeSessionIndex, setActiveSessionIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState("right");
+
   const recentSessions = [
     {
       id: 1,
       topic: "Pitching Kompetisi Bisnis",
-      date: "24 Mei 2026",
-      duration: "5:00",
-      eyeContact: "92%",
-      status: "Sangat Baik",
-      statusColor: "text-green-500 bg-green-50",
+      date: "May 24, 2026",
+      time: "02:00 PM",
+      score: 92,
+      color: "#10b981", // Green
+      feedback: "Excellent! Outstanding eye contact and pacing.",
     },
     {
       id: 2,
       topic: "Presentasi Akhir Proyek",
-      date: "22 Mei 2026",
-      duration: "10:15",
-      eyeContact: "85%",
-      status: "Baik",
-      statusColor: "text-sky-500 bg-sky-50",
+      date: "May 22, 2026",
+      time: "11:15 AM",
+      score: 85,
+      color: "#3b82f6", // Blue
+      feedback: "Great attempt! Very confident tone, keep it up.",
     },
     {
       id: 3,
       topic: "Sambutan Singkat Ketua",
-      date: "19 Mei 2026",
-      duration: "3:30",
-      eyeContact: "74%",
-      status: "Cukup",
-      statusColor: "text-amber-500 bg-amber-50",
+      date: "May 19, 2026",
+      time: "09:45 AM",
+      score: 74,
+      color: "#f59e0b", // Yellow
+      feedback: "Fair effort. Work on reducing filler words.",
+    },
+    {
+      id: 4,
+      topic: "Final Thesis Presentation",
+      date: "May 17, 2026",
+      time: "10:30 AM",
+      score: 78,
+      color: "#8b5cf6", // Purple
+      feedback: "Good Job! You showed improvement in focus and clarity.",
+    },
+    {
+      id: 5,
+      topic: "Latihan Wawancara Kerja",
+      date: "May 15, 2026",
+      time: "04:30 PM",
+      score: 63,
+      color: "#ef4444", // Red
+      feedback: "Practice needed. Keep eye contact with your interviewer.",
     },
   ];
+
+  const activeSession = recentSessions[activeSessionIndex];
 
   return (
     <div className="space-y-3">
@@ -295,41 +319,110 @@ export default function StationPage() {
               <ChevronRight size={18} />
             </div>
           </div>
-          {/* recent detail card */}
-          <div className="w-full border-2 rounded-xl py-3 px-4 flex flex-col justify-between h-full">
+          <div
+            key={activeSessionIndex}
+            className={`w-full border-2 rounded-xl py-3 px-4 flex flex-col justify-between h-[180px] ${
+              slideDirection === "left"
+                ? "animate-slide-fade-in-left"
+                : "animate-slide-fade-in-right"
+            }`}
+          >
             <div className="flex flex-col">
-              <h6 className="font-bold">Final Thesis Presentation</h6>
-              <div className="flex items-center text-slate-500 font-bold text-xs gap-1">
-                <span className="">May 2026, 17</span>
+              <h6 className="font-bold text-slate-800 line-clamp-1">
+                {activeSession.topic}
+              </h6>
+              <div className="flex items-center text-slate-400 font-extrabold text-[10px] gap-1 mt-0.5 uppercase tracking-wide">
+                <span>{activeSession.date}</span>
                 <span>·</span>
-                <span>10:30 AM</span>
+                <span>{activeSession.time}</span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 mb-2">
-              <h6 className="font-bold">Performance Overview</h6>
+            <div className="flex flex-col gap-2.5">
+              <h6 className="font-bold text-slate-700 text-xs uppercase tracking-wider">
+                Performance Overview
+              </h6>
               <div className="flex gap-4 items-center">
                 <PerformanceCircle
-                  value={94}
-                  color="#10b981"
-                  size={72}
-                  strokeWidth={5.5}
+                  value={activeSession.score}
+                  color={activeSession.color}
+                  size={64}
+                  strokeWidth={5}
                 />
                 <div className="flex flex-col">
-                  <span className="font-bold">Good Job!</span>
-                  <span className="text-slate-500 text-xs w-[70%]">
-                    You showed improvement in focus and clarity.
+                  <span className="font-bold text-slate-800 text-sm">
+                    {activeSession.score >= 90
+                      ? "Excellent!"
+                      : activeSession.score >= 80
+                        ? "Good Job!"
+                        : activeSession.score >= 70
+                          ? "Fair Effort"
+                          : "Keep Practicing!"}
                   </span>
-                  <div className="flex items-center text-main font-bold text-xs mt-2">
+                  <span className="text-slate-550 text-[11px] font-bold leading-tight mt-0.5 max-w-[140px] line-clamp-2">
+                    {activeSession.feedback}
+                  </span>
+                  <div className="flex items-center text-main hover:text-sky-600 transition-colors font-bold text-xs mt-1.5 cursor-pointer">
                     See full report
-                    <ChevronRight size={15} />
+                    <ChevronRight size={14} className="ml-0.5" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex items-center">
-            <div></div>
+
+          {/* Dots and chevrons control bar */}
+          <div className="flex items-center justify-between w-full mt-2 px-1">
+            {/* Left Chevron */}
+            <button
+              onClick={() => {
+                setSlideDirection("left");
+                setActiveSessionIndex((prev) =>
+                  prev > 0 ? prev - 1 : recentSessions.length - 1,
+                );
+              }}
+              className="p-1 rounded-full border border-slate-200 bg-slate-200 hover:bg-slate-200/80 cursor-pointer transition-colors"
+              aria-label="Previous session"
+            >
+              <ChevronLeft size={20} className="text-slate-500" />
+            </button>
+
+            {/* 5 Dots indicator */}
+            <div className="flex gap-x-1.5 items-center justify-center">
+              {recentSessions.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (i > activeSessionIndex) {
+                      setSlideDirection("right");
+                    } else if (i < activeSessionIndex) {
+                      setSlideDirection("left");
+                    }
+                    setActiveSessionIndex(i);
+                  }}
+                  className={`size-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    activeSessionIndex === i
+                      ? "bg-main w-4"
+                      : "bg-slate-200 hover:bg-slate-350"
+                  }`}
+                  aria-label={`Go to session ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Right Chevron */}
+            <button
+              onClick={() => {
+                setSlideDirection("right");
+                setActiveSessionIndex((prev) =>
+                  prev < recentSessions.length - 1 ? prev + 1 : 0,
+                );
+              }}
+              className="p-1 rounded-full border border-slate-200 bg-slate-200 hover:bg-slate-200/80 cursor-pointer transition-colors"
+              aria-label="Next session"
+            >
+              <ChevronRight size={20} className="text-slate-500" />
+            </button>
           </div>
         </div>
       </div>

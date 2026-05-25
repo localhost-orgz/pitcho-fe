@@ -298,6 +298,36 @@ body {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes slideFadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-fade-in-left {
+  animation: slideFadeInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideFadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-fade-in-right {
+  animation: slideFadeInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @keyframes soundWave {
   0%,
   100% {
