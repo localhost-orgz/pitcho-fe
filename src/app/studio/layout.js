@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function DashboardLayout({ children }) {
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#f3f7fd]">
       {/* Responsive Left Sidebar */}
       <Sidebar />
 

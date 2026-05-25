@@ -15,6 +15,9 @@ import {
   Lightbulb,
   AudioLines,
   Timer,
+  Trophy,
+  Flame,
+  Gift,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,6 +25,14 @@ import PerformanceCircle from "@/components/UI/PerformanceCircle";
 import MiniLineChart from "@/components/UI/MiniLineChart";
 
 export default function StationPage() {
+  React.useEffect(() => {
+    const originalBg = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = "#f3f7fd";
+    return () => {
+      document.body.style.backgroundColor = originalBg;
+    };
+  }, []);
+
   const stats = [
     {
       label: "Total Latihan",
@@ -131,6 +142,7 @@ export default function StationPage() {
               height={100}
               width={100}
               className="w-7 h-auto"
+              alt="hi"
             />
           </div>
           <p className="w-68 mt-1">
@@ -295,9 +307,11 @@ export default function StationPage() {
                   distractions.
                 </span>
               </div>
-              <Button className="flex flex-row gap-2 text-blue-500 bg-white w-fit items-center py-2 px-5 rounded-2xl font-bold">
-                <span>Continue</span>
-                <ArrowRight size={18} strokeWidth={2.5} />
+              <Button asChild className="flex flex-row gap-2 text-blue-500 bg-white hover:bg-slate-50 transition-colors w-fit items-center py-2 px-5 rounded-2xl font-bold cursor-pointer">
+                <Link href="/presentation/setup" className="flex items-center gap-2">
+                  <span>Continue</span>
+                  <ArrowRight size={18} strokeWidth={2.5} />
+                </Link>
               </Button>
             </div>
             <div className="w-full bg-emerald-600/10 border-2 rounded-2xl p-5 gap-7 col-span-1 flex flex-col">
@@ -310,9 +324,11 @@ export default function StationPage() {
                   your CV.
                 </span>
               </div>
-              <Button className="flex flex-row gap-2 bg-white text-emerald-600 w-fit items-center py-2 px-5 rounded-2xl font-bold">
-                <span>Continue</span>
-                <ArrowRight size={18} strokeWidth={2.5} />
+              <Button asChild className="flex flex-row gap-2 bg-white text-emerald-600 hover:bg-slate-50 transition-colors w-fit items-center py-2 px-5 rounded-2xl font-bold cursor-pointer">
+                <Link href="/interview/setup" className="flex items-center gap-2">
+                  <span>Continue</span>
+                  <ArrowRight size={18} strokeWidth={2.5} />
+                </Link>
               </Button>
             </div>
           </div>
@@ -522,91 +538,29 @@ export default function StationPage() {
             </div>
           </div>
         </div>
-        <div className="w-full border-bold rounded-2xl bg-white/50"></div>
-      </div>
-
-      {/* Main Grid Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent History Table */}
-        <div className="bg-card border-2 border-border rounded-2xl p-6 lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">
-              Riwayat Latihan
-            </h2>
-            <Button
-              variant="sidebar"
-              className="text-xs text-sky-500 hover:text-sky-600 p-0 font-bold flex items-center"
-            >
-              Lihat Semua
-              <ChevronRight className="size-4 ml-0.5" />
-            </Button>
+        <div className="w-full border-bold rounded-2xl bg-[#FFF4E4] p-6 flex flex-col justify-between shadow-xs">
+          <div className="flex flex-col gap-4">
+            <div className="w-fit">
+              <Gift
+                size={40}
+                className="text-[#0388ff] fill-amber-400"
+                strokeWidth={2.2}
+              />
+            </div>
+            <div className="space-y-2 mt-2">
+              <h4 className="text-xl font-black text-slate-800 tracking-tight leading-snug">
+                Daily Challenge Completed?
+              </h4>
+              <p className="text-[12px] text-slate-600 font-bold leading-normal">
+                Great! Claim your bonus and keep your streak alive!
+              </p>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase">
-                  <th className="py-3 px-2">Topik / Judul</th>
-                  <th className="py-3 px-2">Tanggal</th>
-                  <th className="py-3 px-2">Durasi</th>
-                  <th className="py-3 px-2">Kontak Mata</th>
-                  <th className="py-3 px-2 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {recentSessions.map((session) => (
-                  <tr
-                    key={session.id}
-                    className="hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="py-3 px-2 font-bold text-slate-700">
-                      {session.topic}
-                    </td>
-                    <td className="py-3 px-2 text-slate-500 text-xs">
-                      {session.date}
-                    </td>
-                    <td className="py-3 px-2 text-slate-500 text-xs">
-                      {session.duration}
-                    </td>
-                    <td className="py-3 px-2 text-sky-600 font-bold">
-                      {session.eyeContact}
-                    </td>
-                    <td className="py-3 px-2 text-right">
-                      <span
-                        className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase ${session.statusColor}`}
-                      >
-                        {session.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Quick Tips Box */}
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-2 border-amber-200 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-x-2 text-amber-600">
-            <Calendar className="size-5" />
-            <h2 className="text-base font-black uppercase tracking-tight">
-              Tips Hari Ini
-            </h2>
-          </div>
-          <div className="space-y-3 text-sm text-slate-600 leading-relaxed font-medium">
-            <p>
-              <strong>1. Pertahankan Kontak Mata:</strong> Cobalah untuk menatap
-              langsung ke kamera laptop Anda seolah-olah menatap mata audiens.
-            </p>
-            <p>
-              <strong>2. Atur Tempo:</strong> Jangan berbicara terlalu cepat.
-              Berikan jeda 1-2 detik di antara poin-poin penting agar presentasi
-              terasa tenang.
-            </p>
-            <p>
-              <strong>3. Postur Tegak:</strong> Postur tubuh yang tegak membantu
-              meningkatkan kepercayaan diri dan kualitas proyeksi suara Anda.
-            </p>
+          <div className="mt-6">
+            <button className="w-full bg-[#0070f3] hover:bg-[#0060df] text-white font-extrabold text-sm py-3 px-5 rounded-2xl transition-all shadow-xs hover:shadow-md cursor-pointer active:translate-y-0.5 text-center">
+              Claim Bonus
+            </button>
           </div>
         </div>
       </div>
