@@ -19,6 +19,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import PerformanceCircle from "@/components/UI/PerformanceCircle";
+import MiniLineChart from "@/components/UI/MiniLineChart";
 
 export default function StationPage() {
   const stats = [
@@ -44,6 +45,10 @@ export default function StationPage() {
       color: "bg-amber-500/10 text-amber-500 border-amber-200",
     },
   ];
+
+  const eyeContactData = [70, 75, 82, 79, 85, 83, 88];
+  const fillerWordsData = [10, 8, 9, 7, 6, 5, 10];
+  const speakingPaceData = [142, 138, 135, 130, 128, 122, 125];
 
   const [activeSessionIndex, setActiveSessionIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState("right");
@@ -434,36 +439,90 @@ export default function StationPage() {
         <div className="w-full p-10 rounded-2xl border-bold px-5 py-4 col-span-2">
           <h3 className="text-xl font-bold">Your Speaking Summary</h3>
           <div className="grid grid-cols-3 gap-6 mt-7">
-            <div className="w-full col-span-1 rounded-xl bg-blue-100/50 p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-500/20 w-fit rounded-full">
-                  <Eye size={20} className="text-blue-500" />
+            <div className="w-full col-span-1 rounded-xl bg-blue-100/50 p-4 flex flex-col justify-between">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-500/20 w-fit rounded-full">
+                    <Eye size={20} className="text-blue-500" />
+                  </div>
+                  <span className="font-bold text-slate-700 text-sm">
+                    Eye Contact
+                  </span>
                 </div>
-                <span className="font-bold">Eye Contact</span>
+                <div className="flex items-center mt-4 gap-1">
+                  <span className="font-extrabold text-2xl text-slate-800 ">
+                    34
+                  </span>
+                  <span className="text-sm font-semibold text-slate-500">
+                    %
+                  </span>
+                </div>
               </div>
-              <span className="font-extrabold text-xl mt-5">78%</span>
+              <div className="w-full h-8 mt-1.5">
+                <MiniLineChart
+                  data={eyeContactData}
+                  color="#3b82f6"
+                  strokeWidth={1.8}
+                />
+              </div>
             </div>
-            <div className="w-full col-span-1 rounded-xl bg-orange-100/50 p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-orange-500/20 w-fit rounded-full">
-                  <AudioLines size={20} className="text-orange-500" />
+            <div className="w-full col-span-1 rounded-xl bg-orange-100/50 p-4 flex flex-col justify-between">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-orange-500/20 w-fit rounded-full">
+                    <AudioLines size={20} className="text-orange-500" />
+                  </div>
+                  <span className="font-bold text-slate-700 text-sm">
+                    Filler Words
+                  </span>
                 </div>
-                <span className="font-bold">Filler Words</span>
+                <div className="flex items-center mt-4 gap-1">
+                  <span className="font-extrabold text-2xl text-slate-800 ">
+                    4
+                  </span>
+                  <span className="text-sm font-semibold text-slate-500">
+                    times
+                  </span>
+                </div>
               </div>
-              <span className="font-extrabold text-xl mt-5">78%</span>
+              <div className="w-full h-8 mt-1.5">
+                <MiniLineChart
+                  data={fillerWordsData}
+                  color="#ea580c"
+                  strokeWidth={1.8}
+                />
+              </div>
             </div>
-            <div className="w-full col-span-1 rounded-xl bg-emerald-100/50 p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-emerald-500/20 w-fit rounded-full">
-                  <Timer size={20} className="text-emerald-500" />
+            <div className="w-full col-span-1 rounded-xl bg-emerald-100/50 p-4 flex flex-col justify-between">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-emerald-500/20 w-fit rounded-full">
+                    <Timer size={20} className="text-emerald-500" />
+                  </div>
+                  <span className="font-bold text-slate-700 text-sm">
+                    Speaking Pace
+                  </span>
                 </div>
-                <span className="font-bold">Eye Contact</span>
+                <div className="flex items-center mt-4 gap-1">
+                  <span className="font-extrabold text-2xl text-slate-800 ">
+                    125
+                  </span>
+                  <span className="text-sm font-semibold text-slate-500">
+                    wpm
+                  </span>
+                </div>
               </div>
-              <span className="font-extrabold text-xl mt-5">78%</span>
+              <div className="w-full h-8 mt-1.5">
+                <MiniLineChart
+                  data={speakingPaceData}
+                  color="#10b981"
+                  strokeWidth={1.8}
+                />
+              </div>
             </div>
           </div>
         </div>
-        <div className="w-full h-10 border-bold rounded-2xl"></div>
+        <div className="w-full border-bold rounded-2xl bg-white/50"></div>
       </div>
 
       {/* Main Grid Content */}
