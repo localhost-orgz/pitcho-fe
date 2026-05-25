@@ -1,21 +1,44 @@
+"use client";
+
 import {
   Angry,
   Annoyed,
+  AlertTriangle,
   Camera,
   Check,
+  CircleCheck,
   CircleQuestionMark,
   Download,
   Eye,
   Laugh,
+  Loader2,
   Mic,
   ScrollText,
   Smile,
+  Upload,
   Wifi,
+  X,
+  FileText,
 } from "lucide-react";
 import Image from "next/image";
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 export default function PresentationSetupPage() {
+  // Card 1: Upload state
+  const [uploadedFile, setUploadedFile] = useState(null);
+
+  // Card 2: Equipment check states
+  const [cameraStatus, setCameraStatus] = useState("unchecked");
+  const [micStatus, setMicStatus] = useState("unchecked");
+
+  // Card 3: Cue card state
+  const [cueCardStatus, setCueCardStatus] = useState("empty");
+
+  // Card 4: Simulation environment states
+  const [selectedDistraction, setSelectedDistraction] = useState(null);
+  const [selectedAudience, setSelectedAudience] = useState("classroom");
+  const [selectedDuration, setSelectedDuration] = useState("1");
+
   const cue_card = [
     "Start with a hook about the market trend",
     "Explain our products and why it matters",
@@ -23,6 +46,158 @@ export default function PresentationSetupPage() {
     "Share key numbers and projections",
     "End with a strong takeaway",
   ];
+
+  // Card 2: Check permissions on mount
+  useEffect(() => {
+    async function checkPermissions() {
+      try {
+        if (navigator.permissions) {
+          const camPerm = await navigator.permissions.query({ name: "camera" });
+          if (camPerm.state === "granted") setCameraStatus("ready");
+          else if (camPerm.state === "denied") setCameraStatus("denied");
+
+          const micPerm = await navigator.permissions.query({
+            name: "microphone",
+          });
+          if (micPerm.state === "granted") setMicStatus("ready");
+          else if (micPerm.state === "denied") setMicStatus("denied");
+        }
+      } catch {
+        // permissions API not supported, keep unchecked
+      }
+    }
+    checkPermissions();
+  }, []);
+
+  // Card 3: When uploadedFile changes from null to a value, trigger cue card loading
+  useEffect(() => {
+    if (uploadedFile) {
+      setCueCardStatus("loading");
+      const timer = setTimeout(() => {
+        setCueCardStatus("ready");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadedFile]);
+
+  const handleAllowCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setCameraStatus("ready");
+    } catch (err) {
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        setCameraStatus("denied");
+      } else {
+        setCameraStatus("error");
+      }
+    }
+  }, []);
+
+  const handleAllowMic = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setMicStatus("ready");
+    } catch (err) {
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        setMicStatus("denied");
+      } else {
+        setMicStatus("error");
+      }
+    }
+  }, []);
+
+  const handleUploadClick = () => {
+    setUploadedFile({
+      name: "business_strategy_q2.pdf",
+      pages: 12,
+      size: "2.4 MB",
+    });
+  };
+
+  const renderDeviceStatus = (status, type) => {
+    if (status === "ready") {
+      return (
+        <div className="flex items-center gap-2">
+          <Check size={12} className="text-green-500" />
+          <span className="text-xs text-slate-500">
+            {type === "camera" ? "Camera is Working" : "Microphone is Working"}
+          </span>
+        </div>
+      );
+    }
+    if (status === "error") {
+      return (
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={12} className="text-amber-500" />
+          <span className="text-xs text-amber-600">Device Error</span>
+        </div>
+      );
+    }
+    if (status === "denied") {
+      return (
+        <div className="flex items-center gap-2">
+          <X size={12} className="text-red-500" />
+          <span className="text-xs text-red-500">Permission Denied</span>
+          <button
+            onClick={type === "camera" ? handleAllowCamera : handleAllowMic}
+            className="text-xs font-semibold text-main hover:underline ml-1"
+          >
+            Allow Access
+          </button>
+        </div>
+      );
+    }
+    // unchecked
+    return (
+      <div className="flex items-center gap-2">
+        <X size={12} className="text-orange-400" />
+        <span className="text-xs text-slate-400">Not Checked Yet</span>
+        <button
+          onClick={type === "camera" ? handleAllowCamera : handleAllowMic}
+          className="text-xs font-semibold text-main hover:underline ml-1"
+        >
+          Allow Access
+        </button>
+      </div>
+    );
+  };
+
+  const distractions = [
+    {
+      key: "low",
+      label: "Low",
+      desc: "Minimal distractions",
+      icon: Laugh,
+      iconClass: "text-slate-500",
+      borderClass: "border-slate-400",
+    },
+    {
+      key: "medium",
+      label: "Medium",
+      desc: "Moderate distractions",
+      icon: Annoyed,
+      iconClass: "text-yellow-500",
+      borderClass: "border-yellow-400",
+    },
+    {
+      key: "hard",
+      label: "Hard",
+      desc: "Lots distractions",
+      icon: Angry,
+      iconClass: "text-red-500",
+      borderClass: "border-red-400",
+    },
+  ];
+
+  const durations = ["1", "3", "5", "10", "15"];
 
   return (
     <div className="w-full min-h-screen">
@@ -50,30 +225,62 @@ export default function PresentationSetupPage() {
           </div>
 
           {/* content */}
-          <div className="w-full p-4 bg-main/5 border border-main rounded-lg mt-5 flex items-center gap-3">
-            <Image
-              src={"/pdf.svg"}
-              height={100}
-              alt="file type"
-              width={100}
-              className="w-9 h-auto"
-            />
-            <div className="flex flex-col">
-              <span className="text-sm font-bold">
-                business_strategy_q2.pdf
-              </span>
-              <span className="text-xs text-slate-500">{`12 pages • 2.4 MB  `}</span>
-            </div>
-          </div>
+          {uploadedFile ? (
+            <>
+              <div className="w-full p-4 bg-main/5 border border-main rounded-lg mt-5 flex items-center gap-3">
+                <Image
+                  src={"/pdf.svg"}
+                  height={100}
+                  alt="file type"
+                  width={100}
+                  className="w-9 h-auto"
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold">{uploadedFile.name}</span>
+                  <span className="text-xs text-slate-500">{`${uploadedFile.pages} pages • ${uploadedFile.size}  `}</span>
+                </div>
+              </div>
 
-          {/*  */}
-          <div className="w-full mt-3 flex items-center justify-between">
-            <button className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4">
-              <Download size={15} />
-              Upload file
-            </button>
-            <span className="font-bold text-main text-sm">Replace File</span>
-          </div>
+              {/*  */}
+              <div className="w-full mt-3 flex items-center justify-between">
+                <button
+                  onClick={handleUploadClick}
+                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4"
+                >
+                  <Download size={15} />
+                  Upload file
+                </button>
+                <span className="font-bold text-main text-sm cursor-pointer">
+                  Replace File
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleUploadClick}
+                className="w-full p-6 mt-5 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-main hover:bg-main/5 transition-colors cursor-pointer"
+              >
+                <Upload size={24} className="text-slate-400" />
+                <span className="text-sm font-semibold text-slate-600">
+                  Drag & drop your file here
+                </span>
+                <span className="text-xs text-slate-400">
+                  or click to browse (PDF, PPTX, max 50MB)
+                </span>
+              </button>
+
+              <div className="w-full mt-3 flex items-center justify-between">
+                <button
+                  onClick={handleUploadClick}
+                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4"
+                >
+                  <Download size={15} />
+                  Upload file
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* card 2: equipemnt check */}
@@ -113,12 +320,7 @@ export default function PresentationSetupPage() {
                 </div>
                 <span className="font-semibold text-sm">Camera</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Check size={12} className="text-green-500" />
-                <span className="text-xs text-slate-500">
-                  Camera is Working
-                </span>
-              </div>
+              {renderDeviceStatus(cameraStatus, "camera")}
             </div>
             <div className="flex items-center justify-between">
               <div className="flex gap-2 items-center">
@@ -127,12 +329,7 @@ export default function PresentationSetupPage() {
                 </div>
                 <span className="font-semibold text-sm">Microphone</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Check size={12} className="text-green-500" />
-                <span className="text-xs text-slate-500">
-                  Microphone is Working
-                </span>
-              </div>
+              {renderDeviceStatus(micStatus, "mic")}
             </div>
           </div>
         </div>
@@ -162,28 +359,62 @@ export default function PresentationSetupPage() {
               <span className="font-bold text-sm">Cue Card Preview</span>
             </div>
 
-            <div className="flex flex-col">
-              {cue_card.map((point, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  {/* Timeline column */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-4 h-4 rounded-full border-2 border-slate-300 bg-white flex-shrink-0 mt-0.5" />
-                    {i < cue_card.length - 1 && (
-                      <div className="w-px flex-1 border-l-2 border-dashed border-slate-200 my-1 min-h-[24px]" />
-                    )}
-                  </div>
-                  {/* Text */}
-                  <span className="text-sm text-slate-600 pb-4">{point}</span>
-                </div>
-              ))}
-            </div>
+            {cueCardStatus === "empty" && (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <FileText size={32} className="text-amber-400" />
+                <span className="text-sm text-amber-700 font-medium text-center">
+                  Upload your presentation first to generate speaking notes
+                </span>
+              </div>
+            )}
 
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2">
-              <span className="text-amber-500 text-base">💡</span>
-              <span className="text-xs text-amber-700 font-medium">
-                Use this as a guide, not a script. Speak naturally!
-              </span>
-            </div>
+            {cueCardStatus === "loading" && (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <Loader2
+                  size={32}
+                  className="text-amber-500 animate-spin"
+                />
+                <span className="text-sm text-amber-700 font-medium">
+                  Generating your speaking notes...
+                </span>
+                <div className="w-full space-y-3 mt-2">
+                  <div className="h-3 bg-amber-200/60 rounded animate-pulse" />
+                  <div className="h-3 bg-amber-200/60 rounded animate-pulse w-4/5" />
+                  <div className="h-3 bg-amber-200/60 rounded animate-pulse w-3/5" />
+                  <div className="h-3 bg-amber-200/60 rounded animate-pulse w-4/5" />
+                  <div className="h-3 bg-amber-200/60 rounded animate-pulse w-2/5" />
+                </div>
+              </div>
+            )}
+
+            {cueCardStatus === "ready" && (
+              <>
+                <div className="flex flex-col">
+                  {cue_card.map((point, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      {/* Timeline column */}
+                      <div className="flex flex-col items-center">
+                        <div className="w-4 h-4 rounded-full border-2 border-slate-300 bg-white flex-shrink-0 mt-0.5" />
+                        {i < cue_card.length - 1 && (
+                          <div className="w-px flex-1 border-l-2 border-dashed border-slate-200 my-1 min-h-[24px]" />
+                        )}
+                      </div>
+                      {/* Text */}
+                      <span className="text-sm text-slate-600 pb-4">
+                        {point}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2">
+                  <span className="text-amber-500 text-base">💡</span>
+                  <span className="text-xs text-amber-700 font-medium">
+                    Use this as a guide, not a script. Speak naturally!
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -208,27 +439,33 @@ export default function PresentationSetupPage() {
               <CircleQuestionMark className="text-slate-400" size={15} />
             </div>
             <div className="grid grid-cols-3 gap-3 mt-3">
-              <div className="w-full py-4 flex flex-col justify-center items-center rounded-lg border border-slate-400">
-                <Laugh size={20} className="text-slate-500" />
-                <span className="text-xs font-bold mt-2">Low</span>
-                <span className="text-[10px] font-medium text-center text-slate-400">
-                  Minimal distractions
-                </span>
-              </div>
-              <div className="w-full py-4 flex flex-col justify-center items-center rounded-lg border border-yellow-400">
-                <Annoyed size={20} className="text-yellow-500" />
-                <span className="text-xs font-bold mt-2">Medium</span>
-                <span className="text-[10px] font-medium text-center text-slate-400">
-                  Moderate distractions
-                </span>
-              </div>
-              <div className="w-full py-4 flex flex-col justify-center items-center rounded-lg border border-red-400">
-                <Angry size={20} className="text-red-500" />
-                <span className="text-xs font-bold mt-2">Hard</span>
-                <span className="text-[10px] font-medium text-center text-slate-400">
-                  Lots distractions
-                </span>
-              </div>
+              {distractions.map((d) => {
+                const Icon = d.icon;
+                const isSelected = selectedDistraction === d.key;
+                return (
+                  <button
+                    key={d.key}
+                    onClick={() => setSelectedDistraction(d.key)}
+                    className={`relative w-full py-4 flex flex-col justify-center items-center rounded-lg border cursor-pointer transition-colors ${
+                      isSelected
+                        ? "border-main border-2"
+                        : d.borderClass
+                    }`}
+                  >
+                    {isSelected && (
+                      <CircleCheck
+                        size={18}
+                        className="absolute top-1.5 right-1.5 text-main fill-white"
+                      />
+                    )}
+                    <Icon size={20} className={d.iconClass} />
+                    <span className="text-xs font-bold mt-2">{d.label}</span>
+                    <span className="text-[10px] font-medium text-center text-slate-400">
+                      {d.desc}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -239,7 +476,14 @@ export default function PresentationSetupPage() {
               <CircleQuestionMark className="text-slate-400" size={15} />
             </div>
             <div className="grid grid-cols-3 gap-3 mt-3">
-              <div className="w-full col-span-1 py-4 px-5 flex flex-col justify-center items-center rounded-lg border border-slate-300">
+              <button
+                onClick={() => setSelectedAudience("classroom")}
+                className={`w-full col-span-1 py-4 px-5 flex flex-col justify-center items-center rounded-lg border cursor-pointer transition-colors ${
+                  selectedAudience === "classroom"
+                    ? "border-main border-2"
+                    : "border-slate-300"
+                }`}
+              >
                 <svg
                   width="512"
                   height="512"
@@ -250,15 +494,21 @@ export default function PresentationSetupPage() {
                 >
                   <path
                     d="M158.312 24.3651C159.468 24.3573 160.624 24.3495 161.816 24.3415C165.022 24.325 168.227 24.3309 171.433 24.3464C174.892 24.3577 178.35 24.3402 181.809 24.3265C188.583 24.3043 195.358 24.3091 202.132 24.3236C207.637 24.3348 213.142 24.3364 218.647 24.3309C219.431 24.3302 220.214 24.3294 221.021 24.3286C222.612 24.327 224.203 24.3254 225.795 24.3238C240.718 24.3095 255.642 24.3259 270.565 24.3528C283.373 24.3751 296.18 24.3712 308.987 24.3482C323.857 24.3214 338.727 24.3109 353.597 24.3262C355.182 24.3278 356.768 24.3294 358.353 24.3309C359.523 24.3321 359.523 24.3321 360.717 24.3333C366.216 24.3376 371.715 24.3303 377.214 24.3185C383.915 24.3045 390.615 24.3083 397.316 24.3349C400.736 24.3481 404.155 24.3532 407.574 24.3367C411.28 24.3231 414.983 24.3401 418.689 24.3651C420.313 24.3484 420.313 24.3484 421.971 24.3313C426.56 24.3916 429.232 24.515 433.169 27.0015C435.551 30.9027 435.682 34.1737 435.601 38.6117C435.606 39.4776 435.61 40.3435 435.614 41.2356C435.623 44.1365 435.595 47.036 435.568 49.9368C435.566 52.0163 435.567 54.0958 435.57 56.1754C435.571 61.8218 435.542 67.4677 435.507 73.114C435.476 79.0144 435.473 84.9147 435.467 90.8151C435.451 101.989 435.41 113.162 435.36 124.336C435.304 137.056 435.277 149.777 435.252 162.497C435.199 188.665 435.112 214.833 435 241C435.758 240.984 436.516 240.968 437.297 240.952C438.289 240.939 439.282 240.927 440.305 240.914C441.289 240.898 442.274 240.882 443.289 240.866C446.598 241.03 448.497 241.831 451 244C453.296 248.591 452.312 255.357 452.35 260.458C452.367 262.066 452.394 263.674 452.432 265.282C452.487 267.602 452.509 269.921 452.524 272.242C452.546 272.959 452.569 273.676 452.592 274.414C452.578 277.808 452.344 279.609 450.078 282.191C445.734 284.744 442.127 284.543 437.174 284.481C436.177 284.484 435.18 284.488 434.154 284.491C430.811 284.498 427.469 284.476 424.126 284.454C421.731 284.453 419.336 284.454 416.941 284.456C411.111 284.457 405.281 284.44 399.451 284.414C392.667 284.386 385.883 284.38 379.098 284.375C366.999 284.366 354.901 284.34 342.802 284.302C331.05 284.265 319.298 284.237 307.546 284.22C306.822 284.219 306.097 284.218 305.351 284.217C301.716 284.211 298.081 284.206 294.446 284.201C264.298 284.16 234.149 284.088 204 284C204 295.55 204 307.1 204 319C206.97 319.33 209.94 319.66 213 320C223.896 323.606 231.593 331.191 236.809 341.191C240.979 351.023 241.832 362.567 238.5 372.813C236.039 378.645 231.839 387.081 226 390C226.895 390.534 227.789 391.067 228.711 391.617C239.562 398.241 248.883 405.581 255 417C255 417.66 255 418.32 255 419C255.66 419 256.32 419 257 419C257.339 417.699 257.339 417.699 257.684 416.371C259.179 412.543 261.269 409.984 264.063 407.063C264.551 406.542 265.04 406.021 265.544 405.485C271.266 399.506 277.366 394.328 285 391C284.437 390.29 284.437 390.29 283.863 389.566C275.739 379.068 270.35 368.685 271.176 355.109C272.768 342.826 278.236 332.685 288 325C298.225 318.441 309.587 316.485 321.5 318.688C332.363 321.48 340.771 327.363 346.824 336.863C353.124 348.624 353.975 358.997 351 372C348.503 379.181 344.247 384.586 339 390C341.051 391.568 343.113 393.076 345.262 394.508C354.033 400.355 362.37 407.298 367 417C367 417.66 367 418.32 367 419C367.66 419 368.32 419 369 419C369.309 418.01 369.309 418.01 369.625 417C375.41 404.379 386.349 396.678 398 390C397.24 389.426 396.479 388.853 395.695 388.262C387.881 381.704 384.424 372.517 383.188 362.625C382.445 351.023 385.806 340.564 393.043 331.418C401.422 322.475 411.56 318.118 423.688 317.625C433.992 317.833 443.481 320.849 451 328C451.688 328.648 452.377 329.297 453.086 329.965C460.126 337.201 464.541 346.198 465.063 356.375C464.757 369.225 460.884 379.623 452 389C451.34 389.33 450.68 389.66 450 390C450.895 390.534 451.789 391.067 452.711 391.617C468.761 401.408 480.091 413.52 485.309 432.027C486.766 438.293 487.184 444.226 487.238 450.633C487.246 451.547 487.255 452.461 487.263 453.403C487.277 455.328 487.287 457.253 487.295 459.177C487.307 461.146 487.327 463.115 487.357 465.084C487.399 467.934 487.416 470.783 487.426 473.633C487.443 474.512 487.461 475.391 487.479 476.297C487.475 477.529 487.475 477.529 487.47 478.786C487.479 479.864 487.479 479.864 487.488 480.965C486.758 484.01 485.461 485.082 483 487C480.338 487.392 478.089 487.538 475.429 487.503C474.659 487.509 473.889 487.515 473.096 487.521C470.5 487.536 467.906 487.522 465.31 487.508C463.437 487.513 461.564 487.519 459.691 487.527C454.531 487.544 449.372 487.535 444.212 487.523C438.652 487.514 433.093 487.528 427.533 487.539C416.637 487.557 405.741 487.553 394.844 487.541C385.991 487.532 377.139 487.531 368.286 487.535C367.027 487.536 365.769 487.537 364.473 487.537C361.917 487.538 359.361 487.54 356.805 487.541C333.502 487.552 310.199 487.541 286.897 487.52C265.615 487.501 244.334 487.502 223.052 487.522C199.153 487.543 175.254 487.551 151.355 487.539C148.808 487.538 146.261 487.537 143.715 487.535C142.461 487.535 141.208 487.534 139.917 487.533C131.071 487.53 122.226 487.536 113.38 487.545C102.605 487.556 91.8299 487.553 81.055 487.532C75.5538 487.522 70.0528 487.517 64.5516 487.531C59.5207 487.543 54.4902 487.536 49.4594 487.515C47.6344 487.51 45.8094 487.513 43.9844 487.522C41.513 487.534 39.0428 487.522 36.5714 487.503C35.8547 487.513 35.138 487.522 34.3995 487.532C30.9924 487.48 29.2789 487.218 26.5587 485.092C24.843 482.789 24.4956 481.775 24.4825 478.944C24.4699 478.155 24.4573 477.367 24.4443 476.554C24.4565 475.282 24.4565 475.282 24.4689 473.984C24.465 473.096 24.4612 472.207 24.4573 471.292C24.4546 469.405 24.4619 467.519 24.4786 465.633C24.4997 462.801 24.479 459.972 24.4532 457.141C24.423 437.694 27.7796 419.786 41.715 405.246C47.9997 399.069 54.2891 394.314 62.0001 390C60.9482 389.319 60.9482 389.319 59.8751 388.625C53.0639 382.406 48.1466 372.754 47.5314 363.484C47.4974 361.907 47.4876 360.328 47.5001 358.75C47.5051 357.92 47.5101 357.089 47.5153 356.233C47.7154 349.125 49.1399 343.069 53.0001 337C53.4791 336.554 53.9582 336.108 54.4517 335.648C58.137 332.13 59.4236 329.455 59.7327 324.348C59.7555 322.089 59.7456 319.829 59.7096 317.57C59.7138 316.332 59.718 315.093 59.7223 313.817C59.7274 311.133 59.7217 308.451 59.6974 305.767C59.6594 301.512 59.6652 297.257 59.677 293.002C59.6938 284.726 59.6658 276.451 59.6336 268.176C59.595 257.665 59.5791 247.155 59.5988 236.644C59.6052 232.426 59.5912 228.21 59.5603 223.992C59.5411 220.73 59.5476 217.469 59.5494 214.207C59.535 213.058 59.5205 211.91 59.5056 210.726C59.5544 200.553 61.6514 190.507 67.5001 182C68.0673 181.154 68.6345 180.309 69.2189 179.438C79.4879 165.385 93.1454 159.226 109.887 156.48C110.914 156.322 111.942 156.163 113 156C112.541 155.466 112.082 154.933 111.609 154.383C101.79 142.459 99.7885 130.085 101 115C103.223 103.506 109.78 93.2039 119 86C124.932 82.379 130.705 79.0995 137.729 78.4158C138.531 78.3351 139.333 78.2545 140.16 78.1714C140.767 78.1148 141.374 78.0583 142 78C141.989 77.4098 141.978 76.8195 141.966 76.2114C141.856 70.0634 141.78 63.9156 141.725 57.7669C141.7 55.4728 141.666 53.1788 141.623 50.885C141.562 47.5859 141.534 44.2879 141.512 40.9883C141.486 39.9642 141.46 38.94 141.434 37.8849C141.433 36.9242 141.433 35.9636 141.432 34.9739C141.421 34.1323 141.41 33.2907 141.399 32.4236C143.553 23.7394 150.992 24.2897 158.312 24.3651ZM156 39C156 51.87 156 64.74 156 78C158.64 78.99 161.28 79.98 164 81C176.75 86.3138 184.544 94.2547 190.254 106.742C194.724 118.236 194.362 130.429 190.352 142.012C188.178 146.817 185.21 150.847 182 155C181.67 155.66 181.34 156.32 181 157C205.159 160.218 205.159 160.218 227.231 153.93C230.115 150.718 232.075 147.108 233.886 143.207C235.742 139.53 238.378 136.526 241 133.375C241.858 132.281 242.712 131.185 243.563 130.086C244.367 129.068 245.171 128.049 246 127C246.411 126.462 246.821 125.924 247.244 125.369C249.875 122.025 252.206 119.97 256.063 118.188C256.899 117.789 257.736 117.391 258.598 116.98C265.892 114.003 272.61 114.38 279.899 117.098C286.408 119.893 290.14 123.605 293 130C295.601 138.247 295.637 145.75 291.723 153.543C287.477 160.571 282.225 166.879 277.051 173.234C274.267 176.655 271.554 180.123 268.875 183.625C268.075 184.67 267.274 185.716 266.449 186.793C265.633 187.862 264.816 188.931 264 190C262.231 192.314 260.46 194.626 258.688 196.938C257.908 197.957 257.128 198.977 256.324 200.027C255.557 201.008 254.79 201.989 254 203C253.34 204.035 252.68 205.069 252.001 206.136C250.316 208.134 249.368 208.905 246.815 209.564C244.085 209.791 241.408 209.831 238.668 209.805C237.676 209.818 236.685 209.832 235.663 209.846C232.504 209.884 229.347 209.88 226.188 209.875C224.042 209.893 221.897 209.914 219.752 209.938C214.501 209.994 209.253 209.996 204 210C204 220.23 204 230.46 204 241C275.61 241 347.22 241 421 241C421 174.34 421 107.68 421 39C333.55 39 246.1 39 156 39ZM123.25 101.816C116.649 109.986 114.277 118.209 114.617 128.668C115.163 133.421 116.496 136.954 119 141C119.413 141.697 119.825 142.395 120.25 143.113C125.143 150.494 132.571 154.66 141 157C151.148 157.98 159.362 156.845 167.688 150.875C175.048 144.801 179.857 136.856 180.813 127.313C181.431 118.144 178.742 110.173 173 103C165.985 95.4938 158.127 91.4816 147.828 90.9063C138.306 91.2219 129.859 94.9566 123.25 101.816ZM258.613 133.207C251.063 141.757 244.049 150.665 237.152 159.746C236.696 160.345 236.24 160.944 235.77 161.561C234.9 162.705 234.034 163.852 233.172 165.001C230.221 168.889 230.221 168.889 228 170C226.426 170.098 224.848 170.133 223.271 170.138C222.273 170.143 221.275 170.149 220.247 170.155C218.598 170.156 218.598 170.156 216.916 170.158C215.184 170.165 215.184 170.165 213.417 170.173C210.902 170.184 208.386 170.192 205.871 170.199C201.886 170.211 197.901 170.23 193.916 170.252C182.582 170.314 171.248 170.368 159.914 170.401C153.657 170.42 147.4 170.449 141.144 170.489C137.836 170.51 134.528 170.524 131.22 170.528C127.519 170.533 123.82 170.556 120.119 170.584C119.036 170.581 117.953 170.577 116.837 170.574C104.99 170.703 94.6886 173.991 85.7697 182.004C78.7397 189.377 73.9193 198.62 73.8419 208.923C73.8321 209.913 73.8223 210.903 73.8122 211.923C73.8065 213.002 73.8007 214.082 73.7948 215.194C73.7849 216.336 73.775 217.478 73.7648 218.654C73.7332 222.431 73.7084 226.208 73.6837 229.984C73.6631 232.602 73.6421 235.219 73.6207 237.837C73.5709 244.024 73.5259 250.211 73.4827 256.398C73.4333 263.443 73.3784 270.487 73.323 277.532C73.2093 292.021 73.1024 306.511 73.0001 321C73.6886 320.858 74.377 320.717 75.0863 320.571C75.9884 320.387 76.8905 320.204 77.8199 320.014C78.7146 319.831 79.6093 319.649 80.5311 319.46C83.1006 318.981 85.5119 318.762 88.1251 318.813C89.2427 318.822 89.2427 318.822 90.3829 318.832C93.946 319.061 97.4583 319.548 101 320C101.003 319.446 101.005 318.892 101.007 318.322C101.066 304.851 101.142 291.381 101.236 277.911C101.281 271.397 101.32 264.883 101.347 258.369C101.373 252.086 101.413 245.803 101.463 239.52C101.48 237.12 101.492 234.719 101.498 232.318C101.507 228.964 101.535 225.609 101.568 222.255C101.566 221.256 101.565 220.256 101.563 219.227C101.576 218.314 101.588 217.401 101.601 216.461C101.606 215.667 101.611 214.874 101.615 214.056C102.104 211.447 102.856 210.538 105 209C108.563 209.063 108.563 209.063 112 210C113.989 212.914 114.246 215.32 114.231 218.793C114.233 219.755 114.234 220.716 114.235 221.707C114.226 222.755 114.217 223.804 114.208 224.884C114.206 226.548 114.206 226.548 114.204 228.246C114.201 230.656 114.194 233.066 114.183 235.476C114.168 239.293 114.17 243.109 114.176 246.926C114.195 257.778 114.202 268.631 114.155 279.483C114.126 286.121 114.133 292.758 114.162 299.396C114.166 301.924 114.157 304.451 114.136 306.979C114.107 310.52 114.121 314.058 114.145 317.599C114.126 318.639 114.107 319.679 114.088 320.751C114.191 327.378 115.553 330.712 120.329 335.359C126.098 341.023 127.74 350.367 128.063 358.133C127.8 370.199 122.609 381.155 114.25 389.813C113.838 390.204 113.425 390.596 113 391C113.678 391.329 114.356 391.657 115.055 391.996C125.138 397.149 132.786 403.792 139.43 412.957C141.128 415.166 142.995 417.069 145 419C145.601 417.966 145.601 417.966 146.215 416.91C153.729 404.49 162.37 397.594 175 391C174.625 390.576 174.25 390.152 173.863 389.715C164.668 379.176 160.038 370.374 160 356C160.754 345.239 165.894 334.98 173.781 327.684C177.56 324.816 181.675 322.898 186 321C187.336 320.338 188.669 319.672 190 319C190.003 318.407 190.005 317.814 190.007 317.202C190.067 302.763 190.142 288.324 190.236 273.886C190.281 266.903 190.32 259.92 190.347 252.938C190.372 246.201 190.413 239.464 190.463 232.728C190.48 230.155 190.492 227.583 190.498 225.011C190.507 221.413 190.535 217.815 190.568 214.216C190.566 212.616 190.566 212.616 190.563 210.984C190.685 201.442 190.685 201.442 194 198C196.116 197.448 196.116 197.448 198.588 197.547C199.517 197.569 200.445 197.592 201.402 197.615C202.405 197.659 203.408 197.704 204.442 197.75C206.574 197.782 208.706 197.812 210.838 197.84C214.195 197.91 217.548 197.999 220.903 198.133C234.023 199.269 234.023 199.269 245.511 194.355C248.207 191.186 250.064 187.67 252 184C253.191 182.388 254.417 180.8 255.688 179.25C256.236 178.546 256.785 177.842 257.35 177.116C258.167 176.069 258.167 176.069 259 175C264.693 167.686 270.378 160.368 276 153C276.557 152.294 277.114 151.587 277.688 150.859C280.423 147.285 282 144.556 282 140C280.409 134.875 278.659 131.753 274 129C267.465 127.218 263.545 128.647 258.613 133.207ZM204 255C204 259.95 204 264.9 204 270C281.22 270 358.44 270 438 270C438 265.05 438 260.1 438 255C360.78 255 283.56 255 204 255ZM67.0001 342C61.8773 349.178 61.0843 356.364 62.0001 365C64.6877 373.879 70.4521 379.236 78.1876 383.938C85.6791 386.025 93.1938 386.245 100.375 383C107.008 379.171 112.243 373.59 114.563 366.195C116.195 358.005 115.268 351.174 111 344C107.081 338.178 101.715 334.466 95.0157 332.383C83.9933 330.289 74.5416 333.753 67.0001 342ZM178 343C173.728 349.265 172.223 356.071 173.406 363.578C175.33 371.043 178.967 376.599 185 381.375C192.415 385.391 200.043 386.271 208.344 384.5C216.315 381.802 221.243 376.33 225 369C227.749 362.378 227.459 355.544 225.281 348.762C222.137 341.783 217.174 336.688 210.188 333.563C197.943 329.283 185.943 332.669 178 343ZM290 343C285.981 348.784 284.6 354.99 285 362C286.974 370.73 290.535 376.883 298.063 381.813C304.31 385.635 310.823 385.65 318 385C324.609 383.155 330.62 379.619 334.442 373.809C338.533 366.359 340.031 359.356 338.125 351C335.689 344.011 330.822 338.354 324.539 334.484C311.877 328.813 298.49 331.981 290 343ZM402.695 341.656C398.427 347.557 396.057 354.728 397 362C398.86 370.441 402.835 377.221 410.188 381.938C416.563 385.647 422.764 385.605 430 385C436.614 383.202 442.629 379.605 446.442 373.809C450.533 366.359 452.031 359.356 450.125 351C447.689 344.011 442.822 338.354 436.539 334.484C424.283 328.994 411.752 331.829 402.695 341.656ZM273.215 417.938C260.007 434.152 263 452.484 263 473C295.34 473 327.68 473 361 473C361.872 439.854 361.872 439.854 346.449 413.324C336.13 403.532 324.009 398.593 309.774 398.785C294.627 399.959 283.321 406.969 273.215 417.938ZM385.215 417.938C372.007 434.152 375 452.484 375 473C407.34 473 439.68 473 473 473C473.872 439.854 473.872 439.854 458.449 413.324C448.13 403.532 436.009 398.593 421.774 398.785C406.627 399.959 395.321 406.969 385.215 417.938ZM51.6603 415.957C36.8655 434.163 39.0001 448.479 39.0001 473C71.3401 473 103.68 473 137 473C137.791 440.512 137.791 440.512 122.688 414.188C118.572 410.356 113.986 407.563 109 405C108.202 404.584 107.404 404.167 106.582 403.738C88.3519 395.683 65.0282 401.641 51.6603 415.957ZM161 419C148.739 436.21 151 450.931 151 473C183.34 473 215.68 473 249 473C249.791 440.512 249.791 440.512 234.688 414.188C230.572 410.356 225.986 407.563 221 405C220.202 404.584 219.404 404.167 218.582 403.738C198.727 394.965 174.421 402.751 161 419Z"
-                    fill="#62748E"
+                    fill={selectedAudience === "classroom" ? "#0388ff" : "#62748E"}
                   />
                 </svg>
 
-                <span className="text-xs font-bold text-slate-500 mt-2">
+                <span
+                  className={`text-xs font-bold mt-2 ${
+                    selectedAudience === "classroom"
+                      ? "text-main font-bold"
+                      : "text-slate-500"
+                  }`}
+                >
                   Classroom
                 </span>
-              </div>
-              <div className="w-full col-span-1 py-4 px-5 flex flex-col justify-center items-center rounded-lg border border-slate-300">
+              </button>
+              <div className="w-full col-span-1 py-4 px-5 flex flex-col justify-center items-center rounded-lg border border-slate-300 opacity-50 cursor-not-allowed">
                 <svg
                   width="512"
                   height="512"
@@ -280,8 +530,11 @@ export default function PresentationSetupPage() {
                 <span className="text-xs font-bold text-slate-500 mt-2">
                   Conference
                 </span>
+                <span className="text-[10px] text-slate-400 mt-0.5">
+                  Coming Soon
+                </span>
               </div>
-              <div className="w-full col-span-1 py-4 px-5 flex flex-col justify-center items-center rounded-lg border border-slate-300">
+              <div className="w-full col-span-1 py-4 px-5 flex flex-col justify-center items-center rounded-lg border border-slate-300 opacity-50 cursor-not-allowed">
                 <svg
                   width="512"
                   height="512"
@@ -290,7 +543,7 @@ export default function PresentationSetupPage() {
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-10 h-auto"
                 >
-                  <g clip-path="url(#clip0_403_26)">
+                  <g clipPath="url(#clip0_403_26)">
                     <path
                       d="M154.103 39.4967C155.363 39.4863 156.622 39.4758 157.92 39.4651C159.32 39.4737 160.721 39.4828 162.121 39.4921C163.607 39.4875 165.092 39.4812 166.578 39.4732C170.666 39.4565 174.753 39.4648 178.841 39.4772C183.248 39.4862 187.654 39.4723 192.06 39.4612C200.694 39.4434 209.329 39.4473 217.963 39.4589C224.978 39.4679 231.994 39.4692 239.009 39.4648C240.007 39.4642 241.004 39.4636 242.032 39.4629C244.058 39.4617 246.084 39.4604 248.11 39.4591C267.121 39.4476 286.132 39.4608 305.143 39.4823C321.465 39.5001 337.787 39.497 354.109 39.4786C373.051 39.4572 391.993 39.4487 410.935 39.461C412.953 39.4623 414.972 39.4636 416.991 39.4648C418.481 39.4657 418.481 39.4657 420.001 39.4667C427.01 39.4701 434.02 39.4643 441.029 39.4549C449.568 39.4437 458.106 39.4467 466.645 39.468C471.004 39.4785 475.363 39.4826 479.722 39.4694C483.709 39.4575 487.696 39.464 491.683 39.4853C493.129 39.4898 494.574 39.4875 496.02 39.4778C497.979 39.4657 499.938 39.4805 501.897 39.4967C503.532 39.4977 503.532 39.4977 505.2 39.4987C508.718 40.1286 509.897 41.1441 512 44.0001C512.501 46.0824 512.501 46.0824 512.503 48.3542C512.514 49.2236 512.524 50.0929 512.535 50.9887C512.526 51.9392 512.517 52.8898 512.508 53.8692C512.517 55.3892 512.517 55.3892 512.527 56.9399C512.543 60.3456 512.53 63.7506 512.518 67.1563C512.523 69.5937 512.53 72.0312 512.539 74.4686C512.555 80.4078 512.553 86.3468 512.541 92.2859C512.532 97.1123 512.531 101.939 512.535 106.765C512.536 107.452 512.537 108.138 512.537 108.846C512.538 110.24 512.54 111.635 512.541 113.03C512.553 126.112 512.539 139.194 512.518 152.277C512.5 163.505 512.503 174.733 512.522 185.961C512.543 198.996 512.551 212.031 512.539 225.066C512.538 226.456 512.537 227.846 512.535 229.235C512.534 230.261 512.534 230.261 512.533 231.307C512.53 236.128 512.536 240.95 512.545 245.771C512.558 252.258 512.549 258.746 512.526 265.233C512.52 267.618 512.522 270.003 512.531 272.388C512.542 275.636 512.528 278.883 512.508 282.131C512.521 283.557 512.521 283.557 512.535 285.011C512.491 288.689 512.365 291.29 510.672 294.587C506.217 296.943 501.696 296.534 496.737 296.481C494.993 296.486 494.993 296.486 493.213 296.491C489.983 296.497 486.755 296.484 483.526 296.464C480.044 296.447 476.562 296.453 473.08 296.456C467.047 296.458 461.014 296.445 454.982 296.423C446.259 296.39 437.537 296.38 428.814 296.375C414.663 296.366 400.512 296.34 386.36 296.302C372.613 296.265 358.866 296.237 345.118 296.22C344.271 296.219 343.424 296.218 342.551 296.217C338.3 296.211 334.05 296.206 329.8 296.201C294.533 296.16 259.267 296.089 224 296C224 290.72 224 285.44 224 280C313.76 280 403.52 280 496 280C496 206.08 496 132.16 496 56.0001C385.12 56.0001 274.24 56.0001 160 56.0001C160 63.9201 160 71.8401 160 80.0001C154.72 80.0001 149.44 80.0001 144 80.0001C143.908 74.9454 143.829 69.8937 143.78 64.8389C143.76 63.1201 143.733 61.4013 143.698 59.6827C143.65 57.2102 143.627 54.7386 143.609 52.2657C143.589 51.4989 143.568 50.7321 143.547 49.942C143.545 46.6166 143.624 44.5026 145.647 41.7966C148.661 39.4956 150.334 39.4989 154.103 39.4967Z"
                       fill="#62748E"
@@ -354,6 +607,9 @@ export default function PresentationSetupPage() {
                 <span className="text-xs font-bold text-slate-500 mt-2">
                   Seminar
                 </span>
+                <span className="text-[10px] text-slate-400 mt-0.5">
+                  Coming Soon
+                </span>
               </div>
             </div>
           </div>
@@ -363,32 +619,20 @@ export default function PresentationSetupPage() {
               <h6 className="text-sm font-bold">Session Length</h6>
               <CircleQuestionMark className="text-slate-400" size={15} />
             </div>
-            <div className="grid grid-cols-5 gap-3 mt-3">
-              <div className="w-full col-span-1 py-1 border-2 rounded flex justify-center">
-                <span className="font-semibold text-sm text-slate-400">
-                  1 min
-                </span>
-              </div>
-              <div className="w-full col-span-1 py-1 border-2 rounded flex justify-center">
-                <span className="font-semibold text-sm text-slate-400">
-                  3 min
-                </span>
-              </div>
-              <div className="w-full col-span-1 py-1 border-2 rounded flex justify-center">
-                <span className="font-semibold text-sm text-slate-400">
-                  5 min
-                </span>
-              </div>
-              <div className="w-full col-span-1 py-1 border-2 rounded flex justify-center">
-                <span className="font-semibold text-sm text-slate-400">
-                  10 min
-                </span>
-              </div>
-              <div className="w-full col-span-1 py-1 border-2 rounded flex justify-center">
-                <span className="font-semibold text-sm text-slate-400">
-                  15 min
-                </span>
-              </div>
+            <div className="flex flex-wrap gap-3 mt-3">
+              {durations.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setSelectedDuration(d)}
+                  className={`py-1 px-4 border-2 rounded flex justify-center cursor-pointer transition-colors ${
+                    selectedDuration === d
+                      ? "border-main text-main"
+                      : "border-slate-300 text-slate-500"
+                  }`}
+                >
+                  <span className="font-semibold text-sm">{d} min</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
