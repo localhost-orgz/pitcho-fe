@@ -18,7 +18,7 @@ const buttonVariants = cva(
           "bg-green-500 text-primary-foreground hover:bg-green-500/90 border-green-600 border-b-[5px] active:border-b-0",
         secondaryOutline: "bg-white text-green-500 hover:bg-slate-100",
         danger:
-          "bg-rose-500 text-primary-foreground hover:bg-rose-500/90 border-rose-600 cborder-b-[5px] active:border-b-0",
+          "bg-rose-500 text-primary-foreground hover:bg-rose-500/90 border-rose-600 border-b-[5px] active:border-b-0",
         dangerOutline:
           "bg-white text-rose-500 hover:bg-slate-100 cursor-pointer",
         sidebar:
@@ -68,7 +68,7 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 
 function Button({ className, variant, size, asChild = false, ...props }) {
