@@ -1,4 +1,4 @@
-use client";
+"use client";
 
 // src/app/presentation/session/page.js
 
@@ -35,15 +35,6 @@ const KEY_POINTS = [
   "Discuss challenges faced by remote teams.",
   "Share strategies to overcome those challenges.",
   "End with your takeaways and a strong closing.",
-];
-
-// ── Distraction types listed in cue card ──────────────────
-const DISTRACTION_TYPES = [
-  { icon: Mic, label: "Coughing" },
-  { icon: Monitor, label: "Door opening" },
-  { icon: Activity, label: "Falling objects" },
-  { icon: Camera, label: "Phone usage" },
-  { icon: Eye, label: "Side conversations" },
 ];
 
 // ── Equipment Status Bar ───────────────────────────────────
@@ -357,22 +348,56 @@ export default function PresentationSessionPage() {
   // Determine eye-contact status based on cumulative look-away count
   // Scale: 0 → Excellent | 1-2 → Good | 3-5 → Fair | 6-9 → Poor | 10+ → Very Poor
   const getEyeContactTier = (count) => {
-    if (!eyeTrackingActive) return { label: "Starting…", textClass: "text-slate-400", dotClass: "bg-slate-300" };
-    if (count === 0)   return { label: "Excellent",  textClass: "text-green-600",  dotClass: "bg-green-500" };
-    if (count <= 2)    return { label: "Good",        textClass: "text-green-600",  dotClass: "bg-green-500" };
-    if (count <= 5)    return { label: "Fair",        textClass: "text-amber-500",  dotClass: "bg-amber-400" };
-    if (count <= 9)    return { label: "Poor",        textClass: "text-orange-500", dotClass: "bg-orange-400" };
-    return               { label: "Very Poor",   textClass: "text-red-500",    dotClass: "bg-red-500" };
+    if (!eyeTrackingActive)
+      return {
+        label: "Starting…",
+        textClass: "text-slate-400",
+        dotClass: "bg-slate-300",
+      };
+    if (count === 0)
+      return {
+        label: "Excellent",
+        textClass: "text-green-600",
+        dotClass: "bg-green-500",
+      };
+    if (count <= 2)
+      return {
+        label: "Good",
+        textClass: "text-green-600",
+        dotClass: "bg-green-500",
+      };
+    if (count <= 5)
+      return {
+        label: "Fair",
+        textClass: "text-amber-500",
+        dotClass: "bg-amber-400",
+      };
+    if (count <= 9)
+      return {
+        label: "Poor",
+        textClass: "text-orange-500",
+        dotClass: "bg-orange-400",
+      };
+    return {
+      label: "Very Poor",
+      textClass: "text-red-500",
+      dotClass: "bg-red-500",
+    };
   };
 
   const eyeContactTier = getEyeContactTier(lookAwayCount);
   // Override label to show currently-distracted state, but keep tier color for the status word
-  const eyeContactStatus = trackerStatus === "warning" ? "Distracted!" : eyeContactTier.label;
-  const eyeContactStatusClass = trackerStatus === "warning" ? "text-orange-500 animate-pulse" : eyeContactTier.textClass;
+  const eyeContactStatus =
+    trackerStatus === "warning" ? "Distracted!" : eyeContactTier.label;
+  const eyeContactStatusClass =
+    trackerStatus === "warning"
+      ? "text-orange-500 animate-pulse"
+      : eyeContactTier.textClass;
   // Dot pulses red while actively looking away, otherwise reflects cumulative tier
-  const eyeContactIndicatorClass = trackerStatus === "warning"
-    ? "bg-red-500 animate-pulse"
-    : eyeContactTier.dotClass;
+  const eyeContactIndicatorClass =
+    trackerStatus === "warning"
+      ? "bg-red-500 animate-pulse"
+      : eyeContactTier.dotClass;
 
   const distractionsRef = useRef([
     "Coughing",
@@ -389,11 +414,7 @@ export default function PresentationSessionPage() {
       <header className="flex items-center justify-between px-6 py-3 border-b-2 border-border bg-white z-10 shrink-0">
         <div className="flex items-center gap-3">
           <span className="font-bold text-slate-800 tracking-tight text-lg">
-            Presentation Simulation
-          </span>
-          {/* Distraction Badge */}
-          <span className="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-md">
-            High Distraction
+            Interview Simulation
           </span>
 
           {/* Eye Tracking Status Badge */}
@@ -419,7 +440,11 @@ export default function PresentationSessionPage() {
         </div>
 
         {/* End Session Button */}
-        <Button variant={"danger"} size="sm" className="flex items-center gap-1.5 font-bold">
+        <Button
+          variant={"danger"}
+          size="sm"
+          className="flex items-center gap-1.5 font-bold"
+        >
           <MonitorX size={14} />
           End Session
         </Button>
@@ -427,19 +452,8 @@ export default function PresentationSessionPage() {
 
       {/* ── Audience Alert Banner ───────────────────────────── */}
       <div className="flex items-center gap-3 px-6 py-2.5 bg-violet-50 border-b-2 border-violet-100 shrink-0">
-        <div className="p-1.5 bg-violet-100 rounded-full">
-          <CircleAlert size={15} className="text-violet-600" />
-        </div>
         <div className="flex-1 flex items-center justify-between">
-          <div>
-            <span className="font-bold text-sm text-violet-800">
-              Audience Alert&nbsp;
-            </span>
-            <span className="text-sm text-violet-600">
-              Unexpected events will test your focus and composure. Stay calm
-              and keep going!
-            </span>
-          </div>
+          <div></div>
           {/* Session Timer & Disclaimer */}
           <div className="flex items-center gap-4 text-slate-700">
             <span className="text-[10px] text-slate-400 font-semibold italic">
@@ -465,7 +479,10 @@ export default function PresentationSessionPage() {
         {/* Left: Classroom Viewport + Camera + Live Feedback */}
         <div className="flex-1 flex flex-col overflow-hidden p-4 gap-4 bg-[#f3f7fd]">
           {/* Classroom Wireframe */}
-          <div className="flex-1 min-h-0 w-full flex items-center justify-center" style={{ containerType: "size" }}>
+          <div
+            className="flex-1 min-h-0 w-full flex items-center justify-center"
+            style={{ containerType: "size" }}
+          >
             <div
               className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100 relative overflow-hidden"
               style={{
@@ -504,7 +521,9 @@ export default function PresentationSessionPage() {
                 <span className="text-slate-400 text-xs font-bold">Zzz...</span>
               </div>
               <div className="absolute top-8 left-1/3 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-bl-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">*cough*</span>
+                <span className="text-slate-400 text-xs font-bold">
+                  *cough*
+                </span>
               </div>
               <div className="absolute top-4 right-12 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-br-none px-3 py-1.5 opacity-50">
                 <span className="text-slate-400 text-xs font-bold">!</span>
@@ -550,7 +569,9 @@ export default function PresentationSessionPage() {
                     >
                       <Eye size={9} />
                       <span>
-                        {trackerStatus === "warning" ? "DISTRACTED" : "TRACKING"}
+                        {trackerStatus === "warning"
+                          ? "DISTRACTED"
+                          : "TRACKING"}
                       </span>
                     </div>
                   )}
@@ -645,7 +666,9 @@ export default function PresentationSessionPage() {
                           Speaking Pace
                         </span>
                       </div>
-                      <span className="text-sm font-bold text-green-600">Good</span>
+                      <span className="text-sm font-bold text-green-600">
+                        Good
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -680,122 +703,81 @@ export default function PresentationSessionPage() {
           <div className="flex border-b-2 border-border px-4 pt-3 gap-4 shrink-0">
             <button
               onClick={() => setActiveTab("cuecard")}
-              className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
-                activeTab === "cuecard"
-                  ? "border-main text-main"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
+              className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer border-main text-main`}
             >
-              Cue Card
-            </button>
-            <button
-              onClick={() => setActiveTab("notes")}
-              className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
-                activeTab === "notes"
-                  ? "border-main text-main"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              Notes
+              Qestion
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {activeTab === "cuecard" ? (
-              <>
-                {/* Presentation Title */}
-                <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">
-                    Presentation Title
-                  </p>
-                  <p className="font-bold text-slate-800 text-sm leading-snug">
-                    The Future of Remote Work
-                  </p>
-                </div>
-
-                {/* Key Points */}
-                <div>
-                  <div className="mb-3">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                      Key Points
-                    </span>
-                  </div>
-
-                  {/* Timeline */}
-                  <div className="flex flex-col">
-                    {KEY_POINTS.map((point, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        {/* Timeline column — always blue */}
-                        <div className="flex flex-col items-center shrink-0">
-                          <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
-                          {i < KEY_POINTS.length - 1 && (
-                            <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
-                          )}
-                        </div>
-
-                        {/* Text — always neutral */}
-                        <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
-                          {point}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tip */}
-                <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
-                  <Lightbulb
-                    size={15}
-                    className="text-amber-500 shrink-0 mt-0.5"
-                  />
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">
-                      Tip
-                    </p>
-                    <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                      Glance at your notes, then look back at your audience!
-                    </p>
-                  </div>
-                </div>
-
-                {/* Distractions may include */}
-                <div className="pt-2 border-t-2 border-border">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3">
-                    Distractions may include:
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {DISTRACTION_TYPES.map(({ icon: Icon, label }) => (
-                      <div key={label} className="flex items-center gap-2">
-                        <Icon size={12} className="text-slate-400 shrink-0" />
-                        <span className="text-xs font-semibold text-slate-500">
-                          {label}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="flex items-center gap-2">
-                      <Activity size={12} className="text-slate-400" />
-                      <span className="text-xs font-semibold text-slate-500">
-                        And more...
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Notes Tab */
-              <div className="flex flex-col gap-3">
-                <p className="text-xs font-bold text-slate-400">
-                  Your personal notes for this session.
+            <>
+              <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
+                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">
+                  Current Question
                 </p>
-                <textarea
-                  className="w-full h-64 text-sm text-slate-700 border-2 border-border rounded-xl p-3 resize-none focus:outline-none focus:border-main font-medium placeholder:text-slate-300"
-                  placeholder="Type your notes here..."
-                />
-                <p className="text-[10px] text-slate-300 font-medium">
-                  Notes are only visible to you.
+                <p className="font-semibold text-slate-800 leading-snug mt-2">
+                  If your team had different opinions about which feature should
+                  be prioritized, how would you handle the conflict and help the
+                  team reach a decision?
                 </p>
+                <div className="w-full border my-3 border-slate-300/50"></div>
+                <div className="flex flex-col gap-3">
+                  <span className="text-xs font-bold text-slate-500">
+                    Why we ask this?
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
+                    We ask this question to understand how you handle teamwork,
+                    communication, and conflict resolution in a professional
+                    environment.
+                  </span>
+                </div>
               </div>
-            )}
+
+              {/* Key Points */}
+              <div>
+                <div className="mb-3">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                    Key Points
+                  </span>
+                </div>
+
+                {/* Timeline */}
+                <div className="flex flex-col">
+                  {KEY_POINTS.map((point, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      {/* Timeline column — always blue */}
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
+                        {i < KEY_POINTS.length - 1 && (
+                          <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
+                        )}
+                      </div>
+
+                      {/* Text — always neutral */}
+                      <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
+                        {point}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tip */}
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
+                <Lightbulb
+                  size={15}
+                  className="text-amber-500 shrink-0 mt-0.5"
+                />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">
+                    Tip
+                  </p>
+                  <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                    Glance at your notes, then look back at your audience!
+                  </p>
+                </div>
+              </div>
+            </>
           </div>
         </div>
       </div>
