@@ -2,7 +2,7 @@
 
 // src/app/presentation/session/page.js
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Camera,
   Mic,
@@ -22,8 +22,11 @@ import {
   AlertTriangle,
   Activity,
   MonitorX,
+  ScanFace,
+  Crosshair,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
+import { useFaceTracker } from "@/hooks/useFaceTracker";
 
 // ── Key points (iterable) ──────────────────────────────────
 const KEY_POINTS = [
@@ -32,31 +35,6 @@ const KEY_POINTS = [
   "Discuss challenges faced by remote teams.",
   "Share strategies to overcome those challenges.",
   "End with your takeaways and a strong closing.",
-];
-
-// ── Live feedback items ────────────────────────────────────
-const LIVE_FEEDBACK = [
-  {
-    label: "Eye Contact",
-    icon: Eye,
-    status: "Good",
-    statusClass: "text-green-600",
-    indicatorClass: "bg-green-500",
-  },
-  {
-    label: "Filler Words",
-    icon: AudioLines,
-    status: "Slightly High",
-    statusClass: "text-orange-500",
-    indicatorClass: "bg-orange-400",
-  },
-  {
-    label: "Speaking Pace",
-    icon: Timer,
-    status: "Good",
-    statusClass: "text-green-600",
-    indicatorClass: "bg-green-500",
-  },
 ];
 
 // ── Distraction types listed in cue card ──────────────────
@@ -69,18 +47,27 @@ const DISTRACTION_TYPES = [
 ];
 
 // ── Equipment Status Bar ───────────────────────────────────
-function EquipmentBar({ internetSpeed }) {
+function EquipmentBar({ internetSpeed, isCameraOn, isMicOn }) {
   return (
     <div className="flex items-center gap-6 px-6 py-3 bg-white border-t-2 border-border">
       {/* Camera */}
       <div className="flex items-center gap-2">
-        <div className="p-1.5 bg-green-500/10 rounded-full">
-          <Camera size={14} className="text-green-600" />
+        <div
+          className={`p-1.5 ${isCameraOn ? "bg-green-500/10" : "bg-red-500/10"} rounded-full`}
+        >
+          <Camera
+            size={14}
+            className={isCameraOn ? "text-green-600" : "text-red-500"}
+          />
         </div>
         <span className="text-xs font-bold text-slate-700">Camera</span>
-        <span className="text-xs font-semibold text-green-600 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-          On
+        <span
+          className={`text-xs font-semibold flex items-center gap-1 ${isCameraOn ? "text-green-600" : "text-red-500"}`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full inline-block ${isCameraOn ? "bg-green-500" : "bg-red-500"}`}
+          />
+          {isCameraOn ? "On" : "Off"}
         </span>
       </div>
 
@@ -88,13 +75,22 @@ function EquipmentBar({ internetSpeed }) {
 
       {/* Mic */}
       <div className="flex items-center gap-2">
-        <div className="p-1.5 bg-green-500/10 rounded-full">
-          <Mic size={14} className="text-green-600" />
+        <div
+          className={`p-1.5 ${isMicOn ? "bg-green-500/10" : "bg-red-500/10"} rounded-full`}
+        >
+          <Mic
+            size={14}
+            className={isMicOn ? "text-green-600" : "text-red-500"}
+          />
         </div>
         <span className="text-xs font-bold text-slate-700">Mic</span>
-        <span className="text-xs font-semibold text-green-600 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-          On
+        <span
+          className={`text-xs font-semibold flex items-center gap-1 ${isMicOn ? "text-green-600" : "text-red-500"}`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full inline-block ${isMicOn ? "bg-green-500" : "bg-red-500"}`}
+          />
+          {isMicOn ? "On" : "Off"}
         </span>
       </div>
 
@@ -122,7 +118,6 @@ function useInternetSpeed() {
   const [speed, setSpeed] = useState("48.2");
   useEffect(() => {
     const interval = setInterval(() => {
-      // simulate fluctuation ±2 Mbps
       setSpeed((prev) => {
         const base = parseFloat(prev);
         const delta = (Math.random() - 0.5) * 4;
@@ -135,14 +130,15 @@ function useInternetSpeed() {
 }
 
 // ── Session Timer ──────────────────────────────────────────
-function useSessionTimer(totalSeconds) {
+function useSessionTimer(totalSeconds, running) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
+    if (!running) return;
     const interval = setInterval(() => {
       setElapsed((prev) => Math.min(prev + 1, totalSeconds));
     }, 1000);
     return () => clearInterval(interval);
-  }, [totalSeconds]);
+  }, [totalSeconds, running]);
   return elapsed;
 }
 
@@ -154,14 +150,229 @@ function formatTime(secs) {
   return `${m}:${s}`;
 }
 
+// ── Eye Tracker Calibration Overlay ────────────────────────
+function CalibrationOverlay({ tracker, onCalibrated }) {
+  const {
+    isLoading,
+    error,
+    status,
+    isFaceDetected,
+    detectionMode,
+    startCalibration,
+    switchDetectionMode,
+  } = tracker;
+
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (status === "calibrating") {
+      setProgress(0);
+      const iv = setInterval(() => {
+        setProgress((p) => {
+          if (p >= 100) {
+            clearInterval(iv);
+            return 100;
+          }
+          return p + 2.5;
+        });
+      }, 40);
+      return () => clearInterval(iv);
+    } else {
+      setProgress(0);
+    }
+  }, [status]);
+
+  // Once calibration is complete the hook switches status → "tracking"
+  useEffect(() => {
+    if (status === "tracking") {
+      onCalibrated();
+    }
+  }, [status, onCalibrated]);
+
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-2xl">
+      <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl p-6 w-full max-w-sm mx-4 flex flex-col items-center gap-4 text-center">
+        {/* Icon */}
+        <div className="w-14 h-14 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center">
+          <ScanFace size={26} className="text-main" />
+        </div>
+
+        <div>
+          <h3 className="font-black text-slate-800 text-base">
+            {status === "calibrating" ? "Calibrating…" : "Eye Tracking Setup"}
+          </h3>
+          <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+            {status === "calibrating"
+              ? "Keep your eyes focused directly at the screen."
+              : isFaceDetected
+                ? "Face detected! Click Calibrate to lock your baseline."
+                : isLoading
+                  ? "Loading face model…"
+                  : "Position your face in the camera and look straight ahead."}
+          </p>
+        </div>
+
+        {/* Calibration progress bar */}
+        {status === "calibrating" && (
+          <div className="w-full">
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-main transition-all duration-100"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-slate-400 font-mono mt-1">
+              {Math.round(progress)}%
+            </p>
+          </div>
+        )}
+
+        {/* Status indicator */}
+        <div
+          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full ${
+            isFaceDetected && status !== "calibrating"
+              ? "bg-green-50 text-green-600"
+              : status === "calibrating"
+                ? "bg-blue-50 text-blue-600"
+                : "bg-slate-100 text-slate-400"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              isFaceDetected && status !== "calibrating"
+                ? "bg-green-500"
+                : status === "calibrating"
+                  ? "bg-blue-500 animate-pulse"
+                  : "bg-slate-300 animate-pulse"
+            }`}
+          />
+          {isLoading
+            ? "Loading model…"
+            : isFaceDetected && status !== "calibrating"
+              ? "Face Detected"
+              : status === "calibrating"
+                ? "Calibrating…"
+                : "Searching for face…"}
+        </div>
+
+        {/* Error */}
+        {error && <p className="text-xs text-red-500 font-semibold">{error}</p>}
+
+        {/* Calibrate button */}
+        {status !== "calibrating" && (
+          <button
+            onClick={startCalibration}
+            disabled={!isFaceDetected || isLoading}
+            className={`w-full py-3 rounded-xl text-sm font-black transition-all border-b-4 ${
+              isFaceDetected && !isLoading
+                ? "bg-main text-white border-blue-700 hover:border-b-2 hover:translate-y-[2px] cursor-pointer"
+                : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+            }`}
+          >
+            <Crosshair size={14} className="inline mr-1.5 -mt-0.5" />
+            Calibrate Eyes
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────
 export default function PresentationSessionPage() {
   const internetSpeed = useInternetSpeed();
   const SESSION_TOTAL = 600; // 10 minutes
-  const elapsed = useSessionTimer(SESSION_TOTAL);
+
+  const [sessionRunning, setSessionRunning] = useState(false);
+  const elapsed = useSessionTimer(SESSION_TOTAL, sessionRunning);
 
   const [activeKeyPoint, setActiveKeyPoint] = useState(0);
   const [activeTab, setActiveTab] = useState("cuecard"); // 'cuecard' | 'notes'
+
+  // ── Eye Tracker integration ─────────────────────────────
+  const tracker = useFaceTracker();
+  const {
+    status: trackerStatus,
+    isFaceDetected,
+    lookAwayCount,
+    loadModel,
+    startCamera,
+    runDetectionLoop,
+    stopTracker,
+    switchDetectionMode,
+  } = tracker;
+
+  const facecamRef = useRef(null); // <video> in the bottom-left slot
+  const [showCalibration, setShowCalibration] = useState(false);
+  const [eyeTrackingActive, setEyeTrackingActive] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+
+  // Start camera + load model when the component mounts
+  useEffect(() => {
+    let cancelled = false;
+
+    async function init() {
+      try {
+        // Use eye mode by default for this page
+        switchDetectionMode("eye");
+
+        // Load MediaPipe model
+        await loadModel();
+        if (cancelled) return;
+
+        // Start camera and attach to facecam video element
+        if (facecamRef.current) {
+          await startCamera(facecamRef.current);
+          if (cancelled) return;
+          setCameraReady(true);
+          // Show the calibration prompt after camera is ready
+          setShowCalibration(true);
+          // Start alignment loop (won't count look-aways yet)
+          runDetectionLoop(facecamRef.current, "alignment");
+        }
+      } catch (err) {
+        console.error("Eye tracker init failed:", err);
+      }
+    }
+
+    init();
+    return () => {
+      cancelled = true;
+      stopTracker();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Called once calibration finishes
+  const handleCalibrated = useCallback(() => {
+    setShowCalibration(false);
+    setEyeTrackingActive(true);
+    setSessionRunning(true);
+    // Switch detection loop to tracking mode
+    if (facecamRef.current) {
+      runDetectionLoop(facecamRef.current, "tracking");
+    }
+  }, [runDetectionLoop]);
+
+  // Determine eye-contact status based on cumulative look-away count
+  // Scale: 0 → Excellent | 1-2 → Good | 3-5 → Fair | 6-9 → Poor | 10+ → Very Poor
+  const getEyeContactTier = (count) => {
+    if (!eyeTrackingActive) return { label: "Starting…", textClass: "text-slate-400", dotClass: "bg-slate-300" };
+    if (count === 0)   return { label: "Excellent",  textClass: "text-green-600",  dotClass: "bg-green-500" };
+    if (count <= 2)    return { label: "Good",        textClass: "text-green-600",  dotClass: "bg-green-500" };
+    if (count <= 5)    return { label: "Fair",        textClass: "text-amber-500",  dotClass: "bg-amber-400" };
+    if (count <= 9)    return { label: "Poor",        textClass: "text-orange-500", dotClass: "bg-orange-400" };
+    return               { label: "Very Poor",   textClass: "text-red-500",    dotClass: "bg-red-500" };
+  };
+
+  const eyeContactTier = getEyeContactTier(lookAwayCount);
+  // Override label to show currently-distracted state, but keep tier color for the status word
+  const eyeContactStatus = trackerStatus === "warning" ? "Distracted!" : eyeContactTier.label;
+  const eyeContactStatusClass = trackerStatus === "warning" ? "text-orange-500 animate-pulse" : eyeContactTier.textClass;
+  // Dot pulses red while actively looking away, otherwise reflects cumulative tier
+  const eyeContactIndicatorClass = trackerStatus === "warning"
+    ? "bg-red-500 animate-pulse"
+    : eyeContactTier.dotClass;
 
   const distractionsRef = useRef([
     "Coughing",
@@ -184,6 +395,27 @@ export default function PresentationSessionPage() {
           <span className="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-md">
             High Distraction
           </span>
+
+          {/* Eye Tracking Status Badge */}
+          {eyeTrackingActive && (
+            <span
+              className={`px-2.5 py-1 border text-xs font-bold rounded-md flex items-center gap-1.5 ${
+                trackerStatus === "warning"
+                  ? "bg-orange-50 border-orange-200 text-orange-600"
+                  : "bg-green-50 border-green-200 text-green-600"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  trackerStatus === "warning"
+                    ? "bg-orange-500 animate-pulse"
+                    : "bg-green-500"
+                }`}
+              />
+              Eye Tracking{" "}
+              {trackerStatus === "warning" ? "— Look Away!" : "Active"}
+            </span>
+          )}
         </div>
       </header>
 
@@ -259,41 +491,94 @@ export default function PresentationSessionPage() {
             <div className="absolute top-4 right-12 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-br-none px-3 py-1.5 opacity-50">
               <span className="text-slate-400 text-xs font-bold">!</span>
             </div>
+
+            {/* ── Calibration overlay (sits inside the classroom area) */}
+            {showCalibration && (
+              <CalibrationOverlay
+                tracker={tracker}
+                onCalibrated={handleCalibrated}
+              />
+            )}
+
+            {/* ── Warning glow when looking away ── */}
+            {eyeTrackingActive && trackerStatus === "warning" && (
+              <div className="absolute inset-0 border-4 border-orange-500 rounded-2xl pointer-events-none animate-pulse z-20" />
+            )}
           </div>
 
-          {/* Bottom row: Camera + Feedback */}
+          {/* Bottom row: Camera (facecam) + Feedback */}
           <div className="flex gap-4 shrink-0">
-            {/* Camera dummy */}
-            <div className="h-full aspect-video shrink-0 rounded-2xl border-bold bg-slate-100 border-dashed border-2 border-slate-300 relative overflow-hidden flex flex-col">
-              <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4">
-                <div className="w-14 h-14 rounded-full border-4 border-dashed border-slate-300 flex items-center justify-center bg-slate-200">
-                  <Camera size={20} className="text-slate-400" />
+            {/* ── Live Facecam slot ── */}
+            <div className="w-44 aspect-video shrink-0 rounded-2xl border-bold bg-slate-950 relative overflow-hidden">
+              {/* Actual live video feed */}
+              <video
+                ref={facecamRef}
+                className="w-full h-full object-cover scale-x-[-1]"
+                muted
+                playsInline
+                autoPlay
+              />
+
+              {/* Overlay: searching / not-detected */}
+              {!isFaceDetected && cameraReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                  <div className="flex flex-col items-center gap-1.5 text-white/80 text-[10px] font-bold">
+                    <ScanFace size={22} className="animate-pulse" />
+                    <span>Searching face…</span>
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Your Camera
-                </span>
-              </div>
+              )}
+
               {/* Live badge */}
-              <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-md">
+              <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-md z-10">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 Live
               </div>
+
+              {/* Eye-tracking mode badge */}
+              {eyeTrackingActive && (
+                <div
+                  className={`absolute top-2 left-2 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md z-10 ${
+                    trackerStatus === "warning"
+                      ? "bg-orange-500 text-white"
+                      : "bg-main/90 text-white"
+                  }`}
+                >
+                  <Eye size={9} />
+                  <span>
+                    {trackerStatus === "warning" ? "DISTRACTED" : "TRACKING"}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Live feedback card */}
             <div className="flex-1 bg-white rounded-2xl border-bold px-5 py-4 flex flex-col justify-between">
               {/* Positive feedback */}
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-main/10 rounded-full shrink-0 mt-0.5">
-                  <CheckCircle size={16} className="text-main" />
+                <div
+                  className={`p-2 rounded-full shrink-0 mt-0.5 ${
+                    trackerStatus === "warning"
+                      ? "bg-orange-500/10"
+                      : "bg-main/10"
+                  }`}
+                >
+                  {trackerStatus === "warning" ? (
+                    <AlertTriangle size={16} className="text-orange-500" />
+                  ) : (
+                    <CheckCircle size={16} className="text-main" />
+                  )}
                 </div>
                 <div>
                   <p className="font-bold text-sm text-slate-800">
-                    You&apos;re doing great!
+                    {trackerStatus === "warning"
+                      ? "Look back at the screen!"
+                      : "You're doing great!"}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                    Keep maintaining eye contact with your audience and speak
-                    clearly.
+                    {trackerStatus === "warning"
+                      ? "Your eyes have drifted away from the camera."
+                      : "Keep maintaining eye contact with your audience and speak clearly."}
                   </p>
                 </div>
               </div>
@@ -309,28 +594,55 @@ export default function PresentationSessionPage() {
                     (Real-time indicators)
                   </span>
                 </div>
-                {LIVE_FEEDBACK.map((item) => {
-                  const Icon = item.icon;
-                  return (
+
+                {/* ── Eye Contact Row (dynamic) ── */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
                     <div
-                      key={item.label}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${item.indicatorClass}`}
-                        />
-                        <Icon size={14} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          {item.label}
+                      className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`}
+                    />
+                    <Eye size={14} className="text-slate-400" />
+                    <span className="text-sm font-semibold text-slate-700">
+                      Eye Contact
+                      {lookAwayCount > 0 && (
+                        <span className="ml-1 text-orange-500 font-black">
+                          (distracted {lookAwayCount}x)
                         </span>
-                      </div>
-                      <span className={`text-sm font-bold ${item.statusClass}`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  );
-                })}
+                      )}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-sm font-bold ${eyeContactStatusClass}`}
+                  >
+                    {eyeContactStatus}
+                  </span>
+                </div>
+
+                {/* ── Filler Words Row (static) ── */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                    <AudioLines size={14} className="text-slate-400" />
+                    <span className="text-sm font-semibold text-slate-700">
+                      Filler Words
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-orange-500">
+                    Slightly High
+                  </span>
+                </div>
+
+                {/* ── Speaking Pace Row (static) ── */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    <Timer size={14} className="text-slate-400" />
+                    <span className="text-sm font-semibold text-slate-700">
+                      Speaking Pace
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-green-600">Good</span>
+                </div>
               </div>
             </div>
           </div>
@@ -474,7 +786,11 @@ export default function PresentationSessionPage() {
       </div>
 
       {/* ── Equipment Status Bar ─────────────────────────────── */}
-      <EquipmentBar internetSpeed={internetSpeed} />
+      <EquipmentBar
+        internetSpeed={internetSpeed}
+        isCameraOn={cameraReady}
+        isMicOn={cameraReady}
+      />
     </div>
   );
 }
