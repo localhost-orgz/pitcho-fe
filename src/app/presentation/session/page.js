@@ -1,4 +1,4 @@
-use client";
+"use client";
 
 // src/app/presentation/session/page.js
 
@@ -357,22 +357,56 @@ export default function PresentationSessionPage() {
   // Determine eye-contact status based on cumulative look-away count
   // Scale: 0 → Excellent | 1-2 → Good | 3-5 → Fair | 6-9 → Poor | 10+ → Very Poor
   const getEyeContactTier = (count) => {
-    if (!eyeTrackingActive) return { label: "Starting…", textClass: "text-slate-400", dotClass: "bg-slate-300" };
-    if (count === 0)   return { label: "Excellent",  textClass: "text-green-600",  dotClass: "bg-green-500" };
-    if (count <= 2)    return { label: "Good",        textClass: "text-green-600",  dotClass: "bg-green-500" };
-    if (count <= 5)    return { label: "Fair",        textClass: "text-amber-500",  dotClass: "bg-amber-400" };
-    if (count <= 9)    return { label: "Poor",        textClass: "text-orange-500", dotClass: "bg-orange-400" };
-    return               { label: "Very Poor",   textClass: "text-red-500",    dotClass: "bg-red-500" };
+    if (!eyeTrackingActive)
+      return {
+        label: "Starting…",
+        textClass: "text-slate-400",
+        dotClass: "bg-slate-300",
+      };
+    if (count === 0)
+      return {
+        label: "Excellent",
+        textClass: "text-green-600",
+        dotClass: "bg-green-500",
+      };
+    if (count <= 2)
+      return {
+        label: "Good",
+        textClass: "text-green-600",
+        dotClass: "bg-green-500",
+      };
+    if (count <= 5)
+      return {
+        label: "Fair",
+        textClass: "text-amber-500",
+        dotClass: "bg-amber-400",
+      };
+    if (count <= 9)
+      return {
+        label: "Poor",
+        textClass: "text-orange-500",
+        dotClass: "bg-orange-400",
+      };
+    return {
+      label: "Very Poor",
+      textClass: "text-red-500",
+      dotClass: "bg-red-500",
+    };
   };
 
   const eyeContactTier = getEyeContactTier(lookAwayCount);
   // Override label to show currently-distracted state, but keep tier color for the status word
-  const eyeContactStatus = trackerStatus === "warning" ? "Distracted!" : eyeContactTier.label;
-  const eyeContactStatusClass = trackerStatus === "warning" ? "text-orange-500 animate-pulse" : eyeContactTier.textClass;
+  const eyeContactStatus =
+    trackerStatus === "warning" ? "Distracted!" : eyeContactTier.label;
+  const eyeContactStatusClass =
+    trackerStatus === "warning"
+      ? "text-orange-500 animate-pulse"
+      : eyeContactTier.textClass;
   // Dot pulses red while actively looking away, otherwise reflects cumulative tier
-  const eyeContactIndicatorClass = trackerStatus === "warning"
-    ? "bg-red-500 animate-pulse"
-    : eyeContactTier.dotClass;
+  const eyeContactIndicatorClass =
+    trackerStatus === "warning"
+      ? "bg-red-500 animate-pulse"
+      : eyeContactTier.dotClass;
 
   const distractionsRef = useRef([
     "Coughing",
@@ -419,7 +453,11 @@ export default function PresentationSessionPage() {
         </div>
 
         {/* End Session Button */}
-        <Button variant={"danger"} size="sm" className="flex items-center gap-1.5 font-bold">
+        <Button
+          variant={"danger"}
+          size="sm"
+          className="flex items-center gap-1.5 font-bold"
+        >
           <MonitorX size={14} />
           End Session
         </Button>
@@ -465,7 +503,10 @@ export default function PresentationSessionPage() {
         {/* Left: Classroom Viewport + Camera + Live Feedback */}
         <div className="flex-1 flex flex-col overflow-hidden p-4 gap-4 bg-[#f3f7fd]">
           {/* Classroom Wireframe */}
-          <div className="flex-1 min-h-0 w-full flex items-center justify-center" style={{ containerType: "size" }}>
+          <div
+            className="flex-1 min-h-0 w-full flex items-center justify-center"
+            style={{ containerType: "size" }}
+          >
             <div
               className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100 relative overflow-hidden"
               style={{
@@ -504,7 +545,9 @@ export default function PresentationSessionPage() {
                 <span className="text-slate-400 text-xs font-bold">Zzz...</span>
               </div>
               <div className="absolute top-8 left-1/3 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-bl-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">*cough*</span>
+                <span className="text-slate-400 text-xs font-bold">
+                  *cough*
+                </span>
               </div>
               <div className="absolute top-4 right-12 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-br-none px-3 py-1.5 opacity-50">
                 <span className="text-slate-400 text-xs font-bold">!</span>
@@ -550,7 +593,9 @@ export default function PresentationSessionPage() {
                     >
                       <Eye size={9} />
                       <span>
-                        {trackerStatus === "warning" ? "DISTRACTED" : "TRACKING"}
+                        {trackerStatus === "warning"
+                          ? "DISTRACTED"
+                          : "TRACKING"}
                       </span>
                     </div>
                   )}
@@ -645,7 +690,9 @@ export default function PresentationSessionPage() {
                           Speaking Pace
                         </span>
                       </div>
-                      <span className="text-sm font-bold text-green-600">Good</span>
+                      <span className="text-sm font-bold text-green-600">
+                        Good
+                      </span>
                     </div>
                   </div>
                 </div>

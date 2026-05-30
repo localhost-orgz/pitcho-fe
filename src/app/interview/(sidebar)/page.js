@@ -532,7 +532,7 @@ export default function InterviewSetupPage() {
                     className={`p-2.5 rounded-xl border-2 flex flex-col items-center justify-center transition-all cursor-pointer text-center h-16 ${
                       isActive
                         ? "border-main bg-main/10 text-main"
-                        : "border-slate-200 hover:border-slate-350 text-slate-700"
+                        : "border-slate-200 hover:border-slate-355 text-slate-700"
                     }`}
                   >
                     <span className="text-xs font-extrabold">{s.key}</span>

@@ -490,45 +490,10 @@ export default function PresentationSessionPage() {
                 height: "min(100cqh, calc(100cqw * 9 / 16))",
               }}
             >
-              {/* Wireframe label */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                <div className="w-16 h-16 rounded-full border-4 border-dashed border-slate-300 flex items-center justify-center">
-                  <Monitor size={28} className="text-slate-300" />
-                </div>
-                <span className="text-slate-400 font-bold text-sm tracking-wider uppercase">
-                  Virtual Classroom
-                </span>
-                <span className="text-slate-300 text-xs">
-                  Audience simulation renders here
-                </span>
-              </div>
-
-              {/* Wireframe audience rows */}
-              <div className="absolute inset-0 p-8 pb-32 flex flex-col justify-end gap-3 opacity-30">
-                {/* Row 1 */}
-                <div className="flex justify-center gap-6">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1">
-                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-400 bg-slate-200" />
-                      <div className="w-8 h-12 rounded-t-lg border-2 border-dashed border-slate-400 bg-slate-200" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Distraction speech bubbles (wireframe) */}
-              <div className="absolute top-6 left-8 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-bl-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">Zzz...</span>
-              </div>
-              <div className="absolute top-8 left-1/3 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-bl-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">
-                  *cough*
-                </span>
-              </div>
-              <div className="absolute top-4 right-12 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-br-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">!</span>
-              </div>
-
+              <div
+                className="absolute inset-0 bg-cover bg-center "
+                style={{ backgroundImage: "url(/classroom.png)" }}
+              ></div>
               {/* Floating overlays: Camera (facecam) + Feedback */}
               <div className="absolute bottom-4 left-4 right-4 flex gap-4 pointer-events-auto z-20">
                 {/* ── Live Facecam slot ── */}
@@ -578,100 +543,6 @@ export default function PresentationSessionPage() {
                 </div>
 
                 {/* Live feedback card */}
-                <div className="flex-1 max-w-lg bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-200/80 px-5 py-3.5 flex flex-col justify-between shadow-lg">
-                  {/* Positive feedback */}
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`p-2 rounded-full shrink-0 mt-0.5 ${
-                        trackerStatus === "warning"
-                          ? "bg-orange-500/10"
-                          : "bg-main/10"
-                      }`}
-                    >
-                      {trackerStatus === "warning" ? (
-                        <AlertTriangle size={16} className="text-orange-500" />
-                      ) : (
-                        <CheckCircle size={16} className="text-main" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-slate-800">
-                        {trackerStatus === "warning"
-                          ? "Look back at the screen!"
-                          : "You're doing great!"}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                        {trackerStatus === "warning"
-                          ? "Your eyes have drifted away from the camera."
-                          : "Keep maintaining eye contact with your audience and speak clearly."}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Metrics */}
-                  <div className="flex flex-col gap-2 mt-2">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <Activity size={12} className="text-slate-400" />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        Live Feedback
-                      </span>
-                      <span className="text-[10px] text-slate-300">
-                        (Real-time indicators)
-                      </span>
-                    </div>
-
-                    {/* ── Eye Contact Row (dynamic) ── */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`}
-                        />
-                        <Eye size={14} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          Eye Contact
-                          {lookAwayCount > 0 && (
-                            <span className="ml-1 text-orange-500 font-black">
-                              (distracted {lookAwayCount}x)
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-sm font-bold ${eyeContactStatusClass}`}
-                      >
-                        {eyeContactStatus}
-                      </span>
-                    </div>
-
-                    {/* ── Filler Words Row (static) ── */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                        <AudioLines size={14} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          Filler Words
-                        </span>
-                      </div>
-                      <span className="text-sm font-bold text-orange-500">
-                        Slightly High
-                      </span>
-                    </div>
-
-                    {/* ── Speaking Pace Row (static) ── */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        <Timer size={14} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          Speaking Pace
-                        </span>
-                      </div>
-                      <span className="text-sm font-bold text-green-600">
-                        Good
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* ── Calibration overlay (sits inside the classroom area) */}
