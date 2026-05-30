@@ -438,8 +438,14 @@ export default function PresentationSetupPage() {
           {/* main content */}
           <div className="flex flex-col mt-5">
             <div className="flex items-center gap-1">
-              <h6 className="text-sm font-bold">Distractions Intentsity</h6>
-              <CircleQuestionMark className="text-slate-400" size={15} />
+              <h6 className="text-sm font-bold">Distractions Intensity</h6>
+              <div className="relative group flex items-center cursor-pointer">
+                <CircleQuestionMark className="text-slate-400 hover:text-slate-600 transition-colors" size={15} />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-slate-900 text-white text-[11px] font-bold rounded-lg p-2.5 shadow-xl leading-normal text-center z-50">
+                  Adjust the frequency and volume of audience sounds, movements, and notifications during your practice.
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900" />
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3 mt-3">
               {distractions.map((d) => {
@@ -474,7 +480,13 @@ export default function PresentationSetupPage() {
           <div className="flex flex-col mt-5">
             <div className="flex items-center gap-1">
               <h6 className="text-sm font-bold">Audience Type</h6>
-              <CircleQuestionMark className="text-slate-400" size={15} />
+              <div className="relative group flex items-center cursor-pointer">
+                <CircleQuestionMark className="text-slate-400 hover:text-slate-600 transition-colors" size={15} />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-slate-900 text-white text-[11px] font-bold rounded-lg p-2.5 shadow-xl leading-normal text-center z-50">
+                  Select the virtual environment setting and size of the audience for your presentation simulation.
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900" />
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3 mt-3">
               <button
@@ -620,7 +632,13 @@ export default function PresentationSetupPage() {
           <div className="flex flex-col mt-5">
             <div className="flex items-center gap-1">
               <h6 className="text-sm font-bold">Session Length</h6>
-              <CircleQuestionMark className="text-slate-400" size={15} />
+              <div className="relative group flex items-center cursor-pointer">
+                <CircleQuestionMark className="text-slate-400 hover:text-slate-600 transition-colors" size={15} />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-slate-900 text-white text-[11px] font-bold rounded-lg p-2.5 shadow-xl leading-normal text-center z-50">
+                  Choose the total practice duration for your presentation. The system timer will lock to this value.
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900" />
+                </div>
+              </div>
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
               {durations.map((d) => (
