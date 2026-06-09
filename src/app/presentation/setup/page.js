@@ -27,11 +27,16 @@ import {
   Play,
 } from "lucide-react";
 import Image from "next/image";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 export default function PresentationSetupPage() {
   // Card 1: Upload state
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [rawFile, setRawFile] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [cueCards, setCueCards] = useState([]);
+  const fileInputRef = useRef(null);
 
   // Card 2: Equipment check states
   const [cameraStatus, setCameraStatus] = useState("unchecked");
@@ -44,14 +49,6 @@ export default function PresentationSetupPage() {
   const [selectedDistraction, setSelectedDistraction] = useState(null);
   const [selectedAudience, setSelectedAudience] = useState("classroom");
   const [selectedDuration, setSelectedDuration] = useState("1");
-
-  const cue_card = [
-    "Start with a hook about the market trend",
-    "Explain our products and why it matters",
-    "Highlight the growth strategy for this quarter",
-    "Share key numbers and projections",
-    "End with a strong takeaway",
-  ];
 
   // Card 2: Check permissions on mount
   useEffect(() => {
@@ -74,17 +71,6 @@ export default function PresentationSetupPage() {
     }
     checkPermissions();
   }, []);
-
-  // Card 3: When uploadedFile changes from null to a value, trigger cue card loading
-  useEffect(() => {
-    if (uploadedFile) {
-      setCueCardStatus("loading");
-      const timer = setTimeout(() => {
-        setCueCardStatus("ready");
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploadedFile]);
 
   const handleAllowCamera = useCallback(async () => {
     try {
@@ -120,13 +106,161 @@ export default function PresentationSetupPage() {
     }
   }, []);
 
-  const handleUploadClick = () => {
-    setUploadedFile({
-      name: "business_strategy_q2.pdf",
-      pages: 12,
-      size: "2.4 MB",
+  const extractPdfPageCount = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const buffer = e.target.result;
+          const arr = new Uint8Array(buffer);
+          const decoder = new TextDecoder("ascii");
+          const text = decoder.decode(arr);
+          
+          let maxPages = 0;
+          const countRegex = /\/Count\s*(\d+)/g;
+          let match;
+          while ((match = countRegex.exec(text)) !== null) {
+            const val = parseInt(match[1], 10);
+            if (val > maxPages) {
+              maxPages = val;
+            }
+          }
+          
+          if (maxPages > 0) {
+            resolve(maxPages);
+            return;
+          }
+          
+          const pageRegex = /\/Type\s*\/Page\b/g;
+          const pageMatches = text.match(pageRegex);
+          if (pageMatches) {
+            resolve(pageMatches.length);
+            return;
+          }
+          
+          resolve(1);
+        } catch (err) {
+          console.error("Error parsing PDF pages:", err);
+          resolve(1);
+        }
+      };
+      reader.onerror = () => resolve(1);
+      reader.readAsArrayBuffer(file);
     });
   };
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    
+    // 1. Validate file type (PDF only, no PPT/PPTX etc.)
+    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPDF) {
+      alert("Only PDF files are allowed. PPT or other file formats cannot be uploaded.");
+      return;
+    }
+    
+    // 2. Validate file size (max 4MB)
+    const maxSizeBytes = 4 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      alert("The uploaded file exceeds the 4MB limit. Please upload a file below 4MB.");
+      return;
+    }
+    
+    setRawFile(file);
+    setUploadError("");
+    setCueCardStatus("loading");
+    
+    // 3. Extract page count and calculate size in MB
+    const pages = await extractPdfPageCount(file);
+    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2) + " MB";
+    
+    setUploadedFile({
+      name: file.name,
+      pages: pages,
+      size: sizeInMB,
+    });
+    
+    // 4. Hit API
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await fetch("https://pitcho-be.vercel.app/api/presentation/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to upload: ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      console.log("Upload response data:", data);
+      
+      let slidesData = null;
+      if (data) {
+        if (Array.isArray(data.data)) {
+          // Extract title from every object in the data array
+          slidesData = data.data.map(item => item.title || item.notes || item.note || item.text || JSON.stringify(item));
+        } else if (data.slide) {
+          slidesData = data.slide;
+        } else if (data.data && data.data.slide) {
+          slidesData = data.data.slide;
+        } else if (data.slides) {
+          slidesData = data.slides;
+        } else if (data.data && data.data.slides) {
+          slidesData = data.data.slides;
+        }
+      }
+
+      if (slidesData) {
+        // Change the cue card with the response data
+        const slidesArray = Array.isArray(slidesData) ? slidesData : [slidesData];
+        setCueCards(slidesArray);
+        setCueCardStatus("ready");
+      } else {
+        console.error("Missing expected slides data in response. Response payload:", data);
+        throw new Error("Invalid response structure from server");
+      }
+    } catch (error) {
+      console.error("Error uploading presentation:", error);
+      setUploadError(error.message || "Failed to generate speaking notes.");
+      setCueCardStatus("error");
+    }
+  };
+
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleDrag = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleFile(file);
+    }
+  }, []);
 
   const renderDeviceStatus = (status, type) => {
     if (status === "ready") {
@@ -207,6 +341,13 @@ export default function PresentationSetupPage() {
 
   return (
     <div className="w-full min-h-screen">
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="application/pdf"
+        onChange={handleFileChange}
+        className="hidden"
+      />
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold">Presentation Setup</h1>
         <p className="text-slate-500">
@@ -251,35 +392,46 @@ export default function PresentationSetupPage() {
               <div className="w-full mt-3 flex items-center justify-between">
                 <button
                   onClick={handleUploadClick}
-                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4"
+                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4 cursor-pointer"
                 >
                   <Download size={15} />
                   Upload file
                 </button>
-                <span className="font-bold text-main text-sm cursor-pointer">
+                <span 
+                  onClick={handleUploadClick}
+                  className="font-bold text-main text-sm cursor-pointer"
+                >
                   Replace File
                 </span>
               </div>
             </>
           ) : (
             <>
-              <button
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
                 onClick={handleUploadClick}
-                className="w-full p-6 mt-5 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-main hover:bg-main/5 transition-colors cursor-pointer"
+                className={`w-full p-6 mt-5 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${
+                  dragActive 
+                    ? "border-main bg-main/10" 
+                    : "border-slate-300 hover:border-main hover:bg-main/5"
+                }`}
               >
                 <Upload size={24} className="text-slate-400" />
                 <span className="text-sm font-semibold text-slate-600">
                   Drag & drop your file here
                 </span>
                 <span className="text-xs text-slate-400">
-                  or click to browse (PDF, PPTX, max 50MB)
+                  or click to browse (PDF only, max 4MB)
                 </span>
-              </button>
+              </div>
 
               <div className="w-full mt-3 flex items-center justify-between">
                 <button
                   onClick={handleUploadClick}
-                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4"
+                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4 cursor-pointer"
                 >
                   <Download size={15} />
                   Upload file
@@ -363,9 +515,7 @@ export default function PresentationSetupPage() {
                 <ScrollText className="text-yellow-500" size={20} />
               </div>
               <span className="font-bold text-sm">Cue Card Preview</span>
-            </div>
-
-            {cueCardStatus === "empty" && (
+            </div>            {cueCardStatus === "empty" && (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
                 <FileText size={32} className="text-amber-400" />
                 <span className="text-sm text-amber-700 font-medium text-center">
@@ -393,21 +543,26 @@ export default function PresentationSetupPage() {
             {cueCardStatus === "ready" && (
               <>
                 <div className="flex flex-col">
-                  {cue_card.map((point, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      {/* Timeline column */}
-                      <div className="flex flex-col items-center">
-                        <div className="w-4 h-4 rounded-full border-2 border-slate-300 bg-white flex-shrink-0 mt-0.5" />
-                        {i < cue_card.length - 1 && (
-                          <div className="w-px flex-1 border-l-2 border-dashed border-slate-200 my-1 min-h-[24px]" />
-                        )}
+                  {cueCards.map((point, i) => {
+                    const text = typeof point === "string" 
+                      ? point 
+                      : (point.notes || point.note || point.text || point.title || JSON.stringify(point));
+                    return (
+                      <div key={i} className="flex items-start gap-3">
+                        {/* Timeline column */}
+                        <div className="flex flex-col items-center">
+                          <div className="w-4 h-4 rounded-full border-2 border-slate-300 bg-white flex-shrink-0 mt-0.5" />
+                          {i < cueCards.length - 1 && (
+                            <div className="w-px flex-1 border-l-2 border-dashed border-slate-200 my-1 min-h-[24px]" />
+                          )}
+                        </div>
+                        {/* Text */}
+                        <span className="text-sm text-slate-600 pb-4">
+                          {text}
+                        </span>
                       </div>
-                      {/* Text */}
-                      <span className="text-sm text-slate-600 pb-4">
-                        {point}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2">
@@ -417,6 +572,25 @@ export default function PresentationSetupPage() {
                   </span>
                 </div>
               </>
+            )}
+
+            {cueCardStatus === "error" && (
+              <div className="flex flex-col items-center justify-center py-6 gap-3 text-center">
+                <AlertTriangle size={32} className="text-red-500 animate-pulse" />
+                <span className="text-sm text-red-700 font-medium">
+                  {uploadError || "Failed to generate speaking notes."}
+                </span>
+                <button
+                  onClick={() => {
+                    if (rawFile) {
+                      handleFile(rawFile);
+                    }
+                  }}
+                  className="text-xs font-semibold text-main hover:underline bg-main/5 py-1 px-3 border border-main/20 rounded-md cursor-pointer transition-colors"
+                >
+                  Retry Generation
+                </button>
+              </div>
             )}
           </div>
         </div>
