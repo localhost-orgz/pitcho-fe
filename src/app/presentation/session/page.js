@@ -131,15 +131,15 @@ function useInternetSpeed() {
 }
 
 // ── Session Timer ──────────────────────────────────────────
-function useSessionTimer(totalSeconds, running) {
+function useSessionTimer(running) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (!running) return;
     const interval = setInterval(() => {
-      setElapsed((prev) => Math.min(prev + 1, totalSeconds));
+      setElapsed((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [totalSeconds, running]);
+  }, [running]);
   return elapsed;
 }
 
@@ -282,6 +282,20 @@ function CalibrationOverlay({ tracker, onCalibrated }) {
 // ── Main Page ──────────────────────────────────────────────
 export default function PresentationSessionPage() {
   const internetSpeed = useInternetSpeed();
+
+  // ── Eye Tracker integration ─────────────────────────────
+  const tracker = useFaceTracker();
+  const {
+    status: trackerStatus,
+    isFaceDetected,
+    lookAwayCount,
+    loadModel,
+    startCamera,
+    runDetectionLoop,
+    stopTracker,
+    switchDetectionMode,
+  } = tracker;
+
   const [sessionDuration, setSessionDuration] = useState(600); // dynamic duration in seconds
   const [presentationTitle, setPresentationTitle] = useState("The Future of Remote Work");
   const [distractionLevel, setDistractionLevel] = useState("High Distraction");
@@ -289,7 +303,16 @@ export default function PresentationSessionPage() {
   const [sessionActiveSlide, setSessionActiveSlide] = useState(0);
 
   const [sessionRunning, setSessionRunning] = useState(false);
-  const elapsed = useSessionTimer(sessionDuration, sessionRunning);
+  const elapsed = useSessionTimer(sessionRunning);
+  const [totalSessionTime, setTotalSessionTime] = useState(0);
+
+  useEffect(() => {
+    if (!sessionRunning) return;
+    const interval = setInterval(() => {
+      setTotalSessionTime((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sessionRunning]);
 
   const [activeKeyPoint, setActiveKeyPoint] = useState(0);
   const [activeTab, setActiveTab] = useState("cuecard"); // 'cuecard' | 'notes'
@@ -337,19 +360,6 @@ export default function PresentationSessionPage() {
       }
     }
   }, []);
-
-  // ── Eye Tracker integration ─────────────────────────────
-  const tracker = useFaceTracker();
-  const {
-    status: trackerStatus,
-    isFaceDetected,
-    lookAwayCount,
-    loadModel,
-    startCamera,
-    runDetectionLoop,
-    stopTracker,
-    switchDetectionMode,
-  } = tracker;
 
   const facecamRef = useRef(null); // <video> in the bottom-left slot
   const [showCalibration, setShowCalibration] = useState(false);
@@ -467,7 +477,19 @@ export default function PresentationSessionPage() {
   ]);
 
   return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-white overflow-hidden relative">
+      {totalSessionTime > sessionDuration && (
+        <>
+          {/* Pulsing Red Border and Inset Glow with Ping animation */}
+          <div className="absolute inset-0 border-4 pointer-events-none z-50 animate-border-ping" />
+          
+          {/* Floating warning banner */}
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[60] bg-red-600 text-white font-extrabold px-6 py-3 rounded-full shadow-2xl flex items-center gap-2.5 animate-ambulance-flash border-2 border-white pointer-events-auto">
+            <span className="text-base animate-pulse">⚠️</span>
+            <span className="text-xs tracking-wide uppercase">Time is over, please stop the session as soon as possible.</span>
+          </div>
+        </>
+      )}
       {/* ── Top Header ─────────────────────────────────────── */}
       <header className="flex items-center justify-between px-6 py-3 border-b-2 border-border bg-white z-10 shrink-0">
         <div className="flex items-center gap-3">
