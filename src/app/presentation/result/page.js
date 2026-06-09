@@ -25,7 +25,7 @@ const METRICS = [
     id: "eye",
     icon: Eye,
     label: "Eye Contact",
-    value: "78%",
+    value: "20 times",
     subValue: "Good",
     subColor: "text-green-500",
     iconBg: "bg-blue-50",
@@ -41,7 +41,7 @@ const METRICS = [
     id: "filler",
     icon: AudioLines,
     label: "Filler Words",
-    value: "2.1/min",
+    value: "3 filler words",
     subValue: "Needs Work",
     subColor: "text-orange-500",
     iconBg: "bg-orange-50",
@@ -444,7 +444,7 @@ export default function PresentationResultPage() {
         </div>
 
         {/* Metric top cards grid */}
-        <div className="flex-1 grid grid-cols-6 gap-3">
+        <div className="flex-1 grid grid-cols-3 gap-3">
           {METRICS.map((m) => (
             <MetricCard key={m.id} metric={m} />
           ))}
@@ -579,106 +579,32 @@ export default function PresentationResultPage() {
               </div>
             </div>
 
-            {/* AI feedback & Key moments list */}
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div>
-                <h3 className="text-xs font-black text-slate-700 mb-3 flex items-center gap-1.5">
-                  <span>✨</span> Eye Contact Analysis
-                </h3>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle
-                      size={14}
-                      className="text-green-500 shrink-0 mt-0.5"
-                    />
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                      Great job maintaining eye contact with your audience,
-                      especially in the first half of your presentation.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <XCircle
-                      size={14}
-                      className="text-orange-500 shrink-0 mt-0.5"
-                    />
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                      At 05:38, you looked away for longer than 3 seconds. Try
-                      to align your notes closer to the camera angle to avoid
-                      deep gaze shifts.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-black text-slate-700 mb-3">
-                  Eye Focus Events
-                </h3>
-                <div className="flex flex-col gap-2.5">
-                  {KEY_MOMENTS.map((m, i) => {
-                    const Icon = m.icon;
-                    return (
-                      <div key={i} className="flex items-center gap-2.5">
-                        <span className="text-[10px] font-mono font-black text-slate-400 w-10 shrink-0">
-                          {m.time}
-                        </span>
-                        <Icon size={12} className={`${m.iconClass} shrink-0`} />
-                        <span className="text-xs text-slate-600 font-medium flex-1">
-                          {m.label}
-                        </span>
-                        <button className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center hover:bg-main/10 transition-colors shrink-0">
-                          <Play size={8} className="text-slate-400 ml-0.5" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right sidebar details */}
           <div className="col-span-4 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl border-bold p-5">
-              <h3 className="font-black text-slate-800 text-sm mb-4">
-                Eye Gaze Metrics
-              </h3>
-              <BreakdownRow metric={METRICS[0]} />
-            </div>
-
-            <div className="bg-white rounded-2xl border-bold p-5">
-              <h3 className="font-black text-green-600 text-sm mb-3">
-                Focus Strengths
+            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
+              <h3 className="font-black text-slate-800 text-sm">
+                Eye Focus Events
               </h3>
               <div className="flex flex-col gap-2.5">
-                {WHAT_WENT_WELL.slice(0, 2).map((item, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <CheckCircle
-                      size={13}
-                      className="text-green-500 shrink-0 mt-0.5"
-                    />
-                    <p className="text-xs text-slate-600 font-medium leading-snug">
-                      {item}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <h3 className="font-black text-orange-500 text-sm mt-5 mb-3">
-                Focus Areas
-              </h3>
-              <div className="flex flex-col gap-2.5">
-                {FOCUS_AREAS.slice(0, 2).map((item, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <XCircle
-                      size={13}
-                      className="text-orange-400 shrink-0 mt-0.5"
-                    />
-                    <p className="text-xs text-slate-600 font-medium leading-snug">
-                      {item}
-                    </p>
-                  </div>
-                ))}
+                {KEY_MOMENTS.map((m, i) => {
+                  const Icon = m.icon;
+                  return (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <span className="text-[10px] font-mono font-black text-slate-400 w-10 shrink-0">
+                        {m.time}
+                      </span>
+                      <Icon size={12} className={`${m.iconClass} shrink-0`} />
+                      <span className="text-xs text-slate-600 font-medium flex-1">
+                        {m.label}
+                      </span>
+                      <button className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center hover:bg-main/10 transition-colors shrink-0">
+                        <Play size={8} className="text-slate-400 ml-0.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -753,12 +679,15 @@ export default function PresentationResultPage() {
               </div>
             </div>
 
-            {/* Pace Timeline Log */}
-            <div>
-              <h3 className="text-xs font-black text-slate-700 mb-3">
+          </div>
+
+          {/* Right sidebar pace summary */}
+          <div className="col-span-4 flex flex-col gap-4">
+            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
+              <h3 className="font-black text-slate-800 text-sm">
                 Speaking Pace Segments
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-3">
                 {PACE_SEGMENTS.map((seg, i) => (
                   <div
                     key={i}
@@ -782,38 +711,6 @@ export default function PresentationResultPage() {
               </div>
             </div>
           </div>
-
-          {/* Right sidebar pace summary */}
-          <div className="col-span-4 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
-              <h3 className="font-black text-slate-800 text-sm">
-                Speaking Pace Metrics
-              </h3>
-              <BreakdownRow metric={METRICS[2]} />
-            </div>
-
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-3">
-              <h3 className="font-black text-slate-800 text-sm mb-1">
-                AI Coach Advice
-              </h3>
-              {PACE_TIPS.map((tip, i) => (
-                <div
-                  key={i}
-                  className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-2.5"
-                >
-                  <Smile size={16} className="text-[#1e5399] shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-800 leading-tight mb-1">
-                      {tip.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                      {tip.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
@@ -821,69 +718,18 @@ export default function PresentationResultPage() {
       {activeTab === "filler" && (
         <div className="grid grid-cols-12 gap-4 animate-fade-in">
           {/* Main Filler Words View */}
-          <div className="col-span-8 bg-white rounded-2xl border-bold p-5 flex flex-col gap-5">
-            <div>
-              <h2 className="font-black text-slate-800 text-sm">
-                Filler Words Timeline Map
-              </h2>
-              <p className="text-xs text-slate-400 mt-1 font-semibold">
-                Red dots show where filler words (ahm, uhm, eee) disrupted
-                speech flow.
-              </p>
-            </div>
-
-            {/* Audio Wave Visualizer mockup */}
-            <div className="bg-slate-950 rounded-xl p-6 h-36 flex flex-col justify-between relative overflow-hidden">
-              <div className="flex items-end gap-1.5 h-16 px-4">
-                {[
-                  20, 45, 60, 20, 80, 95, 30, 20, 50, 40, 10, 30, 90, 75, 40,
-                  20, 85, 95, 60, 40, 75, 90, 30, 25, 60, 80, 55, 30, 90, 99,
-                  50, 10, 40, 75, 80, 30, 60, 95, 90, 40, 20, 80, 85, 30, 50,
-                  75, 20, 10,
-                ].map((h, i) => {
-                  const isFillerSpike = i === 13 || i === 29 || i === 37;
-                  const lineBg = isFillerSpike
-                    ? "bg-red-500 animate-pulse"
-                    : "bg-[#6366f1]";
-                  return (
-                    <div
-                      key={i}
-                      className={`w-full rounded-full transition-all duration-300 ${lineBg}`}
-                      style={{ height: `${h}%` }}
-                    />
-                  );
-                })}
-              </div>
-
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono font-bold px-2 pt-2 border-t border-slate-800">
-                <span>00:00</span>
-                <span className="text-red-400 font-black animate-pulse">
-                  03:22 (uhm)
-                </span>
-                <span className="text-red-400 font-black animate-pulse">
-                  06:45 (like)
-                </span>
-                <span className="text-red-400 font-black animate-pulse">
-                  08:12 (eee)
-                </span>
-                <span>12:45</span>
-              </div>
-            </div>
-
+          <div className="col-span-12 bg-white rounded-2xl border-bold p-5 flex flex-col gap-5">
             {/* Filler Words Transcript Logs */}
             <div>
-              <h3 className="text-xs font-black text-slate-700 mb-3">
+              <h2 className="font-black text-slate-800 text-sm mb-3">
                 Filler Word Incidents in Transcript
-              </h3>
+              </h2>
               <div className="flex flex-col gap-2">
                 {FILLER_EVENTS.map((event, i) => (
                   <div
                     key={i}
                     className="flex items-start gap-4 p-3 bg-slate-50 border border-slate-100 rounded-xl"
                   >
-                    <span className="text-xs font-mono font-black text-[#1e5399] bg-blue-50 border border-blue-100 rounded px-2 py-0.5 mt-0.5">
-                      {event.time}
-                    </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
                         Used word:{" "}
@@ -911,40 +757,6 @@ export default function PresentationResultPage() {
               </div>
             </div>
           </div>
-
-          {/* Right sidebar filler summary */}
-          <div className="col-span-4 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
-              <h3 className="font-black text-slate-800 text-sm">
-                Filler Words Frequency
-              </h3>
-              <BreakdownRow metric={METRICS[1]} />
-            </div>
-
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-3">
-              <h3 className="font-black text-slate-800 text-sm mb-2">
-                Top Filler Word Counts
-              </h3>
-              <div className="flex flex-col gap-3">
-                {FILLER_BREAKDOWN.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
-                        <span className="capitalize">"{item.word}"</span>
-                        <span>{item.count}x</span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${item.color}`}
-                          style={{ width: `${item.pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -952,7 +764,7 @@ export default function PresentationResultPage() {
       {activeTab === "wordiness" && (
         <div className="grid grid-cols-12 gap-4 animate-fade-in">
           {/* Main Wordiness View */}
-          <div className="col-span-8 bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
+          <div className="col-span-12 bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
             <div>
               <h2 className="font-bold text-slate-800 ">
                 Wordiness Analysis & Pleonasm Correction
@@ -1025,61 +837,6 @@ export default function PresentationResultPage() {
                   </p>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Right sidebar wordiness statistics */}
-          <div className="col-span-4 flex flex-col gap-4">
-            {/* Summary score ring */}
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col items-center text-center">
-              <h3 className="font-black text-slate-800 text-sm mb-4 self-start">
-                Sentence Efficiency
-              </h3>
-              {/* Score circle */}
-              <div className="w-28 h-28 rounded-full border-8 border-violet-100 flex flex-col items-center justify-center bg-violet-50/50">
-                <span className="text-3xl font-black text-violet-600 leading-none">
-                  68%
-                </span>
-                <span className="text-[10px] text-violet-500 font-bold uppercase tracking-wider mt-1">
-                  Fair
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-4 leading-relaxed">
-                Your clarity index improved by <strong>15%</strong> compared to
-                your previous session. Simplifying these wordy phrases will
-                bring your efficiency closer to <strong>90%</strong>.
-              </p>
-            </div>
-
-            {/* Saved words widget */}
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
-              <h3 className="font-black text-slate-800 text-sm">
-                Reduction Potential
-              </h3>
-              <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100">
-                <span className="text-xs font-bold text-slate-700">
-                  Total word count
-                </span>
-                <span className="text-xs font-black text-slate-800">
-                  1,245 words
-                </span>
-              </div>
-              <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100">
-                <span className="text-xs font-bold text-slate-700">
-                  Cleaned word count
-                </span>
-                <span className="text-xs font-black text-green-600">
-                  1,203 words
-                </span>
-              </div>
-              <div className="flex items-center justify-between bg-green-50 rounded-xl p-3 border border-green-100">
-                <span className="text-xs font-bold text-green-700">
-                  Potential Words Saved
-                </span>
-                <span className="text-xs font-black text-green-600">
-                  -42 words
-                </span>
-              </div>
             </div>
           </div>
         </div>
