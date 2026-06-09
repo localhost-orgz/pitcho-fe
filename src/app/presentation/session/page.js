@@ -24,6 +24,7 @@ import {
   MonitorX,
   ScanFace,
   Crosshair,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
@@ -281,13 +282,61 @@ function CalibrationOverlay({ tracker, onCalibrated }) {
 // ── Main Page ──────────────────────────────────────────────
 export default function PresentationSessionPage() {
   const internetSpeed = useInternetSpeed();
-  const SESSION_TOTAL = 600; // 10 minutes
+  const [sessionDuration, setSessionDuration] = useState(600); // dynamic duration in seconds
+  const [presentationTitle, setPresentationTitle] = useState("The Future of Remote Work");
+  const [distractionLevel, setDistractionLevel] = useState("High Distraction");
+  const [sessionCueCards, setSessionCueCards] = useState([]);
+  const [sessionActiveSlide, setSessionActiveSlide] = useState(0);
 
   const [sessionRunning, setSessionRunning] = useState(false);
-  const elapsed = useSessionTimer(SESSION_TOTAL, sessionRunning);
+  const elapsed = useSessionTimer(sessionDuration, sessionRunning);
 
   const [activeKeyPoint, setActiveKeyPoint] = useState(0);
   const [activeTab, setActiveTab] = useState("cuecard"); // 'cuecard' | 'notes'
+
+  useEffect(() => {
+    const storedFile = localStorage.getItem("pitcho_presentation_file");
+    const storedDistraction = localStorage.getItem("pitcho_selected_distraction");
+    const storedDuration = localStorage.getItem("pitcho_selected_duration");
+    const storedCueCards = localStorage.getItem("pitcho_cue_cards");
+
+    if (storedFile) {
+      try {
+        const file = JSON.parse(storedFile);
+        if (file && file.name) {
+          setPresentationTitle(file.name);
+        }
+      } catch (e) {
+        console.error("Failed to parse presentation file:", e);
+      }
+    }
+
+    if (storedDistraction) {
+      setDistractionLevel(
+        storedDistraction === "low"
+          ? "Low Distraction"
+          : storedDistraction === "medium"
+            ? "Medium Distraction"
+            : "High Distraction"
+      );
+    }
+
+    if (storedDuration) {
+      const minutes = parseInt(storedDuration, 10) || 10;
+      setSessionDuration(minutes * 60);
+    }
+
+    if (storedCueCards) {
+      try {
+        const cards = JSON.parse(storedCueCards);
+        if (Array.isArray(cards) && cards.length > 0) {
+          setSessionCueCards(cards);
+        }
+      } catch (e) {
+        console.error("Failed to parse cue cards:", e);
+      }
+    }
+  }, []);
 
   // ── Eye Tracker integration ─────────────────────────────
   const tracker = useFaceTracker();
@@ -426,8 +475,14 @@ export default function PresentationSessionPage() {
             Presentation Simulation
           </span>
           {/* Distraction Badge */}
-          <span className="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-md">
-            High Distraction
+          <span className={`px-2.5 py-1 text-xs font-bold rounded-md border ${
+            distractionLevel === "Low Distraction"
+              ? "bg-green-50 border-green-200 text-green-600"
+              : distractionLevel === "Medium Distraction"
+                ? "bg-yellow-50 border-yellow-250 text-yellow-600"
+                : "bg-red-50 border-red-200 text-red-600"
+          }`}>
+            {distractionLevel}
           </span>
 
           {/* Eye Tracking Status Badge */}
@@ -491,7 +546,7 @@ export default function PresentationSessionPage() {
                 {formatTime(elapsed)}
               </span>
               <span className="font-mono font-bold text-slate-400">
-                / {formatTime(SESSION_TOTAL)}
+                / {formatTime(sessionDuration)}
               </span>
             </div>
           </div>
@@ -724,70 +779,157 @@ export default function PresentationSessionPage() {
         {/* ── Right Panel: Cue Card / Notes ─────────────────── */}
         <div className="w-80 shrink-0 flex flex-col border-l-2 border-border bg-white overflow-hidden">
           {/* Tab Header */}
-          <div className="flex border-b-2 border-border px-4 pt-3 gap-4 shrink-0">
-            <button
-              onClick={() => setActiveTab("cuecard")}
-              className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
-                activeTab === "cuecard"
-                  ? "border-main text-main"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              Cue Card
-            </button>
-            <button
-              onClick={() => setActiveTab("notes")}
-              className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
-                activeTab === "notes"
-                  ? "border-main text-main"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              Notes
-            </button>
-          </div>
+          {sessionCueCards.length > 0 && (
+            <div className="flex border-b-2 border-border px-4 pt-3 gap-4 shrink-0">
+              <button
+                onClick={() => setActiveTab("cuecard")}
+                className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+                  activeTab === "cuecard"
+                    ? "border-main text-main"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                Cue Card
+              </button>
+              <button
+                onClick={() => setActiveTab("notes")}
+                className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+                  activeTab === "notes"
+                    ? "border-main text-main"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                Notes
+              </button>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {activeTab === "cuecard" ? (
+            {sessionCueCards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-12 px-6 text-center gap-4">
+                <div className="p-4 bg-slate-100 rounded-full text-slate-400">
+                  <FileText size={36} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <h5 className="font-bold text-slate-800 text-sm">No Material Uploaded</h5>
+                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                    You are not uploading a material. Add material to unlock this feature.
+                  </p>
+                </div>
+              </div>
+            ) : activeTab === "cuecard" ? (
               <>
                 {/* Presentation Title */}
                 <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
                   <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">
                     Presentation Title
                   </p>
-                  <p className="font-bold text-slate-800 text-sm leading-snug">
-                    The Future of Remote Work
+                  <p className="font-bold text-slate-800 text-sm leading-snug break-words">
+                    {presentationTitle}
                   </p>
                 </div>
 
-                {/* Key Points */}
-                <div>
-                  <div className="mb-3">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                      Key Points
-                    </span>
-                  </div>
+                {/* Key Points / Slide Carousel */}
+                {sessionCueCards.length > 0 ? (() => {
+                  const activeSlide = sessionCueCards[sessionActiveSlide] || {};
+                  const isSlideObject = typeof activeSlide === "object" && activeSlide !== null;
+                  
+                  const title = isSlideObject ? (activeSlide.title || `Slide ${sessionActiveSlide + 1}`) : activeSlide;
+                  const talkingPoints = isSlideObject ? (activeSlide.talking_points || []) : [];
+                  const transitionSentence = isSlideObject ? activeSlide.transition_sentence : "";
 
-                  {/* Timeline */}
-                  <div className="flex flex-col">
-                    {KEY_POINTS.map((point, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        {/* Timeline column — always blue */}
-                        <div className="flex flex-col items-center shrink-0">
-                          <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
-                          {i < KEY_POINTS.length - 1 && (
-                            <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
+                  return (
+                    <div className="flex flex-col gap-4">
+                      {/* Carousel Header Controls */}
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                        <span className="text-xs font-bold text-slate-700">
+                          Slide {sessionActiveSlide + 1} of {sessionCueCards.length}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setSessionActiveSlide(prev => Math.max(0, prev - 1))}
+                            disabled={sessionActiveSlide === 0}
+                            className="p-1 rounded-md border border-slate-200 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+                            title="Previous Slide"
+                          >
+                            <ChevronLeft size={14} className="text-slate-600" />
+                          </button>
+                          <button
+                            onClick={() => setSessionActiveSlide(prev => Math.min(sessionCueCards.length - 1, prev + 1))}
+                            disabled={sessionActiveSlide === sessionCueCards.length - 1}
+                            className="p-1 rounded-md border border-slate-200 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+                            title="Next Slide"
+                          >
+                            <ChevronRight size={14} className="text-slate-600" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 1. Slide Title */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Slide Title</span>
+                        <h5 className="text-xs font-bold text-slate-800 leading-snug bg-slate-50 p-2.5 rounded-lg border border-slate-200/50">
+                          {title}
+                        </h5>
+                      </div>
+
+                      {/* 2. Talking Points */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Speaking Guide</span>
+                        <div className="flex flex-col gap-2 bg-slate-50/50 p-2.5 rounded-lg border border-slate-200/50 min-h-[80px]">
+                          {talkingPoints.length > 0 ? (
+                            talkingPoints.map((point, index) => (
+                              <div key={index} className="flex items-start gap-2">
+                                <span className="text-main font-bold shrink-0 mt-0.5">•</span>
+                                <span className="text-xs text-slate-600 font-medium leading-relaxed">
+                                  {point}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">No speaking notes.</span>
                           )}
                         </div>
-
-                        {/* Text — always neutral */}
-                        <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
-                          {point}
-                        </p>
                       </div>
-                    ))}
+
+                      {/* 3. Transition Sentence */}
+                      {transitionSentence && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Next Slide Bridge</span>
+                          <div className="text-xs text-slate-700 font-medium italic leading-relaxed bg-amber-50 border border-amber-100 p-2.5 rounded-lg flex items-start gap-2">
+                            <span className="text-amber-500 shrink-0 mt-0.5">🔗</span>
+                            <span>"{transitionSentence}"</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })() : (
+                  /* Timeline Fallback */
+                  <div>
+                    <div className="mb-3">
+                      <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                        Key Points
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col">
+                      {KEY_POINTS.map((point, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="flex flex-col items-center shrink-0">
+                            <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
+                            {i < KEY_POINTS.length - 1 && (
+                              <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
+                            )}
+                          </div>
+                          <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
+                            {point}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Tip */}
                 <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">

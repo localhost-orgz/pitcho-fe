@@ -30,8 +30,10 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 export default function PresentationSetupPage() {
+  const router = useRouter();
   // Card 1: Upload state
   const [uploadedFile, setUploadedFile] = useState(null);
   const [rawFile, setRawFile] = useState(null);
@@ -49,7 +51,7 @@ export default function PresentationSetupPage() {
   const [cueCardStatus, setCueCardStatus] = useState("empty");
 
   // Card 4: Simulation environment states
-  const [selectedDistraction, setSelectedDistraction] = useState(null);
+  const [selectedDistraction, setSelectedDistraction] = useState("low");
   const [selectedAudience, setSelectedAudience] = useState("classroom");
   const [selectedDuration, setSelectedDuration] = useState("1");
 
@@ -265,6 +267,23 @@ export default function PresentationSetupPage() {
       handleFile(file);
     }
   }, []);
+
+  const handleStartPresentation = () => {
+    if (cameraStatus !== "ready" || micStatus !== "ready") {
+      alert("Please verify and allow access to both your camera and microphone before starting the simulation session.");
+      return;
+    }
+
+    // Save all configurations to localStorage
+    localStorage.setItem("pitcho_presentation_file", JSON.stringify(uploadedFile));
+    localStorage.setItem("pitcho_selected_distraction", selectedDistraction);
+    localStorage.setItem("pitcho_selected_audience", selectedAudience);
+    localStorage.setItem("pitcho_selected_duration", selectedDuration);
+    localStorage.setItem("pitcho_cue_cards", JSON.stringify(cueCards));
+
+    // Navigate to the session page
+    router.push("/presentation/session");
+  };
 
   const renderDeviceStatus = (status, type) => {
     if (status === "ready") {
@@ -961,7 +980,14 @@ export default function PresentationSetupPage() {
           </div>
         </div>
         <div className="flex flex-col justify-center items-center">
-          <button className="flex gap-2 items-center bg-main rounded-lg px-3 py-2 text-sm font-semibold text-white">
+          <button 
+            onClick={handleStartPresentation}
+            className={`flex gap-2 items-center rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors ${
+              cameraStatus === "ready" && micStatus === "ready"
+                ? "bg-main hover:bg-main/90 cursor-pointer"
+                : "bg-slate-300 cursor-not-allowed opacity-75"
+            }`}
+          >
             <Play size={17} />
             Start Presentation
           </button>
