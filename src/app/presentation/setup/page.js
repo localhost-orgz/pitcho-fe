@@ -25,6 +25,8 @@ import {
   MessageCircleCheck,
   Trophy,
   Play,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -36,6 +38,7 @@ export default function PresentationSetupPage() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [cueCards, setCueCards] = useState([]);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const fileInputRef = useRef(null);
 
   // Card 2: Equipment check states
@@ -200,8 +203,8 @@ export default function PresentationSetupPage() {
       let slidesData = null;
       if (data) {
         if (Array.isArray(data.data)) {
-          // Extract title from every object in the data array
-          slidesData = data.data.map(item => item.title || item.notes || item.note || item.text || JSON.stringify(item));
+          // Store raw array of slide objects
+          slidesData = data.data;
         } else if (data.slide) {
           slidesData = data.slide;
         } else if (data.data && data.data.slide) {
@@ -217,6 +220,7 @@ export default function PresentationSetupPage() {
         // Change the cue card with the response data
         const slidesArray = Array.isArray(slidesData) ? slidesData : [slidesData];
         setCueCards(slidesArray);
+        setActiveSlideIndex(0); // Reset index on new upload
         setCueCardStatus("ready");
       } else {
         console.error("Missing expected slides data in response. Response payload:", data);
@@ -540,39 +544,89 @@ export default function PresentationSetupPage() {
               </div>
             )}
 
-            {cueCardStatus === "ready" && (
-              <>
-                <div className="flex flex-col">
-                  {cueCards.map((point, i) => {
-                    const text = typeof point === "string" 
-                      ? point 
-                      : (point.notes || point.note || point.text || point.title || JSON.stringify(point));
-                    return (
-                      <div key={i} className="flex items-start gap-3">
-                        {/* Timeline column */}
-                        <div className="flex flex-col items-center">
-                          <div className="w-4 h-4 rounded-full border-2 border-slate-300 bg-white flex-shrink-0 mt-0.5" />
-                          {i < cueCards.length - 1 && (
-                            <div className="w-px flex-1 border-l-2 border-dashed border-slate-200 my-1 min-h-[24px]" />
-                          )}
-                        </div>
-                        {/* Text */}
-                        <span className="text-sm text-slate-600 pb-4">
-                          {text}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+            {cueCardStatus === "ready" && cueCards.length > 0 && (() => {
+              const activeSlide = cueCards[activeSlideIndex] || {};
+              const isSlideObject = typeof activeSlide === "object" && activeSlide !== null;
+              
+              const title = isSlideObject ? (activeSlide.title || `Slide ${activeSlideIndex + 1}`) : activeSlide;
+              const talkingPoints = isSlideObject ? (activeSlide.talking_points || []) : [];
+              const transitionSentence = isSlideObject ? activeSlide.transition_sentence : "";
 
-                <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2">
-                  <span className="text-amber-500 text-base">💡</span>
-                  <span className="text-xs text-amber-700 font-medium">
-                    Use this as a guide, not a script. Speak naturally!
-                  </span>
+              return (
+                <div className="flex flex-col gap-4 mt-2">
+                  {/* Carousel Header Controls */}
+                  <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                    <span className="text-xs font-bold text-amber-800">
+                      Slide {activeSlideIndex + 1} of {cueCards.length}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveSlideIndex(prev => Math.max(0, prev - 1))}
+                        disabled={activeSlideIndex === 0}
+                        className="p-1 rounded-md border border-amber-300 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-100/50"
+                        title="Previous Slide"
+                      >
+                        <ChevronLeft size={16} className="text-amber-800" />
+                      </button>
+                      <button
+                        onClick={() => setActiveSlideIndex(prev => Math.min(cueCards.length - 1, prev + 1))}
+                        disabled={activeSlideIndex === cueCards.length - 1}
+                        className="p-1 rounded-md border border-amber-300 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-100/50"
+                        title="Next Slide"
+                      >
+                        <ChevronRight size={16} className="text-amber-800" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 1. Slide Title */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">Slide Title</span>
+                    <h5 className="text-sm font-bold text-slate-800 leading-snug bg-white/60 p-2.5 rounded-lg border border-amber-200/40">
+                      {title}
+                    </h5>
+                  </div>
+
+                  {/* 2. Talking Points (Speaking Notes) */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">Key Speaking Guide</span>
+                    <div className="flex flex-col gap-2 bg-white/40 p-3 rounded-lg border border-amber-200/40 min-h-[90px]">
+                      {talkingPoints.length > 0 ? (
+                        talkingPoints.map((point, index) => (
+                          <div key={index} className="flex items-start gap-2.5">
+                            <span className="text-amber-500 font-bold shrink-0 mt-0.5">•</span>
+                            <span className="text-xs text-slate-700 font-medium leading-relaxed">
+                              {point}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No specific talking points generated.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. Transition Sentence */}
+                  {transitionSentence && (
+                    <div className="flex flex-col gap-1 mt-1">
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">Smooth Bridge/Transition</span>
+                      <div className="text-xs text-amber-900 font-medium italic leading-relaxed bg-amber-100/60 p-3 rounded-lg border border-amber-200/60 flex items-start gap-2">
+                        <span className="text-amber-500 shrink-0 mt-0.5">🔗</span>
+                        <span>"{transitionSentence}"</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tips banner */}
+                  <div className="mt-1 flex items-center gap-2 rounded-lg bg-amber-100/30 px-3 py-2 border border-amber-200/30">
+                    <span className="text-amber-500 text-sm">💡</span>
+                    <span className="text-[11px] text-amber-800 font-medium leading-normal">
+                      Practice explaining this slide using the points. Use the transition sentence before changing slides!
+                    </span>
+                  </div>
                 </div>
-              </>
-            )}
+              );
+            })()}
 
             {cueCardStatus === "error" && (
               <div className="flex flex-col items-center justify-center py-6 gap-3 text-center">
