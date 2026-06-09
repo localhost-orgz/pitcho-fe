@@ -149,6 +149,17 @@ export default function Home() {
                 100% { transform: translate(0, 0) rotate(0deg); }
               }
               
+              /* Mouth Sneeze (infinite loop) - hidden during sneeze */
+              @keyframes keyframes-sneeze-mouth-loop {
+                0%, 80%, 100% { transform: scale(1); opacity: 1; }
+                84%, 96% { transform: scale(0); opacity: 0; }
+              }
+              /* Mouth Sneeze (single action) - hidden during sneeze */
+              @keyframes keyframes-sneeze-mouth-single {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                20%, 80% { transform: scale(0); opacity: 0; }
+              }
+              
               /* Infinite Loop Yawn (9s rhythm) */
               @keyframes keyframes-yawn-loop {
                 0%, 70%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -200,13 +211,13 @@ export default function Home() {
 
               /* Mouth Yawn Scale (infinite loop) */
               @keyframes keyframes-yawn-mouth-loop {
-                0%, 70%, 100% { transform: scale(1); }
-                79%, 91% { transform: scale(1.8, 8); }
+                0%, 70%, 100% { transform: scale(1); opacity: 1; }
+                79%, 91% { transform: scale(0); opacity: 0; }
               }
               /* Mouth Yawn Scale (single action) */
               @keyframes keyframes-yawn-mouth-single {
-                0%, 100% { transform: scale(1); }
-                30%, 70% { transform: scale(1.8, 8); }
+                0%, 100% { transform: scale(1); opacity: 1; }
+                30%, 70% { transform: scale(0); opacity: 0; }
               }
 
               /* --- Dynamic Class Selectors --- */
@@ -236,6 +247,11 @@ export default function Home() {
               }
               .loop-sneeze .eye {
                 animation: keyframes-squeeze-sneeze-loop 7s ease-in-out infinite;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .loop-sneeze .mouth {
+                animation: keyframes-sneeze-mouth-loop 7s ease-in-out infinite;
                 transform-box: fill-box;
                 transform-origin: center;
               }
@@ -279,6 +295,11 @@ export default function Home() {
               }
               .animate-sneeze .eye {
                 animation: keyframes-squeeze-sneeze-single 1.5s ease-in-out;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .animate-sneeze .mouth {
+                animation: keyframes-sneeze-mouth-single 1.5s ease-in-out;
                 transform-box: fill-box;
                 transform-origin: center;
               }

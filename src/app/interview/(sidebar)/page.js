@@ -589,7 +589,7 @@ export default function InterviewSetupPage() {
           </div>
 
           {/* Distraction Intensity selection */}
-          <div className="flex flex-col gap-2 mt-auto">
+          {/* <div className="flex flex-col gap-2 mt-auto">
             <span className="text-sm font-bold text-slate-500">
               Distraction Intensity
             </span>
@@ -614,7 +614,7 @@ export default function InterviewSetupPage() {
                 );
               })}
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Card 4: Session Settings */}
