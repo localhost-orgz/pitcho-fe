@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { getSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
+import { calculateSessionScore } from "@/utils/scoring";
 
 // ── Static demo data ────────────────────────────────────────
 const METRICS = [
@@ -369,12 +370,26 @@ function formatDuration(secs) {
 }
 
 // ── Score ring SVG ──────────────────────────────────────────
+// ── Score-to-color helper ──────────────────────────────────
+function scoreToColor(score) {
+  const clamped = Math.max(0, Math.min(100, score));
+  const hue = (clamped / 100) * 120; // 0→red, 60→yellow, 120→green
+  return `hsl(${hue}, 85%, 50%)`;
+}
+
 function ScoreRing({ score }) {
   const r = 52;
   const circ = 2 * Math.PI * r;
   const offset = circ - (score / 100) * circ;
+  const hue = (Math.max(0, Math.min(100, score)) / 100) * 120;
   return (
     <svg width={130} height={130} viewBox="0 0 130 130" className="shrink-0">
+      <defs>
+        <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={`hsl(${hue}, 85%, 55%)`} />
+          <stop offset="100%" stopColor={scoreToColor(score)} />
+        </linearGradient>
+      </defs>
       <circle
         cx={65}
         cy={65}
@@ -396,12 +411,6 @@ function ScoreRing({ score }) {
         transform="rotate(-90 65 65)"
         style={{ transition: "stroke-dashoffset 1s ease" }}
       />
-      <defs>
-        <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#818cf8" />
-          <stop offset="100%" stopColor="#6366f1" />
-        </linearGradient>
-      </defs>
       <text
         x={65}
         y={60}
@@ -1093,20 +1102,22 @@ export default function PresentationResultPage() {
   const wordEfficiencyData = analysisData?.analysis?.word_efficiency;
   const suggestions = analysisData?.analysis?.improvement_suggestions;
 
-  // Overall score
-  const overallScore = hasAnalysis && wordEfficiencyData
-    ? wordEfficiencyData.efficiency_score
-    : 82;
-  const scoreLabel = overallScore >= 80
-    ? "Great job! 🎉"
-    : overallScore >= 60
-      ? "Good effort! 👍"
-      : overallScore >= 40
-        ? "Needs improvement 💪"
-        : "Keep practicing! 📣";
-  const scoreMessage = hasAnalysis
-    ? "Speech efficiency score based on word choice and filler word analysis."
-    : "You delivered a clear message and maintained good focus through most of your presentation.";
+  // ── Score templates by interval ──────────────────────────
+  const SCORE_TEMPLATES = [
+    { min: 90, title: "Outstanding! 🏆", message: "You delivered with confidence, clarity, and excellent pacing — a top-tier performance." },
+    { min: 80, title: "Great job! 🎉", message: "Strong delivery overall. A few small refinements will take you to the next level." },
+    { min: 70, title: "Good effort! 👍", message: "Solid foundation — sharpen a couple of areas and you'll shine even brighter." },
+    { min: 50, title: "Keep it up! 💪", message: "A promising session. With more practice, your delivery will feel smoother and more natural." },
+    { min:  0, title: "Just getting started! 📣", message: "Every great speaker starts somewhere. Keep practicing — you're building real skills." },
+  ];
+
+  // Overall score — calculated from all available session + analysis data
+  const scoreResult = calculateSessionScore(sessionData, analysisData);
+  const overallScore = scoreResult.overallScore;
+
+  const activeTemplate = SCORE_TEMPLATES.find((t) => overallScore >= t.min) || SCORE_TEMPLATES[SCORE_TEMPLATES.length - 1];
+  const scoreLabel = activeTemplate.title;
+  const scoreMessage = activeTemplate.message;
 
   // Build dynamic metrics based on session data
   const hasSession = sessionData && (clips.length > 0 || sessionData.speechSegments?.length === 5);

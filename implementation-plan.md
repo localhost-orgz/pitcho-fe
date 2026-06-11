@@ -1,294 +1,363 @@
-# Implementation Plan: Virtual Classroom Distraction System
+# Implementation Plan: Session Analytics Aggregation & Overall Scoring
 
 ## Objective
 
-Integrate `/public/classroom.mp4` into the Presentation Session page as the visual audience simulation.
+Build a centralized analytics pipeline that collects all public speaking session data and transforms it into a final overall score between 0 and 100.
 
-The video should become the main virtual classroom display and support the distraction engine that triggers specific audience animations throughout the presentation session.
+The system should separate:
 
----
+1. Data Collection
+2. Analytics Aggregation
+3. Score Calculation
+4. Result Presentation
 
-# Phase 1: Virtual Classroom Video Integration
-
-## Goal
-
-Replace the current placeholder virtual classroom with the classroom video.
-
-### Requirements
-
-- Load video from:
-
-```text
-/public/classroom.mp4
-```
-
-- Render inside the existing Virtual Classroom section on Presentation Session page.
-- Video should fill the entire classroom area.
-- Aspect ratio should be:
-
-```text
-19:6
-```
-
-- Classroom container should be:
-
-```text
-width: 100%
-height: 100%
-```
-
-- Use object-fit cover behavior so the classroom always fills available space.
-- No visible browser video controls.
-- Video should autoplay.
-- Video should remain muted.
-- Video should be controlled entirely through JavaScript.
-
-### Acceptance Criteria
-
-- Video visually occupies the full virtual classroom area.
-- No black bars visible.
-- No controls visible.
-- Video automatically starts when session starts.
+This allows future scoring formulas to change without affecting tracking logic.
 
 ---
 
-# Phase 2: Video State Controller
+# Phase 1: Create Session Analytics Model
 
-## Goal
+Create a single session analytics object that accumulates all metrics throughout the presentation.
 
-Turn a single MP4 into a state-driven animation system.
-
-### States
+Example:
 
 ```ts
-IDLE_BLINK;
-COUGH;
-SNEEZE;
-YAWN;
-DROP_BOTTLE;
+interface SessionAnalytics {
+  sessionDurationSeconds: number;
+
+  totalWords: number;
+
+  distractedDurationSeconds: number;
+
+  fillerWordCount: number;
+
+  redundantPhraseCount: number;
+
+  averageWPM: number;
+}
 ```
 
-### Timeline Mapping
-
-```ts
-IDLE_BLINK:
-0s → 7s
-
-COUGH:
-8s → 10s
-
-SNEEZE:
-10s → 12s
-
-YAWN:
-12s → 15s
-
-DROP_BOTTLE:
-15s → 17s
-```
-
-### Behavior
-
-Default behavior:
-
-```text
-Loop 0s → 7s forever
-```
-
-When distraction triggered:
-
-```text
-Jump to distraction start
-Play distraction segment
-Wait until segment finishes
-Return to idle loop
-```
-
-### Required API
-
-```ts
-playIdleLoop();
-
-playDistraction(type);
-
-stopCurrentAnimation();
-```
+This object becomes the single source of truth for all scoring calculations.
 
 ---
 
-# Phase 3: Distraction Schedule Generator
+# Phase 2: Collect Raw Session Data
 
-## Goal
+During the presentation session, continuously collect:
 
-Generate distraction timings based on session duration and difficulty.
+## Speech Metrics
 
-### Session Durations
-
-```ts
-1 minute
-3 minutes
-5 minutes
-10 minutes
-15 minutes
-```
-
-### Difficulty Multipliers
+Track:
 
 ```ts
-easy = 0.3;
-medium = 0.6;
-hard = 1.0;
+totalWords;
 ```
 
-### Formula
+Track:
 
 ```ts
-eventCount = Math.round(sessionMinutes * multiplier);
+speechSegments;
 ```
 
-### Example
+Track:
 
 ```ts
-5 min easy
-= 2 events
-
-10 min medium
-= 6 events
-
-15 min hard
-= 15 events
+liveTranscript;
 ```
+
+These will later be used for:
+
+- WPM calculation
+- filler analysis
+- redundancy analysis
 
 ---
 
-# Phase 4: Weighted Timeline Distribution
+## Focus Metrics
 
-## Goal
+Track:
 
-Avoid robotic spacing.
-
-### Timeline Zones
-
-```text
-0-20%
-15% of events
-
-20-80%
-70% of events
-
-80-100%
-15% of events
+```ts
+distractedDurationSeconds;
 ```
 
-### Rules
+Definition:
 
-- Add randomness.
-- Never place events at fixed intervals.
-- Avoid two events occurring too close together.
-- Define a minimum gap between distractions.
+Time spent not looking toward the camera.
+
+Important:
+
+Do NOT count distraction occurrences.
+
+Only count total distracted duration.
 
 Example:
 
 ```text
-6%
-17%
-32%
-48%
-63%
-81%
+User looks away for 3 seconds
+User looks away for 8 seconds
+User looks away for 5 seconds
+
+Total distracted duration = 16 seconds
 ```
 
 ---
 
-# Phase 5: Distraction Type Selection
+# Phase 3: Generate Session Analytics
 
-## Goal
+At session completion, aggregate all raw data.
 
-Randomize animation types while maintaining realism.
+Calculate:
 
-### Weights
+## Average WPM
 
 ```ts
-COUGH = 45%
-SNEEZE = 25%
-YAWN = 20%
-DROP_BOTTLE = 10%
-```
-
-### Constraints
-
-Easy:
-
-```text
-No DROP_BOTTLE
-```
-
-Medium:
-
-```text
-Maximum 1 DROP_BOTTLE
-```
-
-Hard:
-
-```text
-Maximum 2 DROP_BOTTLE
-```
-
-Additional:
-
-```text
-Maximum 2 identical distractions consecutively
+averageWPM = totalWords / (sessionDurationSeconds / 60);
 ```
 
 ---
 
-# Phase 6: Session Runtime Engine
+## Filler Rate
 
-## Goal
+Calculate:
 
-Trigger distractions automatically during presentation.
-
-### Responsibilities
-
-- Start when presentation session begins.
-- Generate distraction schedule.
-- Track elapsed session time.
-- Trigger distraction when scheduled timestamp is reached.
-- Return to idle state afterward.
-- Continue monitoring remaining schedule.
-
-### Cleanup
-
-When session ends:
-
-```text
-Clear timers
-Stop listeners
-Return video to idle state
-Release resources
+```ts
+fillerRate = (fillerWordCount / totalWords) * 100;
 ```
 
----
+Meaning:
 
-# Phase 7: Future-Proof Architecture
-
-Structure code so new audience behaviors can be added later.
+Number of filler words per 100 spoken words.
 
 Examples:
 
-```ts
-LOOK_AT_PHONE;
-LOOK_AT_WATCH;
-TALK_TO_NEIGHBOR;
-LEAVE_ROOM;
-ENTER_ROOM;
+```text
+500 words
+10 fillers
+
+= 2 fillers per 100 words
 ```
 
-The engine should require only:
+---
 
-1. New state definition
-2. New timestamp mapping
-3. Optional weight configuration
+## Redundancy Rate
 
-No major refactor should be required.
+Calculate:
+
+```ts
+redundancyRate = (redundantPhraseCount / totalWords) * 100;
+```
+
+Meaning:
+
+Number of redundant phrases per 100 spoken words.
+
+Examples:
+
+```text
+500 words
+5 redundancies
+
+= 1 redundancy per 100 words
+```
+
+---
+
+# Phase 4: Score Calculation Engine
+
+Create a dedicated module:
+
+```ts
+calculateSessionScore();
+```
+
+Input:
+
+```ts
+SessionAnalytics;
+```
+
+Output:
+
+```ts
+SessionScore;
+```
+
+---
+
+# Phase 5: Focus Score
+
+Weight:
+
+```ts
+40%
+```
+
+Formula:
+
+```ts
+focusScore = 100 - (distractedDurationSeconds / sessionDurationSeconds) * 100;
+```
+
+Clamp:
+
+```ts
+0 - 100;
+```
+
+Examples:
+
+```text
+300 second session
+15 distracted seconds
+
+= 95
+```
+
+---
+
+# Phase 6: Pace Score
+
+Weight:
+
+```ts
+25%
+```
+
+Rules:
+
+```ts
+120-160 WPM => 100
+
+100-120 WPM => 85
+160-180 WPM => 85
+
+80-100 WPM => 70
+180-200 WPM => 70
+
+<80 => 50
+>200 => 50
+```
+
+Implement as rule-based mapping.
+
+Not linear interpolation.
+
+---
+
+# Phase 7: Filler Score
+
+Weight:
+
+```ts
+20%
+```
+
+Use filler rate.
+
+Rules:
+
+```ts
+0-2 => 100
+3-4 => 90
+5-6 => 80
+7-8 => 70
+>8 => 50
+```
+
+---
+
+# Phase 8: Efficiency Score
+
+Weight:
+
+```ts
+15%
+```
+
+Use redundancy rate.
+
+Rules:
+
+```ts
+0-1 => 100
+2-3 => 90
+4-5 => 80
+>5 => 70
+```
+
+---
+
+# Phase 9: Calculate Overall Score
+
+Formula:
+
+```ts
+overallScore =
+  focusScore * 0.4 +
+  paceScore * 0.25 +
+  fillerScore * 0.2 +
+  efficiencyScore * 0.15;
+```
+
+Round:
+
+```ts
+Math.round();
+```
+
+Return value:
+
+```ts
+0 - 100;
+```
+
+---
+
+# Phase 10: Result DTO
+
+Create a structured response object.
+
+Example:
+
+```ts
+{
+  overallScore: 88,
+
+  breakdown: {
+    focus: 92,
+    pace: 85,
+    filler: 80,
+    efficiency: 95
+  },
+
+  analytics: {
+    totalWords: 650,
+    averageWPM: 130,
+    distractedDurationSeconds: 24,
+    fillerWordCount: 8,
+    redundantPhraseCount: 3
+  }
+}
+```
+
+---
+
+# Phase 11: Future-Proof Design
+
+Scoring weights should not be hardcoded.
+
+Store them in configuration:
+
+```ts
+SCORING_WEIGHTS = {
+  focus: 0.4,
+  pace: 0.25,
+  filler: 0.2,
+  efficiency: 0.15,
+};
+```
+
+This allows future tuning without changing business logic.
+
+The analytics layer must remain independent from the scoring layer.
