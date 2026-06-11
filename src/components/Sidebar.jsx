@@ -164,9 +164,9 @@ export default function Sidebar() {
               <div className="hidden lg:flex flex-col gap-y-1 pl-9 mt-1">
                 <Link
                   href="/interview/setup"
-                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all block ${
+                  className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all block ${
                     pathname.startsWith("/interview")
-                      ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold pl-2.5"
+                      ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold pl-3.5"
                       : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
                   }`}
                 >
@@ -174,9 +174,9 @@ export default function Sidebar() {
                 </Link>
                 <Link
                   href="/presentation/setup"
-                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all block ${
+                  className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all block ${
                     pathname.startsWith("/presentation")
-                      ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold pl-2.5"
+                      ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold pl-3.5"
                       : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
                   }`}
                 >
