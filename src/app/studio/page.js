@@ -259,12 +259,12 @@ export default function StationPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-7">
-            <div className="w-full bg-blue-500/10 border-2 border-blue-100/50 rounded-2xl p-5 gap-7 flex flex-col justify-between">
+            <div className="w-full bg-blue-500/10 border-2 border-blue-100/50 relative rounded-2xl p-5 gap-7 flex flex-col justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-xl font-bold text-blue-500">
                   Presentation Mode
                 </span>
-                <span className="text-sm text-slate-500 leading-relaxed mt-1">
+                <span className="text-sm text-slate-500 leading-relaxed mt-1 w-[60%]">
                   Practice your public speaking with virtual audiences and
                   distractions.
                 </span>
@@ -281,13 +281,18 @@ export default function StationPage() {
                   <ArrowRight size={18} strokeWidth={2.5} />
                 </Link>
               </Button>
+              <img
+                src="/presentation.png"
+                className="absolute bottom-0 right-0 w-40 z-10"
+              />
+              <div className="w-30 h-30 rounded-full bg-blue-500/40 absolute bottom-10 right-5"></div>
             </div>
-            <div className="w-full bg-emerald-600/10 border-2 border-emerald-100/50 rounded-2xl p-5 gap-7 flex flex-col justify-between">
+            <div className="w-full bg-emerald-600/10 border-2 border-emerald-100/50 relative rounded-2xl p-5 gap-7 flex flex-col justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-xl font-bold text-emerald-500">
                   Interview Mode
                 </span>
-                <span className="text-sm text-slate-500 leading-relaxed mt-1">
+                <span className="text-sm text-slate-500 leading-relaxed mt-1 w-[60%]">
                   Prepare for your dream job with AI Mock interviews based on
                   your CV.
                 </span>
@@ -304,6 +309,11 @@ export default function StationPage() {
                   <ArrowRight size={18} strokeWidth={2.5} />
                 </Link>
               </Button>
+              <img
+                src="/interview.png"
+                className="w-40 absolute bottom-0 right-0 z-10"
+              />
+              <div className="w-30 h-30 rounded-full bg-green-500/40 absolute bottom-10 right-5"></div>
             </div>
           </div>
         </div>
