@@ -31,6 +31,9 @@ import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useSpeechTracker } from "@/hooks/useSpeechTracker";
 import { saveSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
+import { useVideoController } from "@/hooks/useVideoController";
+import { useDistractionSchedule } from "@/hooks/useDistractionSchedule";
+import { useDistractionEngine } from "@/hooks/useDistractionEngine";
 
 // ── Key points (iterable) ──────────────────────────────────
 const KEY_POINTS = [
@@ -337,6 +340,29 @@ export default function PresentationSessionPage() {
     stopListening: stopSpeechTracking,
   } = speechTracker;
 
+  // ── Classroom Video Controller ──────────────────────────────
+  const classroomVideoRef = useRef(null);
+  const videoController = useVideoController(classroomVideoRef);
+
+  // ── Distraction Schedule Generator ─────────────────────────
+  const distractionSchedule = useDistractionSchedule();
+  // Resolve the localStorage key at render time for difficulty
+  const storedDistractionKey =
+    typeof window !== "undefined"
+      ? localStorage.getItem("pitcho_selected_distraction") || "medium"
+      : "medium";
+  const difficultyMap = { low: "easy", medium: "medium", hard: "hard" };
+  const difficultyKey = difficultyMap[storedDistractionKey] || "medium";
+
+  // ── Distraction Runtime Engine ──────────────────────────────
+  const { nextEvent } = useDistractionEngine({
+    sessionRunning,
+    elapsed,
+    schedule: distractionSchedule.schedule,
+    playDistraction: videoController.playDistraction,
+    currentVideoState: videoController.currentState,
+  });
+
   const [activeKeyPoint, setActiveKeyPoint] = useState(0);
   const [activeTab, setActiveTab] = useState("cuecard"); // 'cuecard' | 'notes'
 
@@ -439,7 +465,14 @@ export default function PresentationSessionPage() {
 
     // Start speech-to-text tracking for WPM analysis
     startSpeechTracking(sessionDuration);
-  }, [runDetectionLoop, startRecording, startSpeechTracking, sessionDuration]);
+
+    // Generate distraction schedule for this session
+    distractionSchedule.generateSchedule(sessionDuration, difficultyKey);
+    // Ensure classroom video is playing (user gesture from calibration click)
+    if (classroomVideoRef.current) {
+      classroomVideoRef.current.play().catch(() => {});
+    }
+  }, [runDetectionLoop, startRecording, startSpeechTracking, sessionDuration, difficultyKey, distractionSchedule]);
 
   // ── End Session handler ─────────────────────────────────
   const [isEnding, setIsEnding] = useState(false);
@@ -448,6 +481,9 @@ export default function PresentationSessionPage() {
     if (isEnding) return;
     setIsEnding(true);
     try {
+      // 0. Stop classroom video
+      videoController.stopVideo();
+
       // 1. Stop speech tracking to get final WPM data
       const speechData = stopSpeechTracking();
 
@@ -479,7 +515,7 @@ export default function PresentationSessionPage() {
       console.error("Failed to end session:", err);
       setIsEnding(false);
     }
-  }, [isEnding, stopSpeechTracking, stopTracker, lookAwayEvents, lookAwayCount, totalSessionTime, totalDistractedTime, router]);
+  }, [isEnding, stopSpeechTracking, stopTracker, lookAwayEvents, lookAwayCount, totalSessionTime, totalDistractedTime, router, videoController]);
 
   // Determine eye-contact status based on cumulative look-away count
   // Scale: 0 → Excellent | 1-2 → Good | 3-5 → Fair | 6-9 → Poor | 10+ → Very Poor
@@ -610,6 +646,98 @@ export default function PresentationSessionPage() {
         </Button>
       </header>
 
+      {/* ── Debug: Distraction State Triggers ────────────────── */}
+      <div className="flex items-center gap-2 px-6 py-1.5 bg-slate-950 border-b border-slate-800 shrink-0">
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider mr-1">
+          Debug
+        </span>
+        <button
+          onClick={() => videoController.playIdleLoop()}
+          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-slate-600 text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+        >
+          IDLE
+        </button>
+        <button
+          onClick={() => videoController.playDistraction("COUGH")}
+          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-amber-600/50 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors cursor-pointer"
+        >
+          COUGH
+        </button>
+        <button
+          onClick={() => videoController.playDistraction("SNEEZE")}
+          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-cyan-600/50 text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors cursor-pointer"
+        >
+          SNEEZE
+        </button>
+        <button
+          onClick={() => videoController.playDistraction("YAWN")}
+          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-purple-600/50 text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors cursor-pointer"
+        >
+          YAWN
+        </button>
+        <button
+          onClick={() => videoController.playDistraction("DROP_BOTTLE")}
+          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-red-600/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors cursor-pointer"
+        >
+          DROP_BOTTLE
+        </button>
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-slate-700 mx-1" />
+
+        {/* Current state indicator */}
+        <span className="text-[10px] font-mono text-slate-500">
+          State:{" "}
+          <span className={`font-bold ${
+            videoController.currentState === "idle"
+              ? "text-slate-300"
+              : "text-amber-400"
+          }`}>
+            {videoController.currentState}
+          </span>
+        </span>
+
+        {/* Next distraction countdown */}
+        <div className="w-px h-4 bg-slate-700 mx-1" />
+        {sessionRunning ? (
+          nextEvent ? (
+            <span className="text-[10px] font-mono text-slate-400">
+              Next:{" "}
+              <span className={`font-bold ${
+                nextEvent.secondsUntil <= 5
+                  ? "text-red-400 animate-pulse"
+                  : nextEvent.secondsUntil <= 10
+                    ? "text-amber-400"
+                    : "text-emerald-400"
+              }`}>
+                {nextEvent.type}
+              </span>
+              <span className="text-slate-500"> in </span>
+              <span className={`font-black text-xs ${
+                nextEvent.secondsUntil <= 5
+                  ? "text-red-400"
+                  : nextEvent.secondsUntil <= 10
+                    ? "text-amber-400"
+                    : "text-emerald-400"
+              }`}>
+                {nextEvent.secondsUntil}s
+              </span>
+              <span className="text-slate-600 ml-1">
+                (@{nextEvent.timestamp}s)
+              </span>
+            </span>
+          ) : (
+            <span className="text-[10px] font-mono text-slate-600">
+              All distractions triggered
+            </span>
+          )
+        ) : (
+          <span className="text-[10px] font-mono text-slate-600">
+            Session not started
+          </span>
+        )}
+      </div>
+
       {/* ── Audience Alert Banner ───────────────────────────── */}
       <div className="flex items-center gap-3 px-6 py-2.5 bg-violet-50 border-b-2 border-violet-100 shrink-0">
         <div className="p-1.5 bg-violet-100 rounded-full">
@@ -660,62 +788,33 @@ export default function PresentationSessionPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Classroom Viewport + Camera + Live Feedback */}
         <div className="flex-1 flex flex-col overflow-hidden p-4 gap-4 bg-[#f3f7fd]">
-          {/* Classroom Wireframe */}
+          {/* Classroom Video Viewport */}
           <div
             className="flex-1 min-h-0 w-full flex items-center justify-center"
             style={{ containerType: "size" }}
           >
             <div
-              className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100 relative overflow-hidden"
+              className="rounded-2xl relative overflow-hidden bg-black"
               style={{
                 width: "min(100cqw, calc(100cqh * 16 / 9))",
                 height: "min(100cqh, calc(100cqw * 9 / 16))",
               }}
             >
-              {/* Wireframe label */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                <div className="w-16 h-16 rounded-full border-4 border-dashed border-slate-300 flex items-center justify-center">
-                  <Monitor size={28} className="text-slate-300" />
-                </div>
-                <span className="text-slate-400 font-bold text-sm tracking-wider uppercase">
-                  Virtual Classroom
-                </span>
-                <span className="text-slate-300 text-xs">
-                  Audience simulation renders here
-                </span>
-              </div>
+              {/* Classroom Video */}
+              <video
+                ref={classroomVideoRef}
+                src="/classroom.mp4"
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+                onLoadedData={videoController.onVideoReady}
+                onTimeUpdate={videoController.handleTimeUpdate}
+              />
 
-              {/* Wireframe audience rows */}
-              <div className="absolute inset-0 p-8 pb-32 flex flex-col justify-end gap-3 opacity-30">
-                {/* Row 1 */}
-                <div className="flex justify-center gap-6">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1">
-                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-400 bg-slate-200" />
-                      <div className="w-8 h-12 rounded-t-lg border-2 border-dashed border-slate-400 bg-slate-200" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Distraction speech bubbles (wireframe) */}
-              <div className="absolute top-6 left-8 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-bl-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">Zzz...</span>
-              </div>
-              <div className="absolute top-8 left-1/3 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-bl-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">
-                  *cough*
-                </span>
-              </div>
-              <div className="absolute top-4 right-12 bg-white border-2 border-dashed border-slate-300 rounded-2xl rounded-br-none px-3 py-1.5 opacity-50">
-                <span className="text-slate-400 text-xs font-bold">!</span>
-              </div>
-
-              {/* Floating overlays: Camera (facecam) + Feedback */}
-              <div className="absolute bottom-4 left-4 right-4 flex gap-4 pointer-events-auto z-20">
-                {/* ── Live Facecam slot ── */}
-                <div className="w-44 aspect-video shrink-0 rounded-2xl border-2 border-slate-200/80 bg-slate-950 relative overflow-hidden shadow-lg">
-                  {/* Actual live video feed */}
+              {/* ── Facecam + Feedback overlays ── */}
+              <div className="absolute bottom-3 left-3 right-3 flex items-end gap-3 pointer-events-auto z-20">
+                {/* Facecam (bottom-left) */}
+                <div className="w-72 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 relative overflow-hidden shadow-lg">
                   <video
                     ref={facecamRef}
                     className="w-full h-full object-cover scale-x-[-1]"
@@ -723,161 +822,70 @@ export default function PresentationSessionPage() {
                     playsInline
                     autoPlay
                   />
-
-                  {/* Overlay: searching / not-detected */}
                   {!isFaceDetected && cameraReady && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
-                      <div className="flex flex-col items-center gap-1.5 text-white/80 text-[10px] font-bold">
-                        <ScanFace size={22} className="animate-pulse" />
+                      <div className="flex flex-col items-center gap-1 text-white/80 text-[10px] font-bold">
+                        <ScanFace size={20} className="animate-pulse" />
                         <span>Searching face…</span>
                       </div>
                     </div>
                   )}
-
-                  {/* Live badge */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-md z-10">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    Live
-                  </div>
-
-                  {/* Eye-tracking mode badge */}
                   {eyeTrackingActive && (
                     <div
                       className={`absolute top-2 left-2 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md z-10 ${
-                        trackerStatus === "warning"
-                          ? "bg-orange-500 text-white"
-                          : "bg-main/90 text-white"
+                        trackerStatus === "warning" ? "bg-orange-500 text-white" : "bg-main/90 text-white"
                       }`}
                     >
                       <Eye size={9} />
-                      <span>
-                        {trackerStatus === "warning"
-                          ? "DISTRACTED"
-                          : "TRACKING"}
-                      </span>
+                      {trackerStatus === "warning" ? "DISTRACTED" : "TRACKING"}
                     </div>
                   )}
                 </div>
 
-                {/* Live feedback card */}
-                <div className="flex-1 max-w-lg bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-200/80 px-5 py-3.5 flex flex-col justify-between shadow-lg">
-                  {/* Positive feedback */}
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`p-2 rounded-full shrink-0 mt-0.5 ${
-                        trackerStatus === "warning"
-                          ? "bg-orange-500/10"
-                          : "bg-main/10"
-                      }`}
-                    >
-                      {trackerStatus === "warning" ? (
-                        <AlertTriangle size={16} className="text-orange-500" />
-                      ) : (
-                        <CheckCircle size={16} className="text-main" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-slate-800">
-                        {trackerStatus === "warning"
-                          ? "Look back at the screen!"
-                          : "You're doing great!"}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                        {trackerStatus === "warning"
-                          ? "Your eyes have drifted away from the camera."
-                          : "Keep maintaining eye contact with your audience and speak clearly."}
-                      </p>
-                    </div>
+                {/* Compact Live Feedback (bottom-right) */}
+                <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-xl px-3 py-2 shadow-lg">
+                  {/* Live label */}
+                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                    Live Analytics
+                  </span>
+                  {/* Divider */}
+                  <div className="w-px h-4 bg-white/20" />
+                  {/* Status icon */}
+                  <div className="shrink-0">
+                    {trackerStatus === "warning" ? (
+                      <AlertTriangle size={14} className="text-orange-400" />
+                    ) : (
+                      <CheckCircle size={14} className="text-emerald-400" />
+                    )}
                   </div>
-
-                  {/* Metrics */}
-                  <div className="flex flex-col gap-2 mt-2">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <Activity size={12} className="text-slate-400" />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        Live Feedback
-                      </span>
-                      <span className="text-[10px] text-slate-300">
-                        (Real-time indicators)
-                      </span>
-                    </div>
-
-                    {/* ── Eye Contact Row (dynamic) ── */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`}
-                        />
-                        <Eye size={14} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          Eye Contact
-                          {lookAwayCount > 0 && (
-                            <span className="ml-1 text-orange-500 font-black">
-                              (distracted {lookAwayCount}x)
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-sm font-bold ${eyeContactStatusClass}`}
-                      >
-                        {eyeContactStatus}
-                      </span>
-                    </div>
-
-                    {/* ── Filler Words Row (static) ── */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                        <AudioLines size={14} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          Filler Words
-                        </span>
-                      </div>
-                      <span className="text-sm font-bold text-orange-500">
-                        Slightly High
-                      </span>
-                    </div>
-
-                    {/* ── Speaking Pace Row (dynamic) ── */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            currentStatus === "Ideal Pace"
-                              ? "bg-green-500"
-                              : currentStatus === "Slightly Fast"
-                                ? "bg-orange-400"
-                                : currentStatus === "Too Fast"
-                                  ? "bg-red-500"
-                                  : currentStatus === "Too Slow"
-                                    ? "bg-blue-500"
-                                    : "bg-slate-300"
-                          }`}
-                        />
-                        <Timer size={14} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          Speaking Pace
-                        </span>
-                      </div>
-                      <span
-                        className={`text-sm font-bold ${
-                          currentStatus === "Ideal Pace"
-                            ? "text-green-600"
-                            : currentStatus === "Slightly Fast"
-                              ? "text-orange-500"
-                              : currentStatus === "Too Fast"
-                                ? "text-red-500"
-                                : currentStatus === "Too Slow"
-                                  ? "text-blue-500"
-                                  : "text-slate-400"
-                        }`}
-                      >
-                        {isSpeechListening
-                          ? `${currentWpm} wpm — ${currentStatus}`
-                          : "Waiting…"}
-                      </span>
-                    </div>
+                  {/* Eye Contact */}
+                  <div className="flex items-center gap-1">
+                    <div className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`} />
+                    <span className="text-[10px] font-semibold text-white/70">
+                      {eyeContactStatus}
+                    </span>
+                  </div>
+                  {/* Divider */}
+                  <div className="w-px h-4 bg-white/20" />
+                  {/* Speaking Pace */}
+                  <div className="flex items-center gap-1">
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        currentStatus === "Ideal Pace"
+                          ? "bg-green-400"
+                          : currentStatus === "Slightly Fast"
+                            ? "bg-orange-400"
+                            : currentStatus === "Too Fast"
+                              ? "bg-red-400"
+                              : currentStatus === "Too Slow"
+                                ? "bg-blue-400"
+                                : "bg-white/30"
+                      }`}
+                    />
+                    <span className="text-[10px] font-semibold text-white/70">
+                      {isSpeechListening ? `${currentWpm} wpm` : "-- wpm"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -897,7 +905,7 @@ export default function PresentationSessionPage() {
             </div>
           </div>
 
-          {/* Equipment Status Bar inside Left Column */}
+          {/* Equipment Status Bar */}
           <EquipmentBar
             internetSpeed={internetSpeed}
             isCameraOn={cameraReady}
