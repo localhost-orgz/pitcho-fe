@@ -219,7 +219,7 @@ export default function Sidebar() {
             className="w-24 h-24 object-contain hover:scale-105 transition-transform duration-300"
           />
           <span className="text-slate-800 font-extrabold text-[15px] mt-2 text-center">
-            Hi Aulia! 👋
+            Hi! 👋
           </span>
           <span className="text-slate-500 font-bold text-xs text-center mt-1 px-2 leading-relaxed">
             Ready to level up your speaking today?
