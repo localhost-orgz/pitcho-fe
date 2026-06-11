@@ -28,6 +28,8 @@ import {
   Minus,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { getSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
@@ -270,6 +272,7 @@ function useSessionData() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [clips, setClips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analysisData, setAnalysisData] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,6 +289,19 @@ function useSessionData() {
         const data = JSON.parse(raw);
         if (cancelled) return;
         setSessionData(data);
+
+        // Load speech analysis data from localStorage
+        try {
+          const analysisRaw = localStorage.getItem("pitcho_speech_analysis");
+          if (analysisRaw) {
+            const parsed = JSON.parse(analysisRaw);
+            if (parsed && parsed.analysis) {
+              setAnalysisData(parsed);
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to parse speech analysis data:", e);
+        }
 
         // Load video from IndexedDB
         const blob = await getSessionVideo();
@@ -336,7 +352,7 @@ function useSessionData() {
     };
   }, [videoUrl]);
 
-  return { sessionData, videoBlob, videoUrl, clips, loading };
+  return { sessionData, videoBlob, videoUrl, clips, loading, analysisData };
 }
 
 // ── Format seconds as mm:ss ────────────────────────────────
@@ -1067,9 +1083,30 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
 
 // ── Main Page ───────────────────────────────────────────────
 export default function PresentationResultPage() {
-  const { sessionData, videoBlob, videoUrl, clips, loading } = useSessionData();
+  const { sessionData, videoBlob, videoUrl, clips, loading, analysisData } = useSessionData();
   const [activeClipIndex, setActiveClipIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState("eye"); // 'eye' | 'tempo' | 'filler' | 'wordiness'
+
+  // ── Derived analysis data ──────────────────────────────────
+  const hasAnalysis = !!analysisData?.analysis;
+  const fillerWordsData = analysisData?.analysis?.filler_words;
+  const wordEfficiencyData = analysisData?.analysis?.word_efficiency;
+  const suggestions = analysisData?.analysis?.improvement_suggestions;
+
+  // Overall score
+  const overallScore = hasAnalysis && wordEfficiencyData
+    ? wordEfficiencyData.efficiency_score
+    : 82;
+  const scoreLabel = overallScore >= 80
+    ? "Great job! 🎉"
+    : overallScore >= 60
+      ? "Good effort! 👍"
+      : overallScore >= 40
+        ? "Needs improvement 💪"
+        : "Keep practicing! 📣";
+  const scoreMessage = hasAnalysis
+    ? "Speech efficiency score based on word choice and filler word analysis."
+    : "You delivered a clear message and maintained good focus through most of your presentation.";
 
   // Build dynamic metrics based on session data
   const hasSession = sessionData && (clips.length > 0 || sessionData.speechSegments?.length === 5);
@@ -1158,7 +1195,33 @@ export default function PresentationResultPage() {
       }
     : METRICS[2];
 
-  const dynamicMetrics = [eyeMetric, METRICS[1], paceMetric];
+  // Build dynamic filler metric from analysis data
+  const fillerMetric = hasAnalysis && fillerWordsData
+    ? {
+        ...METRICS[1],
+        value: `${fillerWordsData.total_filler_count} filler word${fillerWordsData.total_filler_count !== 1 ? "s" : ""}`,
+        subValue:
+          fillerWordsData.total_filler_count === 0
+            ? "Excellent"
+            : fillerWordsData.total_filler_count <= 2
+              ? "Good"
+              : fillerWordsData.total_filler_count <= 5
+                ? "Needs Work"
+                : "Poor",
+        subColor:
+          fillerWordsData.total_filler_count === 0
+            ? "text-green-500"
+            : fillerWordsData.total_filler_count <= 2
+              ? "text-green-500"
+              : fillerWordsData.total_filler_count <= 5
+                ? "text-orange-500"
+                : "text-red-500",
+        barPct: Math.max(5, 100 - fillerWordsData.total_filler_count * 15),
+        userPct: Math.max(5, 100 - fillerWordsData.total_filler_count * 15),
+      }
+    : METRICS[1];
+
+  const dynamicMetrics = [eyeMetric, fillerMetric, paceMetric];
 
   // Build dynamic pace segments from session speech data
   const paceSegments = hasSpeechData
@@ -1208,6 +1271,47 @@ export default function PresentationResultPage() {
       })
     : PACE_SEGMENTS;
 
+  // ── Dynamic filler/wordiness data for tabs ───────────────
+  // Helper: wrap word occurrences in text with *...* for highlighting
+  function makeHighlightPhrase(text, word) {
+    if (!word || !text) return text;
+    var escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    var pattern = new RegExp("\\b(" + escaped + ")\\b", "gi");
+    return text.replace(pattern, "*$1*");
+  }
+
+  var dynamicFillerEvents = null;
+  var dynamicWordinessItems = null;
+  if (hasAnalysis) {
+    if (fillerWordsData && fillerWordsData.incidents) {
+      dynamicFillerEvents = fillerWordsData.incidents.map(function (inc) {
+        return {
+          word: inc.word.toLowerCase(),
+          phrase: makeHighlightPhrase(inc.context_text, inc.word),
+        };
+      });
+    }
+    if (wordEfficiencyData && wordEfficiencyData.findings) {
+      dynamicWordinessItems = wordEfficiencyData.findings.map(function (f) {
+        return {
+          original: f.original_phrase,
+          improved: f.recommended_phrase,
+          context: makeHighlightPhrase(f.transcript_context, f.original_phrase),
+          explanation: f.coach_tip,
+          issueType: f.issue_type,
+        };
+      });
+    }
+  }
+
+  // Items to render per tab (dynamic or static fallback)
+  var fillerEvents = (hasAnalysis && dynamicFillerEvents) ? dynamicFillerEvents : FILLER_EVENTS;
+  var fillerHasData = hasAnalysis;
+  var fillerIsEmpty = hasAnalysis && dynamicFillerEvents && dynamicFillerEvents.length === 0;
+  var wordinessItems = (hasAnalysis && dynamicWordinessItems) ? dynamicWordinessItems : WORDINESS_ITEMS;
+  var wordinessHasData = hasAnalysis;
+  var wordinessIsEmpty = hasAnalysis && dynamicWordinessItems && dynamicWordinessItems.length === 0;
+
   return (
     <div className="w-full min-h-screen">
       {/* ── Page header ──────────────────────────────────────── */}
@@ -1254,17 +1358,16 @@ export default function PresentationResultPage() {
       <div className="flex gap-4 mb-6">
         {/* Overall score card */}
         <div className="bg-white rounded-2xl border-bold px-5 py-5 flex items-center gap-5 shrink-0 w-lg">
-          <ScoreRing score={82} />
+          <ScoreRing score={overallScore} />
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Overall Score
             </p>
             <p className="text-lg font-black text-slate-800 leading-tight">
-              Great job! 🎉
+              {scoreLabel}
             </p>
             <p className="text-sm text-slate-500 font-medium leading-relaxed">
-              You delivered a clear message and maintained good focus through
-              most of your presentation.
+              {scoreMessage}
             </p>
           </div>
         </div>
@@ -1276,6 +1379,26 @@ export default function PresentationResultPage() {
           ))}
         </div>
       </div>
+
+      {/* ── Improvement Suggestions (from speech analysis) ────── */}
+      {hasAnalysis && suggestions && suggestions.length > 0 && (
+        <div className="mb-6 bg-white rounded-2xl border-bold p-5">
+          <h3 className="font-black text-slate-800 text-sm mb-3">Improvement Suggestions</h3>
+          <div className="flex flex-col gap-3">
+            {suggestions.map(function (s, i) {
+              return (
+                <div key={i} className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                  <Lightbulb size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-xs font-bold text-slate-700">{s.focus_area}</span>
+                    <p className="text-xs text-slate-500 mt-1">{s.concrete_action}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Tab Navigation ────────────────────────────────────── */}
       <div className="flex border-b-2 border-slate-200 gap-1 mb-6">
@@ -1546,30 +1669,41 @@ export default function PresentationResultPage() {
       {/* ── Tab 3: Filler Words ── */}
       {activeTab === "filler" && (
         <div className="grid grid-cols-12 gap-4 animate-fade-in">
-          {/* Main Filler Words View */}
           <div className="col-span-12 bg-white rounded-2xl border-bold p-5 flex flex-col gap-5">
-            {/* Filler Words Transcript Logs */}
             <div>
               <h2 className="font-black text-slate-800 text-sm mb-3">
                 Filler Word Incidents in Transcript
               </h2>
-              <div className="flex flex-col gap-2">
-                {FILLER_EVENTS.map((event, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-4 p-3 bg-slate-50 border border-slate-100 rounded-xl"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                        Used word:{" "}
-                        <span className="text-red-500 font-black">
-                          "{event.word}"
-                        </span>
-                      </p>
-                      <p className="text-xs text-slate-700 mt-1 italic font-medium leading-relaxed">
-                        {event.phrase
-                          .split(`*${event.word}*`)
-                          .map((part, idx, arr) => (
+              {!fillerHasData && (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <AudioLines size={40} className="text-slate-300" />
+                  <span className="text-sm font-bold text-slate-400">No Filler Word Analysis Available</span>
+                  <span className="text-xs text-slate-300">Filler word analysis requires microphone access during your session.</span>
+                </div>
+              )}
+              {fillerIsEmpty && (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <CheckCircle size={40} className="text-green-400" />
+                  <span className="text-sm font-bold text-green-600">No Filler Words Detected</span>
+                  <span className="text-xs text-slate-400">Great job! Your speech was clean and free of filler words.</span>
+                </div>
+              )}
+              {fillerHasData && !fillerIsEmpty && (
+                <div className="flex flex-col gap-2">
+                  {fillerEvents.map((event, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-4 p-3 bg-slate-50 border border-slate-100 rounded-xl"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                          Used word:{" "}
+                          <span className="text-red-500 font-black">
+                            &ldquo;{event.word}&rdquo;
+                          </span>
+                        </p>
+                        <p className="text-xs text-slate-700 mt-1 italic font-medium leading-relaxed">
+                          {event.phrase.split("*" + event.word + "*").map((part, idx, arr) => (
                             <React.Fragment key={idx}>
                               {part}
                               {idx < arr.length - 1 && (
@@ -1579,11 +1713,12 @@ export default function PresentationResultPage() {
                               )}
                             </React.Fragment>
                           ))}
-                      </p>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1592,7 +1727,6 @@ export default function PresentationResultPage() {
       {/* ── Tab 4: Wordiness ── */}
       {activeTab === "wordiness" && (
         <div className="grid grid-cols-12 gap-4 animate-fade-in">
-          {/* Main Wordiness View */}
           <div className="col-span-12 bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
             <div>
               <h2 className="font-bold text-slate-800 ">
@@ -1604,50 +1738,56 @@ export default function PresentationResultPage() {
               </p>
             </div>
 
-            {/* List of wordy phrases */}
-            <div className="flex flex-col gap-4">
-              {WORDINESS_ITEMS.map((item, i) => (
-                <div
-                  key={i}
-                  className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-3"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex gap-4">
-                      {/* Left: Original redundant phrase */}
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Wordy Phrase
-                        </span>
-                        <span className="text-sm font-extrabold text-red-500 line-through bg-red-50/50 border border-red-100 rounded px-2.5 py-1 mt-1">
-                          {item.original}
-                        </span>
+            {!wordinessHasData && (
+              <div className="flex flex-col items-center gap-3 py-12">
+                <FileText size={40} className="text-slate-300" />
+                <span className="text-sm font-bold text-slate-400">No Wordiness Analysis Available</span>
+                <span className="text-xs text-slate-300">Wordiness analysis requires microphone access during your session.</span>
+              </div>
+            )}
+            {wordinessIsEmpty && (
+              <div className="flex flex-col items-center gap-3 py-12">
+                <CheckCircle size={40} className="text-green-400" />
+                <span className="text-sm font-bold text-green-600">No Wordiness Issues Detected</span>
+                <span className="text-xs text-slate-400">Your speech was concise and efficient — no redundant phrases found.</span>
+              </div>
+            )}
+            {wordinessHasData && !wordinessIsEmpty && (
+              <div className="flex flex-col gap-4">
+                {wordinessItems.map((item, i) => (
+                  <div
+                    key={i}
+                    className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-3"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Wordy Phrase
+                          </span>
+                          <span className="text-sm font-extrabold text-red-500 line-through bg-red-50/50 border border-red-100 rounded px-2.5 py-1 mt-1">
+                            {item.original}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Recommended
+                          </span>
+                          <span className="text-sm font-bold text-green-600 bg-green-50 border border-green-100 rounded px-2.5 py-1 mt-1">
+                            {item.improved}
+                          </span>
+                        </div>
                       </div>
-
-                      {/* Right: Suggested replacement */}
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Recommended
-                        </span>
-                        <span className="text-sm font-bold text-green-600 bg-green-50 border border-green-100 rounded px-2.5 py-1 mt-1">
-                          {item.improved}
-                        </span>
-                      </div>
+                      <span className="text-xs font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1">
+                        {item.issueType || "Pleonasm"}
+                      </span>
                     </div>
-
-                    <span className="text-xs font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1">
-                      Pleonasm
-                    </span>
-                  </div>
-
-                  {/* Context sentence */}
-                  <div className="text-xs text-slate-600 font-medium leading-relaxed bg-white border border-slate-100 rounded-xl p-3">
-                    <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wider block mb-1">
-                      Transcript Context
-                    </span>
-                    <span>
-                      {item.context
-                        .split(`*${item.original}*`)
-                        .map((part, idx, arr) => (
+                    <div className="text-xs text-slate-600 font-medium leading-relaxed bg-white border border-slate-100 rounded-xl p-3">
+                      <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wider block mb-1">
+                        Transcript Context
+                      </span>
+                      <span>
+                        {item.context.split("*" + item.original + "*").map((part, idx, arr) => (
                           <React.Fragment key={idx}>
                             {part}
                             {idx < arr.length - 1 && (
@@ -1657,16 +1797,15 @@ export default function PresentationResultPage() {
                             )}
                           </React.Fragment>
                         ))}
-                    </span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                      💡 <strong>Coach Tip:</strong> {item.explanation}
+                    </p>
                   </div>
-
-                  {/* Explanation footnote */}
-                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                    💡 <strong>Coach Tip:</strong> {item.explanation}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

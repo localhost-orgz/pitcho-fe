@@ -72,6 +72,10 @@ export function useFaceTracker() {
   const sessionStartTimeRef = useRef(0);
   const audioStreamRef = useRef(null);
 
+  // Audio-only recording refs (for speech analysis upload)
+  const audioOnlyRecorderRef = useRef(null);
+  const audioOnlyChunksRef = useRef([]);
+
   // Keep refs in sync with state
   useEffect(() => { calibrationDataRef.current = calibrationData; }, [calibrationData]);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
@@ -284,6 +288,26 @@ export function useFaceTracker() {
       };
       mediaRecorderRef.current = recorder;
       recorder.start(500);
+
+      // Start audio-only recorder for speech analysis upload
+      if (audioStreamRef.current) {
+        audioOnlyChunksRef.current = [];
+        try {
+          let audioMime = "audio/webm;codecs=opus";
+          if (!MediaRecorder.isTypeSupported(audioMime)) {
+            audioMime = "audio/webm";
+          }
+          const audioRecorder = new MediaRecorder(audioStreamRef.current, { mimeType: audioMime });
+          audioRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) audioOnlyChunksRef.current.push(e.data);
+          };
+          audioOnlyRecorderRef.current = audioRecorder;
+          audioRecorder.start(1000);
+        } catch (audioErr) {
+          console.warn("Failed to start audio-only MediaRecorder:", audioErr);
+          audioOnlyRecorderRef.current = null;
+        }
+      }
     } catch (err) {
       console.error("Failed to start MediaRecorder:", err);
     }
@@ -312,15 +336,47 @@ export function useFaceTracker() {
     });
   }, []);
 
+  // ── Get audio-only blob for speech analysis ───────────────
+  const getAudioBlob = useCallback(() => {
+    return new Promise((resolve) => {
+      const rec = audioOnlyRecorderRef.current;
+      if (!rec || rec.state === "inactive") {
+        // Already stopped — build blob from collected chunks
+        if (audioOnlyChunksRef.current.length > 0) {
+          resolve(new Blob(audioOnlyChunksRef.current, { type: "audio/webm" }));
+        } else {
+          resolve(null);
+        }
+        return;
+      }
+      rec.onstop = () => {
+        try {
+          if (audioOnlyChunksRef.current.length > 0) {
+            const mime = rec.mimeType || "audio/webm";
+            resolve(new Blob(audioOnlyChunksRef.current, { type: mime }));
+          } else {
+            resolve(null);
+          }
+        } catch (_) {
+          resolve(null);
+        }
+      };
+      rec.stop();
+    });
+  }, []);
+
   const clearRecording = useCallback(() => {
     if (recordedVideoUrl) { URL.revokeObjectURL(recordedVideoUrl); setRecordedVideoUrl(null); }
     setLookAwayEvents([]);
+    audioOnlyChunksRef.current = [];
   }, [recordedVideoUrl]);
 
   // ── Stop everything ───────────────────────────────────────
   const stopTracker = useCallback(async () => {
     if (animationFrameRef.current) { cancelAnimationFrame(animationFrameRef.current); animationFrameRef.current = null; }
     const videoBlob = await stopRecording();
+    // Capture audio blob before stopping tracks
+    const audioBlob = await getAudioBlob();
     if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
     if (audioStreamRef.current) { audioStreamRef.current.getTracks().forEach((t) => t.stop()); audioStreamRef.current = null; }
     if (lookAwayTimerRef.current) { clearTimeout(lookAwayTimerRef.current); lookAwayTimerRef.current = null; }
@@ -329,8 +385,8 @@ export function useFaceTracker() {
     activeVideoRef.current = null;
     setStatus("ready");
     setIsFaceDetected(false);
-    return videoBlob;
-  }, [stopRecording]);
+    return { videoBlob, audioBlob };
+  }, [stopRecording, getAudioBlob]);
 
   // ── Detection loop ────────────────────────────────────────
   const runDetectionLoop = useCallback((videoElement, mode) => {
@@ -456,7 +512,7 @@ export function useFaceTracker() {
     currentDevX, currentDevY, calibrationData, settings,
     totalDistractedTime,
     setSettings, loadModel, startCamera, startCalibration,
-    startRecording, runDetectionLoop, stopTracker,
+    startRecording, runDetectionLoop, stopTracker, getAudioBlob,
     setLookAwayCount, setTrackingMode, clearRecording,
     switchDetectionMode,
   };

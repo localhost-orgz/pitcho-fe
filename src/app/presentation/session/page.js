@@ -31,6 +31,7 @@ import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useSpeechTracker } from "@/hooks/useSpeechTracker";
 import { saveSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
+import { analyzeSpeech } from "@/utils/speechAnalysis";
 import { useVideoController } from "@/hooks/useVideoController";
 import { useDistractionSchedule } from "@/hooks/useDistractionSchedule";
 import { useDistractionEngine } from "@/hooks/useDistractionEngine";
@@ -303,6 +304,7 @@ export default function PresentationSessionPage() {
     startRecording,
     runDetectionLoop,
     stopTracker,
+    getAudioBlob,
     switchDetectionMode,
   } = tracker;
 
@@ -493,8 +495,8 @@ export default function PresentationSessionPage() {
       // 1. Stop speech tracking to get final WPM data
       const speechData = stopSpeechTracking();
 
-      // 2. Stop tracker/recording and get the video blob
-      const videoBlob = await stopTracker();
+      // 2. Stop tracker/recording and get the video + audio blobs
+      const { videoBlob, audioBlob } = await stopTracker();
 
       // 3. Save metadata to localStorage
       const sessionData = {
@@ -510,12 +512,22 @@ export default function PresentationSessionPage() {
       };
       localStorage.setItem("pitcho_session_data", JSON.stringify(sessionData));
 
-      // 3. Save video blob to IndexedDB
+      // 4. Save video blob to IndexedDB
       if (videoBlob) {
         await saveSessionVideo(videoBlob);
       }
 
-      // 4. Navigate to result page
+      // 5. Upload audio for speech analysis (non-fatal on failure)
+      try {
+        const response = await analyzeSpeech(audioBlob);
+        if (response?.success && response?.data) {
+          localStorage.setItem("pitcho_speech_analysis", JSON.stringify(response.data));
+        }
+      } catch (analysisErr) {
+        console.warn("Speech analysis failed, continuing without it:", analysisErr);
+      }
+
+      // 6. Navigate to result page
       router.push("/presentation/result");
     } catch (err) {
       console.error("Failed to end session:", err);
