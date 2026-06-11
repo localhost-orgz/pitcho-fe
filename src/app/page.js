@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   // Manual trigger states
@@ -9,6 +9,9 @@ export default function Home() {
   const [isCoughing, setIsCoughing] = useState(false);
   const [isSneezing, setIsSneezing] = useState(false);
   const [isYawning, setIsYawning] = useState(false);
+  const [isNodding, setIsNodding] = useState(false);
+  const [isCheckingWatch, setIsCheckingWatch] = useState(false);
+  const [isRollingEyes, setIsRollingEyes] = useState(false);
 
   // Automatic loop states (toggles)
   const [autoBlink, setAutoBlink] = useState(false);
@@ -16,6 +19,12 @@ export default function Home() {
   const [autoCough, setAutoCough] = useState(false);
   const [autoSneeze, setAutoSneeze] = useState(false);
   const [autoYawn, setAutoYawn] = useState(false);
+  const [autoNod, setAutoNod] = useState(false);
+  const [autoWatch, setAutoWatch] = useState(false);
+  const [autoRollEyes, setAutoRollEyes] = useState(false);
+
+  // Gaze tracking position state
+  const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
 
   // Trigger handlers
   const triggerBlink = () => {
@@ -48,19 +57,88 @@ export default function Home() {
     }
   };
 
+  const triggerNod = () => {
+    if (!autoNod && !isNodding) {
+      setIsNodding(true);
+    }
+  };
+
+  const triggerWatch = () => {
+    if (!autoWatch && !isCheckingWatch) {
+      setIsCheckingWatch(true);
+    }
+  };
+
+  const triggerRollEyes = () => {
+    if (!autoRollEyes && !isRollingEyes) {
+      setIsRollingEyes(true);
+    }
+  };
+
+  // Gaze tracking logic
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      // Reset gaze tracking to center if any active head/body animations are playing
+      if (
+        isCheckingWatch || autoWatch ||
+        isCoughing || autoCough ||
+        isSneezing || autoSneeze ||
+        isYawning || autoYawn ||
+        isNodding || autoNod ||
+        isRollingEyes || autoRollEyes
+      ) {
+        setEyeOffset({ x: 0, y: 0 });
+        return;
+      }
+
+      // Calculate vector relative to the screen center
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+
+      const angle = Math.atan2(dy, dx);
+      // Cap maximum gaze displacement at 6px
+      const distance = Math.min(6, Math.sqrt(dx * dx + dy * dy) / 40);
+
+      setEyeOffset({
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance,
+      });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [
+    isCheckingWatch, autoWatch,
+    isCoughing, autoCough,
+    isSneezing, autoSneeze,
+    isYawning, autoYawn,
+    isNodding, autoNod,
+    isRollingEyes, autoRollEyes
+  ]);
+
   // Determine active SVG animation classes
   let eyeClass = "eye";
   if (autoBlink) {
     eyeClass += " loop-blink";
+  } else if (autoRollEyes) {
+    eyeClass += " loop-roll-eyes";
   } else if (isBlinking) {
     eyeClass += " animate-blink";
+  } else if (isRollingEyes) {
+    eyeClass += " animate-roll-eyes";
   }
 
   let armClass = "left-arm";
   if (autoWave) {
     armClass += " loop-wave";
+  } else if (autoWatch) {
+    armClass += " loop-watch-arm";
   } else if (isWaving) {
     armClass += " animate-wave";
+  } else if (isCheckingWatch) {
+    armClass += " animate-watch-arm";
   }
 
   let headClass = "head";
@@ -70,12 +148,20 @@ export default function Home() {
     headClass += " loop-sneeze";
   } else if (autoYawn) {
     headClass += " loop-yawn";
+  } else if (autoNod) {
+    headClass += " loop-nod";
+  } else if (autoWatch) {
+    headClass += " loop-watch-head";
   } else if (isCoughing) {
     headClass += " animate-cough";
   } else if (isSneezing) {
     headClass += " animate-sneeze";
   } else if (isYawning) {
     headClass += " animate-yawn";
+  } else if (isNodding) {
+    headClass += " animate-nod";
+  } else if (isCheckingWatch) {
+    headClass += " animate-watch-head";
   }
 
   return (
@@ -220,11 +306,115 @@ export default function Home() {
                 30%, 70% { transform: scale(0); opacity: 0; }
               }
 
+              /* Infinite Loop Nod v2 (5s rhythm, expressive deeper nod) */
+              @keyframes keyframes-nod-loop {
+                0%, 70%, 100% { transform: translate(0, 0) rotate(0deg); }
+                75% { transform: translate(0, 14px) rotate(4deg); }
+                82% { transform: translate(0, 2px) rotate(0.5deg); }
+                90% { transform: translate(0, 14px) rotate(4deg); }
+                96% { transform: translate(0, 0) rotate(0deg); }
+              }
+
+              /* Manual Single Nod v2 */
+              @keyframes keyframes-nod-single {
+                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                25% { transform: translate(0, 14px) rotate(4deg); }
+                50% { transform: translate(0, 2px) rotate(0.5deg); }
+                75% { transform: translate(0, 14px) rotate(4deg); }
+              }
+
+              /* Nod Eye Squint (loop) */
+              @keyframes keyframes-nod-eye-loop {
+                0%, 70%, 100% { transform: scaleY(1); }
+                75%, 90% { transform: scaleY(0.25); }
+                82% { transform: scaleY(0.7); }
+              }
+
+              /* Nod Eye Squint (single) */
+              @keyframes keyframes-nod-eye-single {
+                0%, 100% { transform: scaleY(1); }
+                25%, 75% { transform: scaleY(0.25); }
+                50% { transform: scaleY(0.7); }
+              }
+
+              /* Nod Mouth Smile (loop) */
+              @keyframes keyframes-nod-mouth-loop {
+                0%, 70%, 100% { transform: scale(1); }
+                75%, 90% { transform: scale(1.6, 5); }
+                82% { transform: scale(1.2, 2.5); }
+              }
+
+              /* Nod Mouth Smile (single) */
+              @keyframes keyframes-nod-mouth-single {
+                0%, 100% { transform: scale(1); }
+                25%, 75% { transform: scale(1.6, 5); }
+                50% { transform: scale(1.2, 2.5); }
+              }
+
+              /* Check Watch Arm (loop, 10s rhythm) */
+              @keyframes keyframes-watch-arm-loop {
+                0%, 75%, 100% { transform: rotate(0deg) translate(0, 0); }
+                80%, 95% { transform: rotate(-55deg) translate(-10px, -20px); }
+              }
+
+              /* Check Watch Arm (single, 3.5s duration) */
+              @keyframes keyframes-watch-arm-single {
+                0%, 100% { transform: rotate(0deg) translate(0, 0); }
+                15%, 85% { transform: rotate(-55deg) translate(-10px, -20px); }
+              }
+
+              /* Check Watch Head (loop, 10s rhythm) */
+              @keyframes keyframes-watch-head-loop {
+                0%, 75%, 100% { transform: translate(0, 0) rotate(0deg); }
+                80%, 95% { transform: translate(25px, 20px) rotate(12deg); }
+              }
+
+              /* Check Watch Head (single, 3.5s duration) */
+              @keyframes keyframes-watch-head-single {
+                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                15%, 85% { transform: translate(25px, 20px) rotate(12deg); }
+              }
+
+              /* Check Watch Eyes (loop, 10s rhythm) */
+              @keyframes keyframes-watch-eyes-loop {
+                0%, 75%, 100% { transform: translate(0, 0); }
+                80%, 95% { transform: translate(6px, 5px); }
+              }
+
+              /* Check Watch Eyes (single, 3.5s duration) */
+              @keyframes keyframes-watch-eyes-single {
+                0%, 100% { transform: translate(0, 0); }
+                15%, 85% { transform: translate(6px, 5px); }
+              }
+
+              /* Roll Eyes (loop, 6s rhythm) */
+              @keyframes keyframes-roll-eyes-loop {
+                0%, 80%, 100% { transform: translate(0, 0); }
+                84% { transform: translate(0, -6px); }
+                88% { transform: translate(5px, -3px); }
+                92% { transform: translate(0, 5px); }
+                96% { transform: translate(-5px, -3px); }
+              }
+
+              /* Roll Eyes (single, 1.2s duration) */
+              @keyframes keyframes-roll-eyes-single {
+                0%, 100% { transform: translate(0, 0); }
+                20% { transform: translate(0, -6px); }
+                40% { transform: translate(5px, -3px); }
+                60% { transform: translate(0, 5px); }
+                80% { transform: translate(-5px, -3px); }
+              }
+
               /* --- Dynamic Class Selectors --- */
               
               /* Loops */
               .loop-blink {
                 animation: keyframes-blink-loop 5s infinite;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .loop-roll-eyes {
+                animation: keyframes-roll-eyes-loop 6s ease-in-out infinite;
                 transform-box: fill-box;
                 transform-origin: center;
               }
@@ -266,6 +456,33 @@ export default function Home() {
               }
               .loop-yawn .mouth {
                 animation: keyframes-yawn-mouth-loop 9s ease-in-out infinite;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .loop-nod {
+                animation: keyframes-nod-loop 5s ease-in-out infinite;
+                transform-origin: 330px 260px;
+              }
+              .loop-nod .eye {
+                animation: keyframes-nod-eye-loop 5s ease-in-out infinite;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .loop-nod .mouth {
+                animation: keyframes-nod-mouth-loop 5s ease-in-out infinite;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .loop-watch-arm {
+                animation: keyframes-watch-arm-loop 10s ease-in-out infinite;
+                transform-origin: 527px 283px;
+              }
+              .loop-watch-head {
+                animation: keyframes-watch-head-loop 10s ease-in-out infinite;
+                transform-origin: 330px 260px;
+              }
+              .loop-watch-head .eye {
+                animation: keyframes-watch-eyes-loop 10s ease-in-out infinite;
                 transform-box: fill-box;
                 transform-origin: center;
               }
@@ -317,6 +534,38 @@ export default function Home() {
                 transform-box: fill-box;
                 transform-origin: center;
               }
+              .animate-nod {
+                animation: keyframes-nod-single 1.2s ease-in-out;
+                transform-origin: 330px 260px;
+              }
+              .animate-nod .eye {
+                animation: keyframes-nod-eye-single 1.2s ease-in-out;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .animate-nod .mouth {
+                animation: keyframes-nod-mouth-single 1.2s ease-in-out;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .animate-watch-arm {
+                animation: keyframes-watch-arm-single 3.5s ease-in-out;
+                transform-origin: 527px 283px;
+              }
+              .animate-watch-head {
+                animation: keyframes-watch-head-single 3.5s ease-in-out;
+                transform-origin: 330px 260px;
+              }
+              .animate-watch-head .eye {
+                animation: keyframes-watch-eyes-single 3.5s ease-in-out;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
+              .animate-roll-eyes {
+                animation: keyframes-roll-eyes-single 1.2s ease-in-out;
+                transform-box: fill-box;
+                transform-origin: center;
+              }
             `}</style>
 
             {/* Torso/Shoulders */}
@@ -355,23 +604,37 @@ export default function Home() {
                 stroke="black"
                 stroke-opacity="0.24"
               />
-              {/* Left Eye */}
-              <circle
-                className={eyeClass}
-                cx="283.578"
-                cy="166.24"
-                r="11.5"
-                fill="black"
-                onAnimationEnd={handleBlinkEnd}
-              />
-              {/* Right Eye */}
-              <circle
-                className={eyeClass}
-                cx="381.578"
-                cy="166.24"
-                r="11.5"
-                fill="black"
-              />
+              {/* Left Eye Wrapper for Gaze Tracking */}
+              <g style={{
+                transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                transition: 'transform 0.15s ease-out',
+                transformBox: 'fill-box',
+                transformOrigin: 'center'
+              }}>
+                <circle
+                  className={eyeClass}
+                  cx="283.578"
+                  cy="166.24"
+                  r="11.5"
+                  fill="black"
+                  onAnimationEnd={handleBlinkEnd}
+                />
+              </g>
+              {/* Right Eye Wrapper for Gaze Tracking */}
+              <g style={{
+                transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                transition: 'transform 0.15s ease-out',
+                transformBox: 'fill-box',
+                transformOrigin: 'center'
+              }}>
+                <circle
+                  className={eyeClass}
+                  cx="381.578"
+                  cy="166.24"
+                  r="11.5"
+                  fill="black"
+                />
+              </g>
               {/* Resting/Animating Mouth */}
               <ellipse
                 className="mouth"
@@ -462,6 +725,42 @@ export default function Home() {
                   {autoYawn ? "Auto" : isYawning ? "Yawning..." : "Yawn"}
                 </span>
                 <span className="h-2 w-2 rounded-full bg-cyan-400 group-hover:scale-125 transition-transform" />
+              </button>
+
+              {/* Nod Action */}
+              <button
+                onClick={triggerNod}
+                disabled={autoNod || isNodding}
+                className="group relative w-full px-4 py-3 bg-violet-600/10 hover:bg-violet-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-violet-500/20 disabled:border-slate-800 text-violet-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
+              >
+                <span className="text-sm">
+                  {autoNod ? "Auto" : isNodding ? "Nodding..." : "Nod"}
+                </span>
+                <span className="h-2 w-2 rounded-full bg-violet-400 group-hover:scale-125 transition-transform" />
+              </button>
+
+              {/* Check Watch Action */}
+              <button
+                onClick={triggerWatch}
+                disabled={autoWatch || isCheckingWatch}
+                className="group relative w-full px-4 py-3 bg-orange-600/10 hover:bg-orange-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-orange-500/20 disabled:border-slate-800 text-orange-350 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
+              >
+                <span className="text-sm">
+                  {autoWatch ? "Auto" : isCheckingWatch ? "Checking..." : "Check Watch"}
+                </span>
+                <span className="h-2 w-2 rounded-full bg-orange-400 group-hover:scale-125 transition-transform" />
+              </button>
+
+              {/* Roll Eyes Action */}
+              <button
+                onClick={triggerRollEyes}
+                disabled={autoRollEyes || isRollingEyes}
+                className="group relative w-full px-4 py-3 bg-indigo-600/10 hover:bg-indigo-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-indigo-500/20 disabled:border-slate-800 text-indigo-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
+              >
+                <span className="text-sm">
+                  {autoRollEyes ? "Auto" : isRollingEyes ? "Rolling..." : "Roll Eyes"}
+                </span>
+                <span className="h-2 w-2 rounded-full bg-indigo-400 group-hover:scale-125 transition-transform" />
               </button>
             </div>
           </div>
@@ -556,7 +855,7 @@ export default function Home() {
               </div>
 
               {/* Auto Yawn Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-bold text-slate-200">Auto Yawning</span>
                   <span className="text-[10px] text-slate-500">Yawns organically every 9s</span>
@@ -574,6 +873,66 @@ export default function Home() {
                   <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                 </label>
               </div>
+
+              {/* Auto Nod Toggle */}
+              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-bold text-slate-200">Auto Nodding</span>
+                  <span className="text-[10px] text-slate-500">Nods understandingly every 5s</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoNod}
+                    onChange={(e) => {
+                      setAutoNod(e.target.checked);
+                      if (e.target.checked) setIsNodding(false);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                </label>
+              </div>
+
+              {/* Auto Watch Toggle */}
+              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-bold text-slate-200">Auto Watch Check</span>
+                  <span className="text-[10px] text-slate-500">Checks watch naturally every 10s</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoWatch}
+                    onChange={(e) => {
+                      setAutoWatch(e.target.checked);
+                      if (e.target.checked) setIsCheckingWatch(false);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                </label>
+              </div>
+
+              {/* Auto Roll Eyes Toggle */}
+              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-bold text-slate-200">Auto Roll Eyes</span>
+                  <span className="text-[10px] text-slate-500">Rolls eyes naturally every 6s</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoRollEyes}
+                    onChange={(e) => {
+                      setAutoRollEyes(e.target.checked);
+                      if (e.target.checked) setIsRollingEyes(false);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -586,12 +945,16 @@ export default function Home() {
   function handleBlinkEnd(e) {
     if (e.animationName === "keyframes-blink-single") {
       setIsBlinking(false);
+    } else if (e.animationName === "keyframes-roll-eyes-single") {
+      setIsRollingEyes(false);
     }
   }
 
   function handleWaveEnd(e) {
     if (e.animationName === "keyframes-wave-single") {
       setIsWaving(false);
+    } else if (e.animationName === "keyframes-watch-arm-single") {
+      setIsCheckingWatch(false);
     }
   }
 
@@ -603,6 +966,10 @@ export default function Home() {
       setIsSneezing(false);
     } else if (e.animationName === "keyframes-yawn-single") {
       setIsYawning(false);
+    } else if (e.animationName === "keyframes-nod-single") {
+      setIsNodding(false);
+    } else if (e.animationName === "keyframes-watch-head-single") {
+      setIsCheckingWatch(false);
     }
   }
 }
