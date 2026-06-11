@@ -117,7 +117,7 @@ export default function StationPage() {
   return (
     <div className="space-y-6">
       {/* Floating Pitcho Points Header Badge (Desktop only) */}
-      <div className="hidden lg:flex bg-white fixed top-6 right-8 lg:right-12 xl:right-16 px-5 py-3 gap-3 items-center rounded-2xl border-2 border-b-4 border-r-4 z-20">
+      {/* <div className="hidden lg:flex bg-white fixed top-6 right-8 lg:right-12 xl:right-16 px-5 py-3 gap-3 items-center rounded-2xl border-2 border-b-4 border-r-4 z-20">
         <Image
           className="w-8 h-8"
           src={"/star.png"}
@@ -131,10 +131,10 @@ export default function StationPage() {
             Pitcho Points
           </span>
         </div>
-      </div>
+      </div> */}
 
       {/* Welcome Banner */}
-      <div className="w-full relative py-6 lg:py-10bg-transparent rounded-2xl p-4 lg:p-0 border border-slate-100 overflow-hidden">
+      <div className="w-full relative py-6 lg:py-10 bg-transparent rounded-2xl p-4 lg:p-0 border border-slate-100 mb-20">
         <div className="flex flex-col text-[#1B2C52] gap-2 max-w-lg relative z-10">
           <h6 className="text-xl font-semibold">Welcome back,</h6>
           <div className="flex flex-row items-center gap-2">
@@ -153,8 +153,13 @@ export default function StationPage() {
           </p>
         </div>
 
+        <img
+          src="/hero.png"
+          className="absolute -bottom-6 md:-bottom-8 lg:-bottom-10 -right-4 md:-right-8 lg:-right-10 h-52 md:h-60 lg:h-72 w-auto z-50 pointer-events-none"
+        />
+
         {/* Desktop Shelf SVG Background */}
-        <div className="hidden xl:block absolute bottom-0 -right-10 pointer-events-none select-none opacity-80 max-w-[650px]">
+        {/* <div className="hidden xl:block absolute bottom-0 -right-10 pointer-events-none select-none opacity-80 max-w-[650px]">
           <svg
             width="1017"
             height="222"
@@ -201,7 +206,7 @@ export default function StationPage() {
               strokeOpacity="0.25"
             />
           </svg>
-        </div>
+        </div> */}
       </div>
 
       {/* Grid container with custom responsive column sorting */}
@@ -311,7 +316,7 @@ export default function StationPage() {
               </Button>
               <img
                 src="/interview.png"
-                className="w-40 absolute bottom-0 right-0 z-10"
+                className="w-38 absolute bottom-0 right-0 z-10"
               />
               <div className="w-30 h-30 rounded-full bg-green-500/40 absolute bottom-10 right-5"></div>
             </div>
