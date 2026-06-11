@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -37,57 +37,43 @@ export default function InterviewSetupPage() {
     };
   }, []);
 
-  // Card 1: Resume Profile states
-  const [uploadedFile, setUploadedFile] = useState({
-    name: "Alex_Tan_CV.pdf",
-    pages: 2,
-    size: "240 KB",
-  });
-  const [targetRole, setTargetRole] = useState("Product Manager");
-  const [experienceLevel, setExperienceLevel] = useState("2-3 Years");
-  const [targetIndustry, setTargetIndustry] = useState("Technology");
+  // Card 1: Interview Profile states
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [rawFile, setRawFile] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadResponse, setUploadResponse] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Card 2: Question Preferences states
   const [questionType, setQuestionType] = useState("Behavioral");
-  const [difficultyLevel, setDifficultyLevel] = useState("Medium");
   const [questionCount, setQuestionCount] = useState("15");
 
-  // Card 3: Interview Environment states
-  const [interviewStyle, setInterviewStyle] = useState("Formal");
-  const [interviewerPersona, setInterviewerPersona] = useState(
-    "Professional Recruiter",
-  );
-  const [distractionIntensity, setDistractionIntensity] = useState("Medium");
-
-  // Card 4: Session Settings states
-  const [timeLimit, setTimeLimit] = useState("60 sec");
-  const [feedbackFocus, setFeedbackFocus] = useState([
-    "Communication Clarity",
-    "Answer Structure",
-    "Confidence & Tone",
-    "Filler Words",
-    "Eye Contact",
-    "Pace & Pauses",
-  ]);
-  const [language, setLanguage] = useState("English (US)");
-
   // Equipment Check states
-  const [cameraStatus, setCameraStatus] = useState("ready");
-  const [micStatus, setMicStatus] = useState("ready");
-  const [internetStatus, setInternetStatus] = useState("ready");
+  const [cameraStatus, setCameraStatus] = useState("unchecked");
+  const [micStatus, setMicStatus] = useState("unchecked");
 
-  // Handlers for CV upload simulation
-  const handleUploadCV = () => {
-    setUploadedFile({
-      name: "Alex_Tan_CV.pdf",
-      pages: 2,
-      size: "240 KB",
-    });
-  };
+  // Check permissions on mount
+  useEffect(() => {
+    async function checkPermissions() {
+      try {
+        if (navigator.permissions) {
+          const camPerm = await navigator.permissions.query({ name: "camera" });
+          if (camPerm.state === "granted") setCameraStatus("ready");
+          else if (camPerm.state === "denied") setCameraStatus("denied");
 
-  const handleRemoveCV = () => {
-    setUploadedFile(null);
-  };
+          const micPerm = await navigator.permissions.query({
+            name: "microphone",
+          });
+          if (micPerm.state === "granted") setMicStatus("ready");
+          else if (micPerm.state === "denied") setMicStatus("denied");
+        }
+      } catch {
+        // permissions API not supported, keep unchecked
+      }
+    }
+    checkPermissions();
+  }, []);
 
   // Hardware permission logic
   const handleAllowCamera = useCallback(async () => {
@@ -95,8 +81,15 @@ export default function InterviewSetupPage() {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       stream.getTracks().forEach((track) => track.stop());
       setCameraStatus("ready");
-    } catch {
-      setCameraStatus("denied");
+    } catch (err) {
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        setCameraStatus("denied");
+      } else {
+        setCameraStatus("error");
+      }
     }
   }, []);
 
@@ -105,55 +98,217 @@ export default function InterviewSetupPage() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
       setMicStatus("ready");
-    } catch {
-      setMicStatus("denied");
+    } catch (err) {
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        setMicStatus("denied");
+      } else {
+        setMicStatus("error");
+      }
     }
   }, []);
 
-  const toggleFeedbackFocus = (item) => {
-    if (feedbackFocus.includes(item)) {
-      setFeedbackFocus(feedbackFocus.filter((f) => f !== item));
-    } else {
-      setFeedbackFocus([...feedbackFocus, item]);
+  // PDF upload handlers (same pattern as presentation setup)
+  const extractPdfPageCount = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const buffer = e.target.result;
+          const arr = new Uint8Array(buffer);
+          const decoder = new TextDecoder("ascii");
+          const text = decoder.decode(arr);
+
+          let maxPages = 0;
+          const countRegex = /\/Count\s*(\d+)/g;
+          let match;
+          while ((match = countRegex.exec(text)) !== null) {
+            const val = parseInt(match[1], 10);
+            if (val > maxPages) {
+              maxPages = val;
+            }
+          }
+
+          if (maxPages > 0) {
+            resolve(maxPages);
+            return;
+          }
+
+          const pageRegex = /\/Type\s*\/Page\b/g;
+          const pageMatches = text.match(pageRegex);
+          if (pageMatches) {
+            resolve(pageMatches.length);
+            return;
+          }
+
+          resolve(1);
+        } catch (err) {
+          console.error("Error parsing PDF pages:", err);
+          resolve(1);
+        }
+      };
+      reader.onerror = () => resolve(1);
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleFile = async (file) => {
+    if (!file) return;
+
+    // 1. Validate file type (PDF only)
+    const isPDF =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+    if (!isPDF) {
+      alert("Only PDF files are allowed. Other file formats cannot be uploaded.");
+      return;
+    }
+
+    // 2. Validate file size (max 4MB)
+    const maxSizeBytes = 4 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      alert(
+        "The uploaded file exceeds the 4MB limit. Please upload a file below 4MB.",
+      );
+      return;
+    }
+
+    setRawFile(file);
+    setUploadError("");
+
+    // 3. Extract page count and calculate size
+    const pages = await extractPdfPageCount(file);
+    const sizeInKB = (file.size / 1024).toFixed(0) + " KB";
+
+    setUploadedFile({
+      name: file.name,
+      pages: pages,
+      size: sizeInKB,
+    });
+
+    // 4. Hit API - store response for later use
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(
+        "https://pitcho-be.vercel.app/api/interview/upload",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(`Failed to upload: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      console.log("Interview upload response data:", data);
+      setUploadResponse(data);
+    } catch (error) {
+      console.error("Error uploading CV:", error);
+      setUploadError(error.message || "Failed to upload CV.");
     }
   };
 
-  // Dropdown option data lists
-  const roles = [
-    "Product Manager",
-    "Software Engineer",
-    "Data Analyst",
-    "Consultant",
-    "UX Designer",
-    "Marketing Manager",
-  ];
-  const experienceLevels = [
-    "Entry Level",
-    "1-2 Years",
-    "2-3 Years",
-    "3-5 Years",
-    "5+ Years",
-  ];
-  const industries = [
-    "Technology",
-    "Finance",
-    "Healthcare",
-    "Consulting",
-    "Education",
-    "Consumer Goods",
-  ];
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleDrag = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleFile(file);
+    }
+  }, []);
+
+  const handleRemoveCV = () => {
+    setUploadedFile(null);
+    setRawFile(null);
+    setUploadResponse(null);
+    setUploadError("");
+  };
+
+  // Equipment status renderer (from presentation setup)
+  const renderDeviceStatus = (status, type) => {
+    if (status === "ready") {
+      return (
+        <div className="flex items-center gap-2">
+          <Check size={12} className="text-green-500" />
+          <span className="text-xs text-slate-500">
+            {type === "camera" ? "Camera is Working" : "Microphone is Working"}
+          </span>
+        </div>
+      );
+    }
+    if (status === "error") {
+      return (
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={12} className="text-amber-500" />
+          <span className="text-xs text-amber-600">Device Error</span>
+        </div>
+      );
+    }
+    if (status === "denied") {
+      return (
+        <div className="flex items-center gap-2">
+          <X size={12} className="text-red-500" />
+          <span className="text-xs text-red-500">Permission Denied</span>
+          <button
+            onClick={type === "camera" ? handleAllowCamera : handleAllowMic}
+            className="text-xs font-semibold text-main hover:underline ml-1"
+          >
+            Allow Access
+          </button>
+        </div>
+      );
+    }
+    // unchecked
+    return (
+      <div className="flex items-center gap-2">
+        <X size={12} className="text-orange-400" />
+        <span className="text-xs text-slate-400">Not Checked Yet</span>
+        <button
+          onClick={type === "camera" ? handleAllowCamera : handleAllowMic}
+          className="text-xs font-semibold text-main hover:underline ml-1"
+        >
+          Allow Access
+        </button>
+      </div>
+    );
+  };
+
+  // Dropdown option data lists
   const questionTypes = [
     { key: "Behavioral", desc: "About your past experience" },
     { key: "Technical", desc: "Role-specific knowledge" },
     { key: "Situational", desc: "Problem solving scenarios" },
     { key: "Mixed", desc: "A combination of all types" },
-  ];
-
-  const difficultyLevels = [
-    { key: "Easy", desc: "Basic questions" },
-    { key: "Medium", desc: "Standard level" },
-    { key: "Hard", desc: "Advanced level" },
   ];
 
   const questionCounts = [
@@ -163,55 +318,17 @@ export default function InterviewSetupPage() {
     { key: "Custom", desc: "Set custom" },
   ];
 
-  const styles = [
-    { key: "Formal", desc: "Traditional one-on-one" },
-    { key: "Casual", desc: "Friendly and conversational" },
-    { key: "Panel", desc: "Multiple interviewers" },
-  ];
-
-  const personas = [
-    {
-      name: "Professional Recruiter",
-      desc: "Experienced recruiter with a professional and detail-oriented approach.",
-      avatar:
-        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200",
-    },
-    {
-      name: "Technical Lead",
-      desc: "Pragmatic developer diving deep into your stack, systems, and logic.",
-      avatar:
-        "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200",
-    },
-    {
-      name: "Executive Director",
-      desc: "High-level manager looking for strategic fit, leadership, and long-term vision.",
-      avatar:
-        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200",
-    },
-  ];
-
-  const distractions = [
-    { key: "Low", desc: "Minimal distractions" },
-    { key: "Medium", desc: "Moderate distractions" },
-    { key: "High", desc: "Lots of distractions" },
-  ];
-
-  const timeLimits = ["45 sec", "60 sec", "90 sec", "120 sec"];
-
-  const focuses = [
-    "Communication Clarity",
-    "Answer Structure",
-    "Confidence & Tone",
-    "Filler Words",
-    "Eye Contact",
-    "Pace & Pauses",
-  ];
-
-  const selectedPersonaObj =
-    personas.find((p) => p.name === interviewerPersona) || personas[0];
-
   return (
     <div className="w-full min-h-screen pb-16 font-sans text-slate-800">
+      {/* Hidden file input for real upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="application/pdf"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       {/* Top Header Row */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
@@ -243,7 +360,7 @@ export default function InterviewSetupPage() {
         </div>
       </div>
 
-      {/* Main Grid: 4 Columns */}
+      {/* Main Grid: 3 Columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-6">
         {/* Card 1: Interview Profile */}
         <div className="w-full px-4 py-6 bg-white border-bold flex flex-col gap-4">
@@ -254,7 +371,7 @@ export default function InterviewSetupPage() {
             <div className="flex flex-col">
               <h4 className="font-bold">Interview Profile</h4>
               <span className="text-sm font-semibold text-slate-500">
-                Tell us about yourself
+                Upload your CV/Resume
               </span>
             </div>
           </div>
@@ -276,39 +393,50 @@ export default function InterviewSetupPage() {
                 </div>
               </div>
 
-              {/*  */}
+              {/* Upload / Replace buttons */}
               <div className="w-full mt-3 flex items-center justify-between">
                 <button
-                  onClick={handleUploadCV}
-                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4"
+                  onClick={handleUploadClick}
+                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4 cursor-pointer"
                 >
                   <Download size={15} />
                   Upload file
                 </button>
-                <span className="font-bold text-main text-sm cursor-pointer">
+                <span
+                  onClick={handleRemoveCV}
+                  className="font-bold text-main text-sm cursor-pointer"
+                >
                   Replace File
                 </span>
               </div>
             </>
           ) : (
             <>
-              <button
-                onClick={handleUploadCV}
-                className="w-full p-6 mt-5 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-main hover:bg-main/5 transition-colors cursor-pointer"
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={handleUploadClick}
+                className={`w-full p-6 mt-5 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${
+                  dragActive
+                    ? "border-main bg-main/10"
+                    : "border-slate-300 hover:border-main hover:bg-main/5"
+                }`}
               >
                 <Upload size={24} className="text-slate-400" />
                 <span className="text-sm font-semibold text-slate-600">
                   Drag & drop your file here
                 </span>
                 <span className="text-xs text-slate-400">
-                  or click to browse (PDF, PPTX, max 50MB)
+                  or click to browse (PDF only, max 4MB)
                 </span>
-              </button>
+              </div>
 
               <div className="w-full mt-3 flex items-center justify-between">
                 <button
-                  onClick={handleUploadCV}
-                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4"
+                  onClick={handleUploadClick}
+                  className="flex items-center gap-2 border-2 rounded-lg text-xs font-bold py-2 px-4 cursor-pointer"
                 >
                   <Download size={15} />
                   Upload file
@@ -317,84 +445,22 @@ export default function InterviewSetupPage() {
             </>
           )}
 
-          {/* Profile Details Dropdowns */}
-          <div className="space-y-4 mt-2">
-            <div className="flex flex-col gap-1.5 relative">
-              <label className="text-sm font-bold text-slate-500">
-                Target Role
-              </label>
-              <div className="relative">
-                <select
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  className="w-full py-2.5 pl-3.5 pr-10 bg-white border-2 border-slate-200 rounded-xl font-bold text-sm text-slate-800 appearance-none focus:outline-none focus:border-main transition-colors cursor-pointer"
-                >
-                  {roles.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={16}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                />
-              </div>
+          {/* Upload error display */}
+          {uploadError && (
+            <div className="flex items-start gap-2 text-red-600 bg-red-50 p-2.5 rounded-xl">
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+              <p className="text-[10px] font-bold leading-normal">
+                {uploadError}
+              </p>
             </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-slate-500">
-                Experience Level
-              </label>
-              <div className="relative">
-                <select
-                  value={experienceLevel}
-                  onChange={(e) => setExperienceLevel(e.target.value)}
-                  className="w-full py-2.5 pl-3.5 pr-10 bg-white border-2 border-slate-200 rounded-xl font-bold text-sm text-slate-800 appearance-none focus:outline-none focus:border-main transition-colors cursor-pointer"
-                >
-                  {experienceLevels.map((exp) => (
-                    <option key={exp} value={exp}>
-                      {exp}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={16}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-slate-500">
-                Target Industry
-              </label>
-              <div className="relative">
-                <select
-                  value={targetIndustry}
-                  onChange={(e) => setTargetIndustry(e.target.value)}
-                  className="w-full py-2.5 pl-3.5 pr-10 bg-white border-2 border-slate-200 rounded-xl font-bold text-sm text-slate-800 appearance-none focus:outline-none focus:border-main transition-colors cursor-pointer"
-                >
-                  {industries.map((ind) => (
-                    <option key={ind} value={ind}>
-                      {ind}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={16}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Info Banner */}
           <div className="mt-auto pt-4 border-t border-slate-100 flex items-start gap-2 text-main bg-main/10 p-2.5 rounded-xl">
             <Sparkles size={16} className="shrink-0 mt-0.5" />
             <p className="text-[10px] font-bold leading-normal">
-              We'll generate role-specific questions based on your profile and
-              target role.
+              We'll analyze your CV to generate role-specific interview
+              questions tailored to your experience.
             </p>
           </div>
         </div>
@@ -446,34 +512,6 @@ export default function InterviewSetupPage() {
             </div>
           </div>
 
-          {/* Difficulty Level selection */}
-          <div className="flex flex-col gap-2 mt-1">
-            <span className="text-sm font-bold text-slate-500">
-              Difficulty Level
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              {difficultyLevels.map((d) => {
-                const isActive = difficultyLevel === d.key;
-                return (
-                  <button
-                    key={d.key}
-                    onClick={() => setDifficultyLevel(d.key)}
-                    className={`py-2 px-1.5 rounded-xl border-2 flex flex-col items-center transition-all cursor-pointer text-center ${
-                      isActive
-                        ? "border-main bg-main/10 text-main"
-                        : "border-slate-200 hover:border-slate-350 text-slate-700"
-                    }`}
-                  >
-                    <span className="text-xs font-bold">{d.key}</span>
-                    <span className="text-[9.5px] text-slate-400 mt-0.5 whitespace-nowrap font-medium">
-                      {d.desc.split(" ")[0]} level
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Number of Questions selection */}
           <div className="flex flex-col gap-2 mt-1">
             <span className="text-sm font-bold text-slate-500">
@@ -503,271 +541,59 @@ export default function InterviewSetupPage() {
           </div>
         </div>
 
-        {/* Card 3: Interview Environment */}
-        <div className="w-full p-5 bg-white border-bold flex flex-col gap-4">
+        {/* Card 3: Equipment Check */}
+        <div className="w-full px-4 py-6 bg-white border-bold flex flex-col gap-4">
           <div className="flex items-start gap-3">
             <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
               3
             </div>
             <div className="flex flex-col">
-              <h4 className="font-bold">Interview Environment</h4>
-              <span className="text-xs font-bold text-slate-400 mt-0.5">
-                Set the simulation experience
+              <h4 className="font-bold">Equipment Check</h4>
+              <span className="text-sm font-semibold text-slate-500">
+                Make sure everything is ready to go
               </span>
             </div>
           </div>
 
-          {/* Interview Style selection */}
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-slate-500">
-              Interview Style
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              {styles.map((s) => {
-                const isActive = interviewStyle === s.key;
-                return (
-                  <button
-                    key={s.key}
-                    onClick={() => setInterviewStyle(s.key)}
-                    className={`p-2.5 rounded-xl border-2 flex flex-col items-center justify-center transition-all cursor-pointer text-center h-16 ${
-                      isActive
-                        ? "border-main bg-main/10 text-main"
-                        : "border-slate-200 hover:border-slate-355 text-slate-700"
-                    }`}
-                  >
-                    <span className="text-xs font-extrabold">{s.key}</span>
-                    <span className="text-[9px] font-bold text-slate-400 mt-1 leading-tight max-w-[70px]">
-                      {s.desc.split(" ").slice(-1)[0]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Interviewer Persona Selection dropdown */}
-          <div className="flex flex-col gap-2 mt-1">
-            <span className="text-sm font-bold text-slate-500">
-              Interviewer Persona
-            </span>
-
-            {/* Display active persona detail card */}
-            <div className="relative">
-              <select
-                value={interviewerPersona}
-                onChange={(e) => setInterviewerPersona(e.target.value)}
-                className="w-full py-2.5 pl-3.5 pr-10 bg-white border-2 border-slate-200 rounded-xl font-bold text-sm text-slate-800 appearance-none focus:outline-none focus:border-main transition-colors cursor-pointer mb-2"
-              >
-                {personas.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              />
-            </div>
-
-            {/* Persona preview element */}
-            <div className="flex flex-col items-center gap-3.5 p-3.5 border-2 border-slate-100 rounded-2xl bg-slate-50/50">
-              <img
-                src={selectedPersonaObj.avatar}
-                alt={selectedPersonaObj.name}
-                className="w-20 h-20 rounded-full object-cover border border-slate-200 shrink-0"
-              />
-              <div className="flex flex-col gap-0.5 text-center">
-                <span className="text-sm font-bold text-slate-850">
-                  {selectedPersonaObj.name}
-                </span>
-                <p className="text-xs text-slate-400 leading-normal font-medium">
-                  {selectedPersonaObj.desc}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Distraction Intensity selection */}
-          {/* <div className="flex flex-col gap-2 mt-auto">
-            <span className="text-sm font-bold text-slate-500">
-              Distraction Intensity
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              {distractions.map((d) => {
-                const isActive = distractionIntensity === d.key;
-                return (
-                  <button
-                    key={d.key}
-                    onClick={() => setDistractionIntensity(d.key)}
-                    className={`py-2 px-1.5 rounded-xl border-2 flex flex-col items-center transition-all cursor-pointer text-center ${
-                      isActive
-                        ? "border-main bg-main/10 text-main"
-                        : "border-slate-200 hover:border-slate-350 text-slate-700"
-                    }`}
-                  >
-                    <span className="text-xs font-extrabold">{d.key}</span>
-                    <span className="text-[9px] font-bold text-slate-400 mt-0.5">
-                      {d.desc.split(" ")[0]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div> */}
-        </div>
-
-        {/* Card 4: Session Settings */}
-        <div className="w-full p-5 bg-white border-bold flex col-span-2 flex-col gap-7">
-          <div className="flex items-start gap-3">
-            <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
-              4
-            </div>
-            <div className="flex flex-col">
-              <h4 className="font-bold">Session Settings</h4>
-              <span className="text-xs font-bold text-slate-400 mt-0.5">
-                Finalize your session
-              </span>
-            </div>
-          </div>
-
-          <div className="flex justify-between gap-5">
-            {/* Time per Question */}
-            <div className="flex flex-col gap-2 w-full">
-              <span className="text-sm font-bold text-slate-500">
-                Time per Question
-              </span>
-              <div className="grid grid-cols-4 gap-1.5">
-                {timeLimits.map((t) => {
-                  const isActive = timeLimit === t;
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setTimeLimit(t)}
-                      className={`py-2 px-1 rounded-xl border-2 flex items-center justify-center transition-all cursor-pointer text-center ${
-                        isActive
-                          ? "border-main bg-main/10 text-main"
-                          : "border-slate-200 hover:border-slate-350 text-slate-600"
-                      }`}
-                    >
-                      <span className="text-xs font-bold">{t}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Language selection dropdown */}
-            <div className="flex flex-col gap-1.5 mt-auto w-full">
-              <span className="text-sm font-bold text-slate-500">Language</span>
-              <div className="relative">
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full py-2.5 pl-3.5 pr-10 bg-white border-2 border-slate-200 rounded-xl font-bold text-sm text-slate-800 appearance-none focus:outline-none focus:border-main transition-colors cursor-pointer"
-                >
-                  <option value="English (US)">English (US)</option>
-                  <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                  <option value="日本語">日本語</option>
-                </select>
-                <ChevronDown
-                  size={16}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Equipment Check Card */}
-        <div className="p-5 bg-white border-bold col-span-1 flex flex-col gap-4">
-          <h3 className="font-extrabold text-lg text-slate-900">
-            Equipment Check
-          </h3>
-
-          <div className="flex flex-col gap-3 mt-1.5">
-            {/* Camera check */}
+          {/* content */}
+          <div className="w-full mt-5 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-100 text-slate-500 rounded-xl shrink-0">
-                  <Camera size={16} />
+              <div className="flex gap-2 items-center">
+                <div className="p-1.5 bg-main/10 rounded-full">
+                  <Wifi className="text-main" size={12} />
                 </div>
-                <span className="text-xs font-extrabold text-slate-700">
-                  Camera
-                </span>
-              </div>
-              {cameraStatus === "ready" ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-emerald-500 font-bold">
-                    Camera is working
-                  </span>
-                  <div className="size-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-[10px]">
-                    ✓
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={handleAllowCamera}
-                  className="text-xs font-black text-main hover:underline"
-                >
-                  Check camera
-                </button>
-              )}
-            </div>
-
-            {/* Microphone check */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-100 text-slate-500 rounded-xl shrink-0">
-                  <Mic size={16} />
-                </div>
-                <span className="text-xs font-extrabold text-slate-700">
-                  Microphone
-                </span>
-              </div>
-              {micStatus === "ready" ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-emerald-500 font-bold">
-                    Microphone is working
-                  </span>
-                  <div className="size-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-[10px]">
-                    ✓
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={handleAllowMic}
-                  className="text-xs font-black text-main hover:underline"
-                >
-                  Check mic
-                </button>
-              )}
-            </div>
-
-            {/* Internet check */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-100 text-slate-500 rounded-xl shrink-0">
-                  <Wifi size={16} />
-                </div>
-                <span className="text-xs font-extrabold text-slate-700">
+                <span className="font-semibold text-sm">
                   Internet Connection
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-emerald-500 font-bold">
-                  Connection is stable
-                </span>
-                <div className="size-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-[10px]">
-                  ✓
-                </div>
+                <Check size={12} className="text-green-500" />
+                <span className="text-xs text-slate-500">Internet is Good</span>
               </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2 items-center">
+                <div className="p-1.5 bg-main/10 rounded-full">
+                  <Camera className="text-main" size={12} />
+                </div>
+                <span className="font-semibold text-sm">Camera</span>
+              </div>
+              {renderDeviceStatus(cameraStatus, "camera")}
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2 items-center">
+                <div className="p-1.5 bg-main/10 rounded-full">
+                  <Mic className="text-main" size={12} />
+                </div>
+                <span className="font-semibold text-sm">Microphone</span>
+              </div>
+              {renderDeviceStatus(micStatus, "mic")}
             </div>
           </div>
         </div>
       </div>
 
-      {/* pt2 */}
+      {/* What to Expect section */}
       <div className="w-full grid grid-cols-3">
         <div className="w-full col-span-3 p-5 pb-7 bg-white border-bold mt-6">
           <div className="">
