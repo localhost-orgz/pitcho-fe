@@ -211,26 +211,7 @@ export default function Sidebar() {
           />
         </div>
 
-        {/* Mascot Greeting Card (Only in expanded view) */}
-        <div className="hidden lg:flex flex-col items-center p-5 bg-[#f4f8ff] border border-blue-50/50 rounded-3xl mt-4 select-none">
-          <img
-            src="/hi.svg"
-            alt="Mascot"
-            className="w-24 h-24 object-contain hover:scale-105 transition-transform duration-300"
-          />
-          <span className="text-slate-800 font-extrabold text-[15px] mt-2 text-center">
-            Hi! 👋
-          </span>
-          <span className="text-slate-500 font-bold text-xs text-center mt-1 px-2 leading-relaxed">
-            Ready to level up your speaking today?
-          </span>
-          <Link
-            href="/interview/setup"
-            className="w-full text-center bg-[#0066ff] hover:bg-[#0055ee] active:bg-[#0044cc] text-white font-extrabold text-sm py-2.5 px-4 rounded-2xl mt-4 shadow-md shadow-blue-500/10 transition-all duration-100 active:translate-y-0.5"
-          >
-            Start Practice
-          </Link>
-        </div>
+
       </div>
 
       {/* 3. Footer (fixed profile and actions) */}
