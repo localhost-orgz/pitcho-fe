@@ -26,6 +26,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { getSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
@@ -297,8 +299,8 @@ function useSessionData() {
           const events = data.lookAwayEvents || [];
           const extracted = events.map((evt) => {
             const ts = evt.timestamp || 0;
-            const clipStart = Math.max(0, ts - 7);
-            const clipEnd = ts + 7;
+            const clipStart = Math.max(0, ts - 3);
+            const clipEnd = ts + 3;
             return {
               id: evt.id,
               timestamp: ts,
@@ -623,12 +625,15 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
   }
 
   return (
-    <div className="rounded-xl overflow-hidden bg-slate-900 relative aspect-video group">
+    <div
+      className="rounded-xl overflow-hidden bg-slate-900 relative aspect-video group cursor-pointer"
+      onClick={togglePlay}
+    >
       {/* Hidden full video element */}
       <video
         ref={videoRef}
         src={clip.clipUrl}
-        className="absolute inset-0 w-full h-full object-contain"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
         playsInline
         preload="auto"
       />
@@ -642,7 +647,7 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
       {!playing && (
         <div
           className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer"
-          onClick={togglePlay}
+          onClick={(e) => { e.stopPropagation(); togglePlay(); }}
         >
           <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center hover:bg-white/30 transition-colors">
             <Play size={22} className="text-white ml-1" />
@@ -651,7 +656,10 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
       )}
 
       {/* Bottom control bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 px-4 pb-3 pt-8 z-10">
+      <div
+        className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 px-4 pb-3 pt-8 z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Progress bar */}
         <div
           ref={progressRef}
@@ -1346,15 +1354,44 @@ export default function PresentationResultPage() {
                 </div>
               </div>
             ) : (
-              <CustomVideoPlayer
-                clip={activeClipIndex >= 0 ? clips[activeClipIndex] : null}
-                onClipEnded={() => {
-                  // Auto-advance to next clip
-                  if (activeClipIndex < clips.length - 1) {
-                    setActiveClipIndex(activeClipIndex + 1);
-                  }
-                }}
-              />
+              <>
+                <CustomVideoPlayer
+                  clip={activeClipIndex >= 0 ? clips[activeClipIndex] : null}
+                  onClipEnded={() => {
+                    // Auto-advance to next clip
+                    if (activeClipIndex < clips.length - 1) {
+                      setActiveClipIndex(activeClipIndex + 1);
+                    }
+                  }}
+                />
+
+                {/* Clip navigation */}
+                {clips.length > 1 && (
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      onClick={() => setActiveClipIndex(activeClipIndex - 1)}
+                      disabled={activeClipIndex <= 0}
+                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <ChevronLeft size={12} />
+                      Previous Clip
+                    </button>
+
+                    <span className="text-[10px] font-bold text-slate-400 tabular-nums">
+                      {activeClipIndex + 1} / {clips.length}
+                    </span>
+
+                    <button
+                      onClick={() => setActiveClipIndex(activeClipIndex + 1)}
+                      disabled={activeClipIndex >= clips.length - 1}
+                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Next Clip
+                      <ChevronRight size={12} />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
