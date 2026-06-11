@@ -367,9 +367,15 @@ export default function PresentationSessionPage() {
   const [activeTab, setActiveTab] = useState("cuecard"); // 'cuecard' | 'notes'
 
   useEffect(() => {
+    // Guard: redirect to setup if no session configuration exists
+    const storedDuration = localStorage.getItem("pitcho_selected_duration");
+    if (!storedDuration) {
+      router.replace("/presentation/setup");
+      return;
+    }
+
     const storedFile = localStorage.getItem("pitcho_presentation_file");
     const storedDistraction = localStorage.getItem("pitcho_selected_distraction");
-    const storedDuration = localStorage.getItem("pitcho_selected_duration");
     const storedCueCards = localStorage.getItem("pitcho_cue_cards");
 
     if (storedFile) {

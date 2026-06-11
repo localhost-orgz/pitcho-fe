@@ -3,6 +3,7 @@
 // src/app/presentation/session/page.js
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Camera,
   Mic,
@@ -271,6 +272,16 @@ function CalibrationOverlay({ tracker, onCalibrated }) {
 
 // ── Main Page ──────────────────────────────────────────────
 export default function PresentationSessionPage() {
+  const router = useRouter();
+
+  // Guard: redirect to setup if no session configuration exists
+  useEffect(() => {
+    const configured = sessionStorage.getItem("interview_configured");
+    if (!configured) {
+      router.replace("/interview/setup");
+    }
+  }, [router]);
+
   const internetSpeed = useInternetSpeed();
   const SESSION_TOTAL = 600; // 10 minutes
 

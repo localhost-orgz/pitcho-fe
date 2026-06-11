@@ -276,7 +276,11 @@ function useSessionData() {
       try {
         // Load metadata from localStorage
         const raw = localStorage.getItem("pitcho_session_data");
-        if (!raw) { setLoading(false); return; }
+        if (!raw) {
+          setLoading(false);
+          window.location.replace("/presentation/setup");
+          return;
+        }
         const data = JSON.parse(raw);
         if (cancelled) return;
         setSessionData(data);
