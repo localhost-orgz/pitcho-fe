@@ -245,99 +245,8 @@ export default function StationPage() {
           </div>
         </div>
 
-        {/* Today's Plan Card (Order 2 on Mobile, Order 1 on Desktop) */}
-        <div className="order-2 lg:order-1 lg:col-span-2 p-6 bg-white rounded-2xl border-bold flex flex-col justify-between">
-          <div className="flex flex-col">
-            <h2 className="text-2xl font-bold">Today's plan</h2>
-            <p className="text-slate-500 mt-1">Let's get better together!</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-7">
-            <div className="w-full bg-white border-2 rounded-2xl p-5 gap-7 col-span-1 flex flex-col justify-between">
-              <div className="flex flex-col">
-                <span className="text-sm font-bold">Today's Goal</span>
-                <span className="text-sm text-slate-500">
-                  Practice for 15 minutes
-                </span>
-              </div>
-              <div className="flex flex-col gap-2 mt-4">
-                <div className="flex items-end gap-0.5">
-                  <span className="text-lg font-bold">0 / 15</span>
-                  <span className="font-medium text-sm mb-0.5 text-slate-500">
-                    min
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-2xl overflow-hidden">
-                  <div className="bg-[#0066ff] h-full rounded-full w-0" />
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full bg-gradient-to-br from-white via-white to-sky-200/20 border-bold relative p-5 col-span-1 md:col-span-2 flex flex-col justify-between">
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-slate-800">
-                  Suggested for you
-                </span>
-                <span className="text-xs font-bold text-slate-400 mt-1 leading-normal">
-                  Focus on maintaining eye contact and reducing filler words.
-                </span>
-              </div>
-              <Link
-                className="text-xs font-extrabold flex items-center text-main hover:text-sky-600 transition-colors mt-6 w-fit animate-pulse-slow"
-                href="/interview/setup"
-              >
-                See tips
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Streak sidebar stats list (Hidden on mobile, Order 2 on Desktop) */}
-        <div className="hidden lg:flex flex-col gap-3 lg:order-2 lg:col-span-1">
-          <div className="w-full bg-gradient-to-l from-white via-white to-orange-500/5 gap-3 rounded-2xl border-bold p-6 flex items-center">
-            <Image
-              src="/streak.svg"
-              width={100}
-              height={100}
-              className="w-9 h-9"
-              alt="streak"
-            />
-            <div className="flex flex-col">
-              <span className="font-bold">12 Days Streak</span>
-              <span className="text-sm text-slate-500">keep it going!</span>
-            </div>
-          </div>
-          <div className="w-full bg-indigo-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
-            <Image
-              src="/target.svg"
-              width={100}
-              height={100}
-              className="w-9 h-9"
-              alt="dart"
-            />
-            <div className="flex flex-col">
-              <span className="font-bold">5 Goals Completed</span>
-              <span className="text-sm text-slate-500">this week!</span>
-            </div>
-          </div>
-          <div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
-            <Image
-              src="/trophy.svg"
-              width={100}
-              height={100}
-              className="w-9 h-9"
-              alt="trophy"
-            />
-            <div className="flex flex-col">
-              <span className="font-bold">8 Achievements</span>
-              <span className="text-sm text-slate-500">unlocked!</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Continue Your Practice (Order 3 on Mobile & Desktop) */}
-        <div className="order-3 lg:col-span-2 px-5 py-4 bg-white rounded-2xl border-bold flex flex-col justify-between">
+        {/* Continue Your Practice (Order 2 on Mobile, Order 1 on Desktop) */}
+        <div className="order-2 lg:order-1 lg:col-span-2 px-5 py-4 bg-white rounded-2xl border-bold flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold">Continue Your Practice</h2>
             <Link
@@ -395,6 +304,140 @@ export default function StationPage() {
                   <ArrowRight size={18} strokeWidth={2.5} />
                 </Link>
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Streak sidebar stats list (Hidden on mobile, Order 2 on Desktop) */}
+        <div className="hidden lg:flex flex-col gap-3 lg:order-2 lg:col-span-1">
+          <div className="w-full bg-gradient-to-l from-white via-white to-orange-500/5 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src="/streak.svg"
+              width={100}
+              height={100}
+              className="w-9 h-9"
+              alt="streak"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">12 Days Streak</span>
+              <span className="text-sm text-slate-500">keep it going!</span>
+            </div>
+          </div>
+          <div className="w-full bg-indigo-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src="/target.svg"
+              width={100}
+              height={100}
+              className="w-9 h-9"
+              alt="dart"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">5 Goals Completed</span>
+              <span className="text-sm text-slate-500">this week!</span>
+            </div>
+          </div>
+          <div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+            <Image
+              src="/trophy.svg"
+              width={100}
+              height={100}
+              className="w-9 h-9"
+              alt="trophy"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold">8 Achievements</span>
+              <span className="text-sm text-slate-500">unlocked!</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Your Speaking Summary (Order 3 on Mobile & Desktop) */}
+        <div className="order-3 lg:col-span-2 p-6 rounded-2xl border-bold bg-white">
+          <h3 className="text-xl font-bold">Your Speaking Summary</h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-7">
+            <div className="rounded-xl bg-blue-50/50 border border-blue-100/30 p-4 flex flex-col justify-between min-h-[140px]">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-500/10 w-fit rounded-full">
+                    <Eye size={20} className="text-blue-500" />
+                  </div>
+                  <span className="font-bold text-slate-700 text-sm">
+                    Eye Contact
+                  </span>
+                </div>
+                <div className="flex items-baseline mt-4 gap-1">
+                  <span className="font-extrabold text-2xl text-slate-800 ">
+                    88
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">
+                    % average
+                  </span>
+                </div>
+              </div>
+              <div className="w-full h-8 mt-4">
+                <MiniLineChart
+                  data={eyeContactData}
+                  color="#3b82f6"
+                  strokeWidth={1.8}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-orange-50/50 border border-orange-100/30 p-4 flex flex-col justify-between min-h-[140px]">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-orange-500/10 w-fit rounded-full">
+                    <AudioLines size={20} className="text-orange-500" />
+                  </div>
+                  <span className="font-bold text-slate-700 text-sm">
+                    Filler Words
+                  </span>
+                </div>
+                <div className="flex items-baseline mt-4 gap-1">
+                  <span className="font-extrabold text-2xl text-slate-800 ">
+                    4
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">
+                    times average
+                  </span>
+                </div>
+              </div>
+              <div className="w-full h-8 mt-4">
+                <MiniLineChart
+                  data={fillerWordsData}
+                  color="#ea580c"
+                  strokeWidth={1.8}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-emerald-50/50 border border-emerald-100/30 p-4 flex flex-col justify-between min-h-[140px]">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-emerald-500/10 w-fit rounded-full">
+                    <Timer size={20} className="text-emerald-500" />
+                  </div>
+                  <span className="font-bold text-slate-700 text-sm">
+                    Speaking Pace
+                  </span>
+                </div>
+                <div className="flex items-baseline mt-4 gap-1">
+                  <span className="font-extrabold text-2xl text-slate-800 ">
+                    125
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">
+                    wpm average
+                  </span>
+                </div>
+              </div>
+              <div className="w-full h-8 mt-4">
+                <MiniLineChart
+                  data={speakingPaceData}
+                  color="#10b981"
+                  strokeWidth={1.8}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -512,124 +555,6 @@ export default function StationPage() {
               aria-label="Next session"
             >
               <ChevronRight size={20} className="text-slate-500" />
-            </button>
-          </div>
-        </div>
-
-        {/* Your Speaking Summary (Order 5 on Mobile & Desktop) */}
-        <div className="order-5 lg:col-span-2 p-6 rounded-2xl border-bold bg-white">
-          <h3 className="text-xl font-bold">Your Speaking Summary</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-7">
-            <div className="rounded-xl bg-blue-50/50 border border-blue-100/30 p-4 flex flex-col justify-between min-h-[140px]">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-500/10 w-fit rounded-full">
-                    <Eye size={20} className="text-blue-500" />
-                  </div>
-                  <span className="font-bold text-slate-700 text-sm">
-                    Eye Contact
-                  </span>
-                </div>
-                <div className="flex items-baseline mt-4 gap-1">
-                  <span className="font-extrabold text-2xl text-slate-800 ">
-                    88
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">
-                    % average
-                  </span>
-                </div>
-              </div>
-              <div className="w-full h-8 mt-4">
-                <MiniLineChart
-                  data={eyeContactData}
-                  color="#3b82f6"
-                  strokeWidth={1.8}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-orange-50/50 border border-orange-100/30 p-4 flex flex-col justify-between min-h-[140px]">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-orange-500/10 w-fit rounded-full">
-                    <AudioLines size={20} className="text-orange-500" />
-                  </div>
-                  <span className="font-bold text-slate-700 text-sm">
-                    Filler Words
-                  </span>
-                </div>
-                <div className="flex items-baseline mt-4 gap-1">
-                  <span className="font-extrabold text-2xl text-slate-800 ">
-                    4
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">
-                    times average
-                  </span>
-                </div>
-              </div>
-              <div className="w-full h-8 mt-4">
-                <MiniLineChart
-                  data={fillerWordsData}
-                  color="#ea580c"
-                  strokeWidth={1.8}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-emerald-50/50 border border-emerald-100/30 p-4 flex flex-col justify-between min-h-[140px]">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-emerald-500/10 w-fit rounded-full">
-                    <Timer size={20} className="text-emerald-500" />
-                  </div>
-                  <span className="font-bold text-slate-700 text-sm">
-                    Speaking Pace
-                  </span>
-                </div>
-                <div className="flex items-baseline mt-4 gap-1">
-                  <span className="font-extrabold text-2xl text-slate-800 ">
-                    125
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">
-                    wpm average
-                  </span>
-                </div>
-              </div>
-              <div className="w-full h-8 mt-4">
-                <MiniLineChart
-                  data={speakingPaceData}
-                  color="#10b981"
-                  strokeWidth={1.8}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Challenge Card (Order 6 on Mobile & Desktop) */}
-        <div className="order-6 lg:col-span-1 border-bold rounded-2xl bg-[#FFF4E4] p-6 flex flex-col justify-between shadow-xs">
-          <div className="flex flex-col gap-4">
-            <div className="w-fit">
-              <Gift
-                size={40}
-                className="text-[#0388ff] fill-amber-400"
-                strokeWidth={2.2}
-              />
-            </div>
-            <div className="space-y-2 mt-2">
-              <h4 className="text-xl font-black text-slate-800 tracking-tight leading-snug">
-                Daily Challenge Completed?
-              </h4>
-              <p className="text-[12px] text-slate-600 font-bold leading-normal">
-                Great! Claim your bonus and keep your streak alive!
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <button className="w-full bg-[#0070f3] hover:bg-[#0060df] text-white font-extrabold text-sm py-3 px-5 rounded-2xl transition-all shadow-xs hover:shadow-md cursor-pointer active:translate-y-0.5 text-center">
-              Claim Bonus
             </button>
           </div>
         </div>

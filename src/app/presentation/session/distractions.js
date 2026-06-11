@@ -18,9 +18,9 @@ export const DEFAULT_WEIGHTS = {
 
 // ── Difficulty modifiers ──────────────────────────────────────
 export const DIFFICULTY = {
-  easy:   { multiplier: 0.9, maxDropBottle: 1 },
-  medium: { multiplier: 1.5, maxDropBottle: 2 },
-  hard:   { multiplier: 2.0, maxDropBottle: 3 },
+  easy:   { multiplier: 0.9, maxDropBottle: 1, maxGap: 30 },
+  medium: { multiplier: 1.5, maxDropBottle: 2, maxGap: 25 },
+  hard:   { multiplier: 2.0, maxDropBottle: 3, maxGap: 20 },
 };
 
 // ── Timeline zone distribution (as fraction of session) ──────

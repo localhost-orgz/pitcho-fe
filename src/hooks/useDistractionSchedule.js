@@ -54,7 +54,8 @@ export function useDistractionSchedule() {
       eventCount,
       sessionDurationSecs,
       ZONES,
-      minGap
+      minGap,
+      config.maxGap || 0
     );
 
     // 4. Assign types to each timestamp

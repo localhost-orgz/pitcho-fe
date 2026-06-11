@@ -80,13 +80,15 @@ export function pickDistractionType({
  * @param {number} sessionDurationSecs - Total session length in seconds
  * @param {object} zones - Zone definitions { min, max, fraction }
  * @param {number} minGapSecs - Minimum seconds between events
+ * @param {number} maxGapSecs - Maximum seconds between events (0 = no limit)
  * @returns {number[]} Sorted array of timestamps in seconds
  */
 export function distributeEvents(
   eventCount,
   sessionDurationSecs,
   zones,
-  minGapSecs = MIN_GAP_SECONDS
+  minGapSecs = MIN_GAP_SECONDS,
+  maxGapSecs = 0
 ) {
   if (eventCount <= 0 || sessionDurationSecs <= 0) return [];
 
@@ -153,6 +155,23 @@ export function distributeEvents(
     const gap = allTimestamps[i] - allTimestamps[i - 1];
     if (gap < minGapSecs) {
       allTimestamps[i] = allTimestamps[i - 1] + minGapSecs;
+    }
+  }
+
+  // 6. Enforce max gap — insert extra timestamps even if event count
+  //    was too low to guarantee the spacing naturally.
+  //    Recursively bisects large gaps until every gap ≤ maxGapSecs.
+  if (maxGapSecs > 0) {
+    let i = 1;
+    while (i < allTimestamps.length) {
+      const gap = allTimestamps[i] - allTimestamps[i - 1];
+      if (gap > maxGapSecs) {
+        const mid = (allTimestamps[i - 1] + allTimestamps[i]) / 2;
+        allTimestamps.splice(i, 0, Math.round(mid * 10) / 10);
+        // Don't increment i — recheck the new gap [i-1, mid]
+      } else {
+        i++;
+      }
     }
   }
 

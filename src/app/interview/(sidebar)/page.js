@@ -44,10 +44,24 @@ export default function InterviewSetupPage() {
   const [uploadError, setUploadError] = useState("");
   const [uploadResponse, setUploadResponse] = useState(null);
   const fileInputRef = useRef(null);
+  const [jobTitle, setJobTitle] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
 
   // Card 2: Question Preferences states
-  const [questionType, setQuestionType] = useState("Behavioral");
-  const [questionCount, setQuestionCount] = useState("15");
+  const [questionTypes, setQuestionTypes] = useState(["Behavioral"]);
+  const [questionCount, setQuestionCount] = useState("3");
+  const [customQuestionCount, setCustomQuestionCount] = useState("");
+
+  const toggleQuestionType = (type) => {
+    setQuestionTypes((prev) => {
+      if (prev.includes(type)) {
+        // Don't allow removing the last selected type
+        if (prev.length === 1) return prev;
+        return prev.filter((t) => t !== type);
+      }
+      return [...prev, type];
+    });
+  };
 
   // Equipment Check states
   const [cameraStatus, setCameraStatus] = useState("unchecked");
@@ -304,18 +318,16 @@ export default function InterviewSetupPage() {
   };
 
   // Dropdown option data lists
-  const questionTypes = [
+  const questionTypeOptions = [
     { key: "Behavioral", desc: "About your past experience" },
     { key: "Technical", desc: "Role-specific knowledge" },
     { key: "Situational", desc: "Problem solving scenarios" },
-    { key: "Mixed", desc: "A combination of all types" },
   ];
 
-  const questionCounts = [
-    { key: "10", desc: "Short" },
-    { key: "15", desc: "Recommended" },
-    { key: "20", desc: "Comprehensive" },
-    { key: "Custom", desc: "Set custom" },
+  const questionCountOptions = [
+    { key: "3", desc: "Short" },
+    { key: "5", desc: "Recommended" },
+    { key: "other", desc: "Set custom" },
   ];
 
   return (
@@ -455,6 +467,34 @@ export default function InterviewSetupPage() {
             </div>
           )}
 
+          {/* Job Title input */}
+          <div className="flex flex-col gap-1.5 mt-1">
+            <label className="text-sm font-bold text-slate-500">
+              Job Title <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="e.g. Frontend Developer, Product Manager"
+              className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-700 placeholder:text-slate-300 outline-none focus:border-main transition-colors"
+            />
+          </div>
+
+          {/* Job Description input */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-bold text-slate-500">
+              Job Description
+            </label>
+            <textarea
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste the job description or key responsibilities..."
+              rows={4}
+              className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-700 placeholder:text-slate-300 outline-none focus:border-main transition-colors resize-none"
+            />
+          </div>
+
           {/* Info Banner */}
           <div className="mt-auto pt-4 border-t border-slate-100 flex items-start gap-2 text-main bg-main/10 p-2.5 rounded-xl">
             <Sparkles size={16} className="shrink-0 mt-0.5" />
@@ -481,31 +521,44 @@ export default function InterviewSetupPage() {
 
           {/* Question Type selection */}
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-slate-500">
-              Question Type
-            </span>
-            <div className="grid grid-cols-2 gap-2.5">
-              {questionTypes.map((q) => {
-                const isActive = questionType === q.key;
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-slate-500">
+                Question Type
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400">
+                Select at least one
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {questionTypeOptions.map((q) => {
+                const isSelected = questionTypes.includes(q.key);
                 return (
                   <button
                     key={q.key}
-                    onClick={() => setQuestionType(q.key)}
-                    className={`p-3 rounded-xl border-2 flex flex-col items-start gap-1 transition-all cursor-pointer text-left ${
-                      isActive
+                    onClick={() => toggleQuestionType(q.key)}
+                    className={`p-3 rounded-xl border-2 flex items-center gap-3 transition-all cursor-pointer text-left ${
+                      isSelected
                         ? "border-main bg-main/10 text-main"
                         : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 text-slate-700"
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs font-bold">{q.key}</span>
-                      {isActive && (
-                        <div className="size-1.5 rounded-full bg-main" />
+                    <div
+                      className={`size-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected
+                          ? "bg-main border-main"
+                          : "border-slate-300"
+                      }`}
+                    >
+                      {isSelected && (
+                        <Check size={12} className="text-white" strokeWidth={3} />
                       )}
                     </div>
-                    <span className="text-[9.5px] text-slate-400 leading-tight">
-                      {q.desc}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold">{q.key}</span>
+                      <span className="text-[9.5px] text-slate-400 leading-tight">
+                        {q.desc}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
@@ -517,20 +570,22 @@ export default function InterviewSetupPage() {
             <span className="text-sm font-bold text-slate-500">
               Number of Questions
             </span>
-            <div className="grid grid-cols-4 gap-1.5">
-              {questionCounts.map((count) => {
+            <div className="grid grid-cols-3 gap-2">
+              {questionCountOptions.map((count) => {
                 const isActive = questionCount === count.key;
                 return (
                   <button
                     key={count.key}
                     onClick={() => setQuestionCount(count.key)}
-                    className={`py-2 px-1 rounded-xl border-2 flex flex-col items-center transition-all cursor-pointer text-center ${
+                    className={`py-2.5 px-1 rounded-xl border-2 flex flex-col items-center transition-all cursor-pointer text-center ${
                       isActive
                         ? "border-main bg-main/10 text-main"
                         : "border-slate-200 hover:border-slate-350 text-slate-700"
                     }`}
                   >
-                    <span className="text-xs font-bold">{count.key}</span>
+                    <span className="text-sm font-bold">
+                      {count.key === "other" ? "..." : count.key}
+                    </span>
                     <span className="text-[9.5px] font-medium text-slate-400 mt-0.5 leading-tight">
                       {count.desc}
                     </span>
@@ -538,6 +593,18 @@ export default function InterviewSetupPage() {
                 );
               })}
             </div>
+            {questionCount === "other" && (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="number"
+                  value={customQuestionCount}
+                  onChange={(e) => setCustomQuestionCount(e.target.value)}
+                  placeholder="Enter number..."
+                  min="1"
+                  className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-700 placeholder:text-slate-300 outline-none focus:border-main transition-colors"
+                />
+              </div>
+            )}
           </div>
         </div>
 
