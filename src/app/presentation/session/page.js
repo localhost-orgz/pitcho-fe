@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
+import { useSpeechTracker } from "@/hooks/useSpeechTracker";
 import { saveSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
 
 // ── Key points (iterable) ──────────────────────────────────
@@ -320,6 +321,22 @@ export default function PresentationSessionPage() {
     return () => clearInterval(interval);
   }, [sessionRunning]);
 
+  // ── Speech Tracker integration ────────────────────────────
+  const speechTracker = useSpeechTracker();
+  const {
+    isListening: isSpeechListening,
+    error: speechError,
+    currentWpm,
+    currentStatus,
+    totalWordCount: speechWordCount,
+    averageWpm: speechAverageWpm,
+    segmentData: speechSegmentData,
+    transcript,
+    isSupported: isSpeechSupported,
+    startListening: startSpeechTracking,
+    stopListening: stopSpeechTracking,
+  } = speechTracker;
+
   const [activeKeyPoint, setActiveKeyPoint] = useState(0);
   const [activeTab, setActiveTab] = useState("cuecard"); // 'cuecard' | 'notes'
 
@@ -419,7 +436,10 @@ export default function PresentationSessionPage() {
     }
     // Start recording the session video
     startRecording();
-  }, [runDetectionLoop, startRecording]);
+
+    // Start speech-to-text tracking for WPM analysis
+    startSpeechTracking(sessionDuration);
+  }, [runDetectionLoop, startRecording, startSpeechTracking, sessionDuration]);
 
   // ── End Session handler ─────────────────────────────────
   const [isEnding, setIsEnding] = useState(false);
@@ -428,15 +448,23 @@ export default function PresentationSessionPage() {
     if (isEnding) return;
     setIsEnding(true);
     try {
-      // 1. Stop tracker/recording and get the video blob
+      // 1. Stop speech tracking to get final WPM data
+      const speechData = stopSpeechTracking();
+
+      // 2. Stop tracker/recording and get the video blob
       const videoBlob = await stopTracker();
 
-      // 2. Save metadata to localStorage
+      // 3. Save metadata to localStorage
       const sessionData = {
         lookAwayEvents,
         lookAwayCount,
         sessionDuration: totalSessionTime,
         totalDistractedTime,
+        // Speech / WPM data
+        transcript: speechData?.transcript || "",
+        totalWordCount: speechData?.totalWordCount || 0,
+        averageWpm: speechData?.averageWpm || 0,
+        speechSegments: speechData?.speechSegments || [],
       };
       localStorage.setItem("pitcho_session_data", JSON.stringify(sessionData));
 
@@ -451,7 +479,7 @@ export default function PresentationSessionPage() {
       console.error("Failed to end session:", err);
       setIsEnding(false);
     }
-  }, [isEnding, stopTracker, lookAwayEvents, lookAwayCount, totalSessionTime, totalDistractedTime, router]);
+  }, [isEnding, stopSpeechTracking, stopTracker, lookAwayEvents, lookAwayCount, totalSessionTime, totalDistractedTime, router]);
 
   // Determine eye-contact status based on cumulative look-away count
   // Scale: 0 → Excellent | 1-2 → Good | 3-5 → Fair | 6-9 → Poor | 10+ → Very Poor
@@ -616,6 +644,17 @@ export default function PresentationSessionPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Speech Recognition Compatibility Banner ──────────── */}
+      {!isSpeechSupported && (
+        <div className="flex items-center gap-2 px-6 py-1.5 bg-amber-50 border-b border-amber-100 shrink-0">
+          <CircleAlert size={12} className="text-amber-500 shrink-0" />
+          <span className="text-[10px] font-semibold text-amber-700">
+            Speech recognition is not supported in this browser. WPM tracking
+            requires Chrome or Edge.
+          </span>
+        </div>
+      )}
 
       {/* ── Main Content ────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
@@ -800,17 +839,43 @@ export default function PresentationSessionPage() {
                       </span>
                     </div>
 
-                    {/* ── Speaking Pace Row (static) ── */}
+                    {/* ── Speaking Pace Row (dynamic) ── */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            currentStatus === "Ideal Pace"
+                              ? "bg-green-500"
+                              : currentStatus === "Slightly Fast"
+                                ? "bg-orange-400"
+                                : currentStatus === "Too Fast"
+                                  ? "bg-red-500"
+                                  : currentStatus === "Too Slow"
+                                    ? "bg-blue-500"
+                                    : "bg-slate-300"
+                          }`}
+                        />
                         <Timer size={14} className="text-slate-400" />
                         <span className="text-sm font-semibold text-slate-700">
                           Speaking Pace
                         </span>
                       </div>
-                      <span className="text-sm font-bold text-green-600">
-                        Good
+                      <span
+                        className={`text-sm font-bold ${
+                          currentStatus === "Ideal Pace"
+                            ? "text-green-600"
+                            : currentStatus === "Slightly Fast"
+                              ? "text-orange-500"
+                              : currentStatus === "Too Fast"
+                                ? "text-red-500"
+                                : currentStatus === "Too Slow"
+                                  ? "text-blue-500"
+                                  : "text-slate-400"
+                        }`}
+                      >
+                        {isSpeechListening
+                          ? `${currentWpm} wpm — ${currentStatus}`
+                          : "Waiting…"}
                       </span>
                     </div>
                   </div>
