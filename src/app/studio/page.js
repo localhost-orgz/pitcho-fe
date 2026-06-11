@@ -251,19 +251,19 @@ export default function StationPage() {
         </div>
 
         {/* Continue Your Practice (Order 2 on Mobile, Order 1 on Desktop) */}
-        <div className="order-2 lg:order-1 lg:col-span-2 px-5 py-4 bg-white rounded-2xl border-bold flex flex-col justify-between">
+        <div className="order-2 lg:order-1 lg:col-span-2 px-5 py-6 bg-white rounded-2xl border-bold flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold">Continue Your Practice</h2>
-            <Link
+            {/* <Link
               href="/interview/setup"
               className="flex items-center text-main hover:underline text-sm font-semibold gap-1"
             >
               <span>View all</span>
               <ChevronRight size={18} />
-            </Link>
+            </Link> */}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-7">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-3">
             <div className="w-full bg-blue-500/10 border-2 border-blue-100/50 relative rounded-2xl p-5 gap-7 flex flex-col justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-xl font-bold text-blue-500">

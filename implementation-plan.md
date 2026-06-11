@@ -1,363 +1,627 @@
-# Implementation Plan: Session Analytics Aggregation & Overall Scoring
+# Badge System Implementation Plan
 
-## Objective
+## Overview
 
-Build a centralized analytics pipeline that collects all public speaking session data and transforms it into a final overall score between 0 and 100.
+Build a badge and achievement system that rewards users for consistency, focus, speaking quality, interview performance, and personal improvement.
 
-The system should separate:
+The badge system should encourage long-term skill development rather than simple activity farming.
 
-1. Data Collection
-2. Analytics Aggregation
-3. Score Calculation
-4. Result Presentation
-
-This allows future scoring formulas to change without affecting tracking logic.
+Badges should be automatically unlocked based on analytics data generated after each completed session.
 
 ---
 
-# Phase 1: Create Session Analytics Model
+# Goals
 
-Create a single session analytics object that accumulates all metrics throughout the presentation.
+## User Goals
 
-Example:
+- Feel a sense of progress
+- Stay motivated to practice regularly
+- Discover strengths and weaknesses
+- Unlock achievements through skill mastery
 
-```ts
-interface SessionAnalytics {
-  sessionDurationSeconds: number;
+## Business Goals
 
-  totalWords: number;
-
-  distractedDurationSeconds: number;
-
-  fillerWordCount: number;
-
-  redundantPhraseCount: number;
-
-  averageWPM: number;
-}
-```
-
-This object becomes the single source of truth for all scoring calculations.
+- Increase retention
+- Encourage repeat practice sessions
+- Improve engagement with analytics
+- Create long-term progression mechanics
 
 ---
 
-# Phase 2: Collect Raw Session Data
+# Badge Architecture
 
-During the presentation session, continuously collect:
+## Badge Categories
 
-## Speech Metrics
+### Consistency
 
-Track:
+Rewards users for maintaining practice habits.
 
-```ts
-totalWords;
-```
+### Focus
 
-Track:
+Rewards users for resisting distractions.
 
-```ts
-speechSegments;
-```
+### Fluency
 
-Track:
+Rewards users for reducing filler words.
 
-```ts
-liveTranscript;
-```
+### Speaking Pace
 
-These will later be used for:
+Rewards users for maintaining optimal speaking speed.
 
-- WPM calculation
-- filler analysis
-- redundancy analysis
+### Presentation
 
----
+Rewards users for completing presentation sessions.
 
-## Focus Metrics
+### Interview
 
-Track:
+Rewards users for completing interview simulations.
 
-```ts
-distractedDurationSeconds;
-```
+### Improvement
 
-Definition:
+Rewards users for measurable growth.
 
-Time spent not looking toward the camera.
+### Elite
 
-Important:
-
-Do NOT count distraction occurrences.
-
-Only count total distracted duration.
-
-Example:
-
-```text
-User looks away for 3 seconds
-User looks away for 8 seconds
-User looks away for 5 seconds
-
-Total distracted duration = 16 seconds
-```
+Rewards users for exceptional performance.
 
 ---
 
-# Phase 3: Generate Session Analytics
+# Database Design
 
-At session completion, aggregate all raw data.
-
-Calculate:
-
-## Average WPM
+## Badge Definition
 
 ```ts
-averageWPM = totalWords / (sessionDurationSeconds / 60);
-```
+interface BadgeDefinition {
+  id: string;
 
----
+  name: string;
 
-## Filler Rate
+  description: string;
 
-Calculate:
+  icon: string;
 
-```ts
-fillerRate = (fillerWordCount / totalWords) * 100;
-```
+  category:
+    | "consistency"
+    | "focus"
+    | "fluency"
+    | "pace"
+    | "presentation"
+    | "interview"
+    | "improvement"
+    | "elite";
 
-Meaning:
+  conditionType: string;
 
-Number of filler words per 100 spoken words.
-
-Examples:
-
-```text
-500 words
-10 fillers
-
-= 2 fillers per 100 words
-```
-
----
-
-## Redundancy Rate
-
-Calculate:
-
-```ts
-redundancyRate = (redundantPhraseCount / totalWords) * 100;
-```
-
-Meaning:
-
-Number of redundant phrases per 100 spoken words.
-
-Examples:
-
-```text
-500 words
-5 redundancies
-
-= 1 redundancy per 100 words
-```
-
----
-
-# Phase 4: Score Calculation Engine
-
-Create a dedicated module:
-
-```ts
-calculateSessionScore();
-```
-
-Input:
-
-```ts
-SessionAnalytics;
-```
-
-Output:
-
-```ts
-SessionScore;
-```
-
----
-
-# Phase 5: Focus Score
-
-Weight:
-
-```ts
-40%
-```
-
-Formula:
-
-```ts
-focusScore = 100 - (distractedDurationSeconds / sessionDurationSeconds) * 100;
-```
-
-Clamp:
-
-```ts
-0 - 100;
-```
-
-Examples:
-
-```text
-300 second session
-15 distracted seconds
-
-= 95
-```
-
----
-
-# Phase 6: Pace Score
-
-Weight:
-
-```ts
-25%
-```
-
-Rules:
-
-```ts
-120-160 WPM => 100
-
-100-120 WPM => 85
-160-180 WPM => 85
-
-80-100 WPM => 70
-180-200 WPM => 70
-
-<80 => 50
->200 => 50
-```
-
-Implement as rule-based mapping.
-
-Not linear interpolation.
-
----
-
-# Phase 7: Filler Score
-
-Weight:
-
-```ts
-20%
-```
-
-Use filler rate.
-
-Rules:
-
-```ts
-0-2 => 100
-3-4 => 90
-5-6 => 80
-7-8 => 70
->8 => 50
-```
-
----
-
-# Phase 8: Efficiency Score
-
-Weight:
-
-```ts
-15%
-```
-
-Use redundancy rate.
-
-Rules:
-
-```ts
-0-1 => 100
-2-3 => 90
-4-5 => 80
->5 => 70
-```
-
----
-
-# Phase 9: Calculate Overall Score
-
-Formula:
-
-```ts
-overallScore =
-  focusScore * 0.4 +
-  paceScore * 0.25 +
-  fillerScore * 0.2 +
-  efficiencyScore * 0.15;
-```
-
-Round:
-
-```ts
-Math.round();
-```
-
-Return value:
-
-```ts
-0 - 100;
-```
-
----
-
-# Phase 10: Result DTO
-
-Create a structured response object.
-
-Example:
-
-```ts
-{
-  overallScore: 88,
-
-  breakdown: {
-    focus: 92,
-    pace: 85,
-    filler: 80,
-    efficiency: 95
-  },
-
-  analytics: {
-    totalWords: 650,
-    averageWPM: 130,
-    distractedDurationSeconds: 24,
-    fillerWordCount: 8,
-    redundantPhraseCount: 3
-  }
+  conditionValue: number;
 }
 ```
 
 ---
 
-# Phase 11: Future-Proof Design
-
-Scoring weights should not be hardcoded.
-
-Store them in configuration:
+## User Badge
 
 ```ts
-SCORING_WEIGHTS = {
-  focus: 0.4,
-  pace: 0.25,
-  filler: 0.2,
-  efficiency: 0.15,
-};
+interface UserBadge {
+  userId: string;
+
+  badgeId: string;
+
+  unlockedAt: Date;
+}
 ```
 
-This allows future tuning without changing business logic.
+---
 
-The analytics layer must remain independent from the scoring layer.
+# Badge Definitions
+
+---
+
+## Consistency Badges
+
+### First Step
+
+Unlock Condition:
+
+```text
+Complete first session
+```
+
+---
+
+### On a Roll
+
+Unlock Condition:
+
+```text
+Practice 3 consecutive days
+```
+
+---
+
+### Weekly Warrior
+
+Unlock Condition:
+
+```text
+Practice 7 consecutive days
+```
+
+---
+
+### Unstoppable
+
+Unlock Condition:
+
+```text
+Practice 30 consecutive days
+```
+
+---
+
+# Focus Badges
+
+### Focused Speaker
+
+Unlock Condition:
+
+```text
+Distracted Duration < 10%
+```
+
+---
+
+### Laser Focus
+
+Unlock Condition:
+
+```text
+Distracted Duration < 5%
+```
+
+---
+
+### Iron Mind
+
+Unlock Condition:
+
+```text
+Distracted Duration < 2%
+```
+
+---
+
+### Unshakeable
+
+Unlock Condition:
+
+```text
+Hard Mode
++
+Distracted Duration < 3%
+```
+
+---
+
+# Fluency Badges
+
+### Smooth Talker
+
+Unlock Condition:
+
+```text
+Filler Rate < 5
+per 100 words
+```
+
+---
+
+### Fluent Speaker
+
+Unlock Condition:
+
+```text
+Filler Rate < 3
+per 100 words
+```
+
+---
+
+### Crystal Clear
+
+Unlock Condition:
+
+```text
+Filler Rate < 1
+per 100 words
+```
+
+---
+
+# Pace Badges
+
+### Perfect Pace
+
+Unlock Condition:
+
+```text
+120-160 WPM
+for 3 consecutive sessions
+```
+
+---
+
+### Consistent Rhythm
+
+Unlock Condition:
+
+```text
+Pace Score > 90
+for 5 sessions
+```
+
+---
+
+# Presentation Badges
+
+### 1 Minute Speaker
+
+Unlock Condition:
+
+```text
+Complete one
+1 minute presentation
+```
+
+---
+
+### 5 Minute Speaker
+
+Unlock Condition:
+
+```text
+Complete one
+5 minute presentation
+```
+
+---
+
+### 15 Minute Speaker
+
+Unlock Condition:
+
+```text
+Complete one
+15 minute presentation
+```
+
+---
+
+### Marathon Presenter
+
+Unlock Condition:
+
+```text
+Complete ten
+15 minute presentations
+```
+
+---
+
+# Interview Badges
+
+### First Interview
+
+Unlock Condition:
+
+```text
+Complete first interview session
+```
+
+---
+
+### Job Seeker
+
+Unlock Condition:
+
+```text
+Complete 10 interviews
+```
+
+---
+
+### Technical Challenger
+
+Unlock Condition:
+
+```text
+Complete technical interview session
+```
+
+---
+
+### HR Ready
+
+Unlock Condition:
+
+```text
+Behavioral Interview
+Overall Score > 85
+```
+
+---
+
+### Case Solver
+
+Unlock Condition:
+
+```text
+Situational Interview
+Overall Score > 85
+```
+
+---
+
+# Improvement Badges
+
+### Getting Better
+
+Unlock Condition:
+
+```text
+Increase score by 10 points
+compared to previous session
+```
+
+---
+
+### Breakthrough
+
+Unlock Condition:
+
+```text
+Increase score by 20 points
+compared to previous session
+```
+
+---
+
+### Comeback
+
+Unlock Condition:
+
+```text
+Previous Score < 60
+Current Score > 80
+```
+
+---
+
+# Elite Badges
+
+### Presentation Master
+
+Unlock Condition:
+
+```text
+15 Minute Session
+Overall Score > 90
+```
+
+---
+
+### Interview Master
+
+Unlock Condition:
+
+```text
+Interview Score > 90
+```
+
+---
+
+### Distraction Master
+
+Unlock Condition:
+
+```text
+Hard Mode
+Focus Score > 95
+```
+
+---
+
+### Communication Expert
+
+Unlock Condition:
+
+```text
+Focus Score > 90
+
+Pace Score > 90
+
+Filler Score > 90
+
+Efficiency Score > 90
+
+within the same session
+```
+
+---
+
+# Badge Evaluation Engine
+
+## Trigger Point
+
+Run badge evaluation:
+
+```text
+After every completed session
+```
+
+Includes:
+
+- Presentation Session
+- Interview Session
+
+---
+
+## Evaluation Flow
+
+```text
+Session Completed
+
+↓
+
+Analytics Generated
+
+↓
+
+Overall Score Calculated
+
+↓
+
+Badge Engine Runs
+
+↓
+
+Check All Badge Rules
+
+↓
+
+Identify New Unlocks
+
+↓
+
+Persist Unlocks
+
+↓
+
+Show Unlock Animation
+```
+
+---
+
+# Badge Engine
+
+Create:
+
+```ts
+evaluateBadges(user, sessionAnalytics, sessionScore);
+```
+
+Responsibilities:
+
+- Load user badge history
+- Load badge definitions
+- Evaluate unlock conditions
+- Prevent duplicate unlocks
+- Return newly unlocked badges
+
+---
+
+# Badge Notification System
+
+When badge is unlocked:
+
+Display achievement modal.
+
+Example:
+
+```text
+🏆 Badge Unlocked
+
+Laser Focus
+
+Distracted Duration below 5%
+```
+
+Optional:
+
+- confetti animation
+- sound effect
+- share button
+
+---
+
+# Badge Progress Tracking
+
+Some badges require progress.
+
+Example:
+
+```text
+Weekly Warrior
+```
+
+Display:
+
+```text
+4 / 7 days completed
+```
+
+Example:
+
+```text
+Job Seeker
+```
+
+Display:
+
+```text
+6 / 10 interviews completed
+```
+
+---
+
+# User Profile Integration
+
+Add:
+
+## Badge Collection
+
+Show:
+
+- All unlocked badges
+- Locked badges
+- Badge categories
+
+---
+
+## Statistics
+
+Show:
+
+```text
+Badges Earned
+
+17 / 25
+```
+
+---
+
+## Rare Badge Count
+
+Show:
+
+```text
+Elite Badges
+
+2 / 4
+```
+
+---
+
+# Future Expansion
+
+Design system so future badges can be added without modifying business logic.
+
+Future examples:
+
+- AI Feedback Master
+- Resume Expert
+- STAR Method Specialist
+- 100 Sessions Completed
+- 50 Interviews Completed
+- Top 1% Community Badge
+
+Badge conditions should remain configuration-driven whenever possible.

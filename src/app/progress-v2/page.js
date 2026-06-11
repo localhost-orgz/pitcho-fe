@@ -10,8 +10,51 @@ import StreakRing from "@/components/Progress/StreakRing";
 import ConsistencyHeatmap from "@/components/UI/ConsistencyHeatmap";
 import SessionHistoryList from "@/components/Progress/SessionHistoryList";
 import BadgeGrid from "@/components/Progress/BadgeGrid";
+import BadgeUnlockOverlay from "@/components/Progress/BadgeUnlockOverlay";
 import FocusArea from "@/components/Progress/FocusArea";
 import { MOCK_DATA } from "./mockData";
+import { BADGE_DEFINITIONS } from "@/lib/badgeDefinitions";
+
+// ── Mock unlock state for static display ──────────────────────
+const MOCK_UNLOCKED = {
+  "first-step": "2026-03-10",
+  "on-a-roll": "2026-03-14",
+  "focused-speaker": "2026-04-02",
+  "smooth-talker": "2026-04-18",
+  "1min-speaker": "2026-03-12",
+  "5min-speaker": "2026-04-25",
+  "first-interview": "2026-05-01",
+  "getting-better": "2026-05-08",
+};
+
+// Some badges get mock progress for visual variety
+const MOCK_PROGRESS = {
+  "weekly-warrior": { current: 4, target: 7 },
+  "laser-focus": { current: 2, target: 3 },
+  "fluent-speaker": { current: 1, target: 3 },
+  "perfect-pace": { current: 1, target: 3 },
+  "job-seeker": { current: 6, target: 10 },
+  "marathon-presenter": { current: 3, target: 10 },
+  "consistent-rhythm": { current: 2, target: 5 },
+  "breakthrough": { current: 1, target: 1 }, // 100% done but not unlocked (edge case demo)
+};
+
+// ── Build badge display data from definitions ─────────────────
+function buildBadgeDisplayData(definitions, unlockedMap, progressMap) {
+  return definitions.map((def) => ({
+    id: def.id,
+    name: def.name,
+    description: def.description,
+    icon: def.icon,
+    category: def.category,
+    level: def.level,
+    color: def.color,
+    unlocked: !!unlockedMap[def.id],
+    unlockedDate: unlockedMap[def.id] || null,
+    progress: progressMap[def.id] || null,
+    criteria: def.description,
+  }));
+}
 
 export default function ProgressV2Page() {
   // ── State ──────────────────────────────────────────────────
@@ -22,6 +65,7 @@ export default function ProgressV2Page() {
   const [highlightedSkill, setHighlightedSkill] = useState(null);
   const [monthIndex, setMonthIndex] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
+  const [demoUnlockBadges, setDemoUnlockBadges] = useState(null); // for unlock overlay demo
 
   // Guard for SSR (localStorage not available)
   useEffect(() => {
@@ -30,6 +74,12 @@ export default function ProgressV2Page() {
 
   // ── Data (mock — will be backend later) ────────────────────
   const data = useMemo(() => MOCK_DATA, []);
+
+  // ── Badge display data (from definitions + mock unlock state)
+  const badgeDisplayData = useMemo(
+    () => buildBadgeDisplayData(BADGE_DEFINITIONS, MOCK_UNLOCKED, MOCK_PROGRESS),
+    []
+  );
 
   // ── Filter sessions by time range + mode ────────────────────
   const filteredSessions = useMemo(() => {
@@ -312,13 +362,30 @@ export default function ProgressV2Page() {
 
       {/* Row 4: Badges + Focus Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="lg:col-span-7">
-          <BadgeGrid badges={data.badges} />
+        <div className="lg:col-span-7 space-y-3">
+          <BadgeGrid badges={badgeDisplayData} />
+          {/* Demo: preview unlock animation */}
+          <button
+            onClick={() =>
+              setDemoUnlockBadges([
+                badgeDisplayData.find((b) => b.id === "weekly-warrior"),
+              ])
+            }
+            className="text-[10px] font-bold text-slate-400 hover:text-main underline cursor-pointer bg-transparent border-0"
+          >
+            Preview unlock animation →
+          </button>
         </div>
         <div className="lg:col-span-5">
           <FocusArea skills={data.skills} focusArea={data.focusArea} />
         </div>
       </div>
+
+      {/* Badge unlock celebration overlay */}
+      <BadgeUnlockOverlay
+        badges={demoUnlockBadges || []}
+        onDismiss={() => setDemoUnlockBadges(null)}
+      />
     </div>
   );
 }

@@ -1,110 +1,109 @@
 "use client";
 
-import React, { useState } from "react";
-import { Lock, Plus, Minus, Mic, Eye, Flame, Calendar, AudioLines, Shield, Zap, BookOpen, Smile, Trophy } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Trophy, Search, Lock, Sparkles, X } from "lucide-react";
+import BadgeIcon from "./BadgeIcon";
+import { BADGE_COLORS, CATEGORY_META } from "@/lib/badgeDefinitions";
 
-const ICON_MAP = {
-  Mic, Eye, Flame, Calendar, AudioLines, Shield, Zap, BookOpen, Smile, Trophy,
-};
+// ── Category filter chip ──────────────────────────────────────
+function CategoryChip({ category, isActive, onClick, count }) {
+  const meta = CATEGORY_META[category];
+  if (!meta) return null;
+  const colors = BADGE_COLORS[meta.color] || BADGE_COLORS.green;
 
-// Color sets for badges
-const COLOR_SETS = {
-  purple: "text-purple-500 bg-purple-50 border-purple-200",
-  emerald: "text-emerald-500 bg-emerald-50 border-emerald-200",
-  amber: "text-amber-500 bg-amber-50 border-amber-200",
-  sky: "text-sky-500 bg-sky-50 border-sky-200",
-  indigo: "text-indigo-500 bg-indigo-50 border-indigo-200",
-  rose: "text-rose-500 bg-rose-50 border-rose-200",
-  orange: "text-orange-500 bg-orange-50 border-orange-200",
-  teal: "text-teal-500 bg-teal-50 border-teal-200",
-  pink: "text-pink-500 bg-pink-50 border-pink-200",
-  yellow: "text-yellow-500 bg-yellow-50 border-yellow-200",
-};
+  return (
+    <button
+      onClick={() => onClick(category)}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide transition-all cursor-pointer border-2 ${
+        isActive
+          ? "bg-white border-slate-300 text-slate-800 shadow-sm"
+          : "bg-slate-50 border-transparent text-slate-400 hover:text-slate-600 hover:bg-white hover:border-slate-200"
+      }`}
+    >
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: colors.top }}
+      />
+      {meta.label}
+      <span className="text-slate-300">{count}</span>
+    </button>
+  );
+}
 
+// ── Badge Detail Modal ────────────────────────────────────────
 function BadgeDetailModal({ badge, onClose }) {
-  const Icon = ICON_MAP[badge.icon] || Trophy;
-  const colors = COLOR_SETS[badge.color] || COLOR_SETS.purple;
+  const colors = BADGE_COLORS[badge.color] || BADGE_COLORS.green;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* Backdrop — fixed to always cover full viewport */}
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl border-bold p-6 max-w-sm w-full animate-fade-in shadow-xl">
+      <div className="relative bg-white rounded-[24px] p-6 max-w-sm w-full animate-fade-in shadow-2xl">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 cursor-pointer text-lg font-bold"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer z-10"
         >
-          ×
+          <X size={18} />
         </button>
 
-        <div className="flex flex-col items-center text-center gap-4">
-          {/* Badge icon */}
-          <div
-            className={`w-20 h-20 rounded-full border-2 flex items-center justify-center shadow-md ${
-              badge.unlocked ? colors : "bg-slate-100 border-slate-200"
-            }`}
-          >
-            <Icon
-              size={36}
-              className={badge.unlocked ? "" : "text-slate-300"}
+        <div className="flex flex-col items-center text-center gap-4 mt-2">
+          {/* Badge card (md size) */}
+          <div className="flex justify-center">
+            <BadgeIcon
+              badge={badge}
+              size="md"
+              unlocked={badge.unlocked}
             />
           </div>
 
-          {/* Title */}
-          <div>
-            <h3 className="text-lg font-black text-slate-800">
-              {badge.label}
-            </h3>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              {badge.desc}
-            </p>
-          </div>
+          {/* Description */}
+          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-[260px]">
+            {badge.description}
+          </p>
 
-          {/* Status */}
+          {/* Category tag */}
+          {CATEGORY_META[badge.category] && (
+            <span
+              className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full"
+              style={{
+                color: colors.bottom,
+                backgroundColor: `${colors.top}15`,
+              }}
+            >
+              {CATEGORY_META[badge.category].label}
+            </span>
+          )}
+
+          {/* Status badge */}
           {badge.unlocked ? (
-            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full">
+            <div
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full"
+              style={{
+                backgroundColor: `${colors.top}12`,
+                color: colors.bottom,
+              }}
+            >
+              <Sparkles size={12} className="text-amber-400" fill="currentColor" />
               <span className="text-xs font-extrabold">
-                🎉 Earned {badge.unlockedDate}
+                Earned {badge.unlockedDate || ""}
               </span>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-2 w-full">
-              <div className="flex items-center gap-1.5 bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full">
-                <Lock size={10} />
-                <span className="text-xs font-extrabold">Locked</span>
-              </div>
-
-              {/* Progress bar */}
-              {badge.progress && (
-                <div className="w-full">
-                  <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
-                    <span>Progress</span>
-                    <span>
-                      {badge.progress.current} / {badge.progress.target}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-main rounded-full transition-all duration-500"
-                      style={{
-                        width: `${(badge.progress.current / badge.progress.target) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500">
+              <Lock size={10} />
+              <span className="text-xs font-extrabold">Locked</span>
             </div>
           )}
 
           {/* Criteria */}
-          <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-            <span className="font-bold text-slate-500">Criteria: </span>
-            {badge.criteria}
+          <p className="text-[11px] text-slate-400 font-medium leading-relaxed border-t border-slate-100 pt-3 w-full">
+            <span className="font-bold text-slate-500">How to earn: </span>
+            {badge.criteria || badge.description}
           </p>
         </div>
       </div>
@@ -112,106 +111,204 @@ function BadgeDetailModal({ badge, onClose }) {
   );
 }
 
-export default function BadgeGrid({ badges }) {
-  const [showAll, setShowAll] = useState(false);
-  const [selectedBadge, setSelectedBadge] = useState(null);
-
-  // Sort: unlocked first, then by progress descending
-  const sorted = [...badges].sort((a, b) => {
-    if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-    if (!a.unlocked && !b.unlocked) {
-      const aPct = a.progress ? a.progress.current / a.progress.target : 0;
-      const bPct = b.progress ? b.progress.current / b.progress.target : 0;
-      return bPct - aPct;
-    }
-    return 0;
-  });
-
-  const visible = showAll ? sorted : sorted.slice(0, 5);
-  const unlockedCount = badges.filter((b) => b.unlocked).length;
-
+// ── Skeleton loader ────────────────────────────────────────────
+function BadgeGridSkeleton() {
   return (
-    <>
-      <div className="bg-white rounded-2xl border-bold px-5 py-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex flex-col gap-0.5">
-            <h3 className="font-extrabold text-slate-800 text-sm">
-              Achievements
-            </h3>
-            <p className="text-xs text-slate-400 font-semibold">
-              {unlockedCount} / {badges.length} Badges Earned
-            </p>
-          </div>
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="flex items-center gap-1 text-main text-xs font-black hover:underline cursor-pointer border-0 bg-transparent outline-none"
-          >
-            <span>{showAll ? "Collapse" : "View All"}</span>
-            {showAll ? <Minus size={14} /> : <Plus size={14} />}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {visible.map((badge) => {
-            const Icon = ICON_MAP[badge.icon] || Trophy;
-            const colors = COLOR_SETS[badge.color] || COLOR_SETS.purple;
-
-            return (
-              <button
-                key={badge.id}
-                onClick={() => setSelectedBadge(badge)}
-                className={`flex flex-col items-center text-center p-3.5 border-2 rounded-2xl transition-all cursor-pointer hover:shadow-sm ${
-                  badge.unlocked
-                    ? "bg-white border-slate-200 hover:border-slate-300"
-                    : "bg-slate-50/50 border-slate-100 hover:border-slate-200"
-                }`}
-              >
-                {/* Badge icon */}
-                <div
-                  className={`w-12 h-12 rounded-full border-2 flex items-center justify-center relative shadow-xs mb-2.5 ${
-                    badge.unlocked ? colors : "bg-slate-100 border-slate-200"
-                  }`}
-                >
-                  <Icon
-                    size={20}
-                    className={badge.unlocked ? "" : "text-slate-300"}
-                  />
-                  {!badge.unlocked && (
-                    <div className="absolute -bottom-1 -right-1 bg-white border border-slate-200 p-0.5 rounded-full shadow-xs">
-                      <Lock size={8} className="text-slate-400" />
-                    </div>
-                  )}
-                </div>
-
-                <span
-                  className={`text-[11px] font-extrabold leading-tight ${
-                    badge.unlocked ? "text-slate-800" : "text-slate-400"
-                  }`}
-                >
-                  {badge.label}
-                </span>
-
-                {/* Progress bar for locked badges */}
-                {!badge.unlocked && badge.progress && (
-                  <div className="w-full mt-2">
-                    <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-main/40 rounded-full"
-                        style={{
-                          width: `${(badge.progress.current / badge.progress.target) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-[9px] text-slate-400 font-medium mt-0.5 block">
-                      {badge.progress.current}/{badge.progress.target}
-                    </span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
+    <div className="animate-pulse">
+      <div className="flex items-center justify-between mb-4">
+        <div className="space-y-1.5">
+          <div className="h-4 w-28 bg-slate-200 rounded" />
+          <div className="h-3 w-36 bg-slate-100 rounded" />
         </div>
       </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-[20px] bg-white p-4 flex flex-col items-center gap-3"
+            style={{
+              boxShadow:
+                "0 4px 16px rgba(160,192,96,0.1), 0 1px 4px rgba(0,0,0,0.02)",
+            }}
+          >
+            <div className="w-[72px] h-[72px] bg-slate-200" />
+            <div className="h-3 w-16 bg-slate-200 rounded" />
+            <div className="h-2.5 w-10 bg-slate-100 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Empty state ────────────────────────────────────────────────
+function BadgeGridEmpty() {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="font-extrabold text-slate-800 text-sm">
+            Achievements
+          </h3>
+          <p className="text-xs text-slate-400 font-semibold">
+            0 / 0 Badges Earned
+          </p>
+        </div>
+      </div>
+      <div
+        className="rounded-[20px] bg-white py-12 flex flex-col items-center gap-3"
+        style={{
+          boxShadow:
+            "0 4px 16px rgba(160,192,96,0.1), 0 1px 4px rgba(0,0,0,0.02)",
+        }}
+      >
+        <div className="p-4 bg-slate-100 rounded-full">
+          <Trophy size={28} className="text-slate-300" />
+        </div>
+        <p className="text-sm font-bold text-slate-400 text-center max-w-[200px]">
+          Complete your first session to start earning badges!
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────
+
+/**
+ * Displays a grid of badge cards.
+ *
+ * @param {Array}  badges  - Badge display objects (from buildBadgeDisplayData)
+ * @param {boolean} loading - Show skeleton state
+ * @param {boolean} compact - Fewer columns, tighter layout
+ */
+export default function BadgeGrid({ badges = [], loading = false, compact = false }) {
+  const [selectedBadge, setSelectedBadge] = useState(null);
+  const [activeCategory, setActiveCategory] = useState(null);
+
+  // ── Category counts ─────────────────────────────────────────
+  const categories = useMemo(() => {
+    const catMap = {};
+    badges.forEach((b) => {
+      if (!catMap[b.category]) {
+        catMap[b.category] = { count: 0, unlocked: 0 };
+      }
+      catMap[b.category].count++;
+      if (b.unlocked) catMap[b.category].unlocked++;
+    });
+    return catMap;
+  }, [badges]);
+
+  // ── Filter + sort ───────────────────────────────────────────
+  const displayBadges = useMemo(() => {
+    let list = activeCategory
+      ? badges.filter((b) => b.category === activeCategory)
+      : badges;
+
+    // Sort: unlocked first, then by level descending
+    return [...list].sort((a, b) => {
+      if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+      return b.level - a.level;
+    });
+  }, [badges, activeCategory]);
+
+  const unlockedCount = displayBadges.filter((b) => b.unlocked).length;
+  const totalCount = displayBadges.length;
+
+  // ── Loading ─────────────────────────────────────────────────
+  if (loading) return <BadgeGridSkeleton />;
+
+  // ── Empty ───────────────────────────────────────────────────
+  if (badges.length === 0) return <BadgeGridEmpty />;
+
+  // ── Render ──────────────────────────────────────────────────
+  return (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="font-extrabold text-slate-800 text-sm">
+            Achievements
+          </h3>
+          <p className="text-xs text-slate-400 font-semibold">
+            {unlockedCount} / {totalCount} Badges Earned
+          </p>
+        </div>
+      </div>
+
+      {/* Category filter chips */}
+      {!compact && Object.keys(categories).length > 1 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide transition-all cursor-pointer border-2 ${
+              activeCategory === null
+                ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                : "bg-slate-50 border-transparent text-slate-400 hover:text-slate-600 hover:bg-white hover:border-slate-200"
+            }`}
+          >
+            <Search size={10} />
+            All
+            <span className="opacity-60">{badges.length}</span>
+          </button>
+          {Object.entries(categories).map(([catKey, catData]) => (
+            <CategoryChip
+              key={catKey}
+              category={catKey}
+              isActive={activeCategory === catKey}
+              onClick={() =>
+                setActiveCategory(activeCategory === catKey ? null : catKey)
+              }
+              count={catData.count}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Badge card grid */}
+      <div
+        className={`grid gap-4 ${
+          compact
+            ? "grid-cols-2"
+            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+        }`}
+      >
+        {displayBadges.map((badge) => (
+          <button
+            key={badge.id}
+            onClick={() => setSelectedBadge(badge)}
+            className="border-0 bg-transparent p-0 cursor-pointer outline-none text-left w-full"
+          >
+            <BadgeIcon
+              badge={badge}
+              size="sm"
+              unlocked={badge.unlocked}
+              showHover
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Filtered-empty state */}
+      {displayBadges.length === 0 && (
+        <div
+          className="rounded-[20px] bg-white py-10 flex flex-col items-center gap-2"
+          style={{
+            boxShadow:
+              "0 4px 16px rgba(160,192,96,0.1), 0 1px 4px rgba(0,0,0,0.02)",
+          }}
+        >
+          <p className="text-xs font-bold text-slate-400">
+            No badges in this category yet.
+          </p>
+          <button
+            onClick={() => setActiveCategory(null)}
+            className="text-xs font-extrabold text-main hover:underline cursor-pointer bg-transparent border-0"
+          >
+            Show all categories
+          </button>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {selectedBadge && (
