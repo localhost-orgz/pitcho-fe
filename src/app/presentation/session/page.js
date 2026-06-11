@@ -3,6 +3,7 @@
 // src/app/presentation/session/page.js
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Camera,
   Mic,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
+import { saveSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
 
 // ── Key points (iterable) ──────────────────────────────────
 const KEY_POINTS = [
@@ -281,6 +283,7 @@ function CalibrationOverlay({ tracker, onCalibrated }) {
 
 // ── Main Page ──────────────────────────────────────────────
 export default function PresentationSessionPage() {
+  const router = useRouter();
   const internetSpeed = useInternetSpeed();
 
   // ── Eye Tracker integration ─────────────────────────────
@@ -289,8 +292,11 @@ export default function PresentationSessionPage() {
     status: trackerStatus,
     isFaceDetected,
     lookAwayCount,
+    lookAwayEvents,
+    totalDistractedTime,
     loadModel,
     startCamera,
+    startRecording,
     runDetectionLoop,
     stopTracker,
     switchDetectionMode,
@@ -411,7 +417,41 @@ export default function PresentationSessionPage() {
     if (facecamRef.current) {
       runDetectionLoop(facecamRef.current, "tracking");
     }
-  }, [runDetectionLoop]);
+    // Start recording the session video
+    startRecording();
+  }, [runDetectionLoop, startRecording]);
+
+  // ── End Session handler ─────────────────────────────────
+  const [isEnding, setIsEnding] = useState(false);
+
+  const handleEndSession = useCallback(async () => {
+    if (isEnding) return;
+    setIsEnding(true);
+    try {
+      // 1. Stop tracker/recording and get the video blob
+      const videoBlob = await stopTracker();
+
+      // 2. Save metadata to localStorage
+      const sessionData = {
+        lookAwayEvents,
+        lookAwayCount,
+        sessionDuration: totalSessionTime,
+        totalDistractedTime,
+      };
+      localStorage.setItem("pitcho_session_data", JSON.stringify(sessionData));
+
+      // 3. Save video blob to IndexedDB
+      if (videoBlob) {
+        await saveSessionVideo(videoBlob);
+      }
+
+      // 4. Navigate to result page
+      router.push("/presentation/result");
+    } catch (err) {
+      console.error("Failed to end session:", err);
+      setIsEnding(false);
+    }
+  }, [isEnding, stopTracker, lookAwayEvents, lookAwayCount, totalSessionTime, totalDistractedTime, router]);
 
   // Determine eye-contact status based on cumulative look-away count
   // Scale: 0 → Excellent | 1-2 → Good | 3-5 → Fair | 6-9 → Poor | 10+ → Very Poor
@@ -534,9 +574,11 @@ export default function PresentationSessionPage() {
           variant={"danger"}
           size="sm"
           className="flex items-center gap-1.5 font-bold"
+          onClick={handleEndSession}
+          disabled={isEnding}
         >
           <MonitorX size={14} />
-          End Session
+          {isEnding ? "Ending..." : "End Session"}
         </Button>
       </header>
 

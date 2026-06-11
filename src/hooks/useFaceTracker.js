@@ -56,6 +56,7 @@ export function useFaceTracker() {
   const animationFrameRef = useRef(null);
   const lookAwayTimerRef = useRef(null);
   const lookingAwayRef = useRef(false);
+  const lookAwayStartTimeRef = useRef(null);
   const calibrationFramesRef = useRef([]);
 
   // Loop control refs
@@ -291,9 +292,22 @@ export function useFaceTracker() {
   const stopRecording = useCallback(() => {
     return new Promise((resolve) => {
       const rec = mediaRecorderRef.current;
-      if (!rec || rec.state === "inactive") { resolve(); return; }
-      const existing = rec.onstop;
-      rec.onstop = (...a) => { if (existing) existing(...a); resolve(); };
+      if (!rec || rec.state === "inactive") { resolve(null); return; }
+      // Override onstop to capture blob and resolve with it
+      rec.onstop = () => {
+        try {
+          if (recordedChunksRef.current.length > 0) {
+            const mime = rec.mimeType || "video/webm";
+            const blob = new Blob(recordedChunksRef.current, { type: mime });
+            setRecordedVideoUrl(URL.createObjectURL(blob));
+            resolve(blob);
+          } else {
+            resolve(null);
+          }
+        } catch (_) {
+          resolve(null);
+        }
+      };
       rec.stop();
     });
   }, []);
@@ -306,14 +320,16 @@ export function useFaceTracker() {
   // ── Stop everything ───────────────────────────────────────
   const stopTracker = useCallback(async () => {
     if (animationFrameRef.current) { cancelAnimationFrame(animationFrameRef.current); animationFrameRef.current = null; }
-    await stopRecording();
+    const videoBlob = await stopRecording();
     if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
     if (audioStreamRef.current) { audioStreamRef.current.getTracks().forEach((t) => t.stop()); audioStreamRef.current = null; }
     if (lookAwayTimerRef.current) { clearTimeout(lookAwayTimerRef.current); lookAwayTimerRef.current = null; }
     lookingAwayRef.current = false;
+    lookAwayStartTimeRef.current = null;
     activeVideoRef.current = null;
     setStatus("ready");
     setIsFaceDetected(false);
+    return videoBlob;
   }, [stopRecording]);
 
   // ── Detection loop ────────────────────────────────────────
@@ -369,14 +385,16 @@ export function useFaceTracker() {
             if (isLookingAway) {
               if (!lookingAwayRef.current) {
                 lookingAwayRef.current = true;
+                lookAwayStartTimeRef.current = Date.now();
                 setStatus("warning");
                 lookAwayTimerRef.current = setTimeout(() => {
                   setLookAwayCount((p) => p + 1);
                   const elapsed = (Date.now() - sessionStartTimeRef.current) / 1000;
+                  const duration = (Date.now() - lookAwayStartTimeRef.current) / 1000;
                   const label = dMode === "eye"
                     ? (devX > cfg.thresholdX ? "Eyes shifted horizontally" : "Eyes shifted vertically")
                     : (devX > cfg.thresholdX ? "Head turned (Yaw)" : "Head tilted (Pitch)");
-                  setLookAwayEvents((p) => [...p, { id: Date.now(), timestamp: elapsed, type: label }]);
+                  setLookAwayEvents((p) => [...p, { id: Date.now(), timestamp: elapsed, type: label, duration }]);
                 }, cfg.debounceMs);
               }
             } else {
@@ -384,6 +402,17 @@ export function useFaceTracker() {
                 lookingAwayRef.current = false;
                 setStatus("tracking");
                 if (lookAwayTimerRef.current) { clearTimeout(lookAwayTimerRef.current); lookAwayTimerRef.current = null; }
+                // Update the last event with final duration
+                if (lookAwayStartTimeRef.current) {
+                  const finalDuration = (Date.now() - lookAwayStartTimeRef.current) / 1000;
+                  setLookAwayEvents((p) => {
+                    if (p.length === 0) return p;
+                    const updated = [...p];
+                    updated[updated.length - 1] = { ...updated[updated.length - 1], duration: finalDuration };
+                    return updated;
+                  });
+                  lookAwayStartTimeRef.current = null;
+                }
               }
             }
           } else {
@@ -398,11 +427,13 @@ export function useFaceTracker() {
         if (currentMode === "tracking") {
           if (!lookingAwayRef.current) {
             lookingAwayRef.current = true;
+            lookAwayStartTimeRef.current = Date.now();
             setStatus("warning");
             lookAwayTimerRef.current = setTimeout(() => {
               setLookAwayCount((p) => p + 1);
               const elapsed = (Date.now() - sessionStartTimeRef.current) / 1000;
-              setLookAwayEvents((p) => [...p, { id: Date.now(), timestamp: elapsed, type: "Face out of camera frame" }]);
+              const duration = (Date.now() - lookAwayStartTimeRef.current) / 1000;
+              setLookAwayEvents((p) => [...p, { id: Date.now(), timestamp: elapsed, type: "Face out of camera frame", duration }]);
             }, cfg.debounceMs);
           }
         }
@@ -414,12 +445,16 @@ export function useFaceTracker() {
     processFrame();
   }, []);
 
+  // ── Derived: total distracted time ─────────────────────────
+  const totalDistractedTime = lookAwayEvents.reduce((sum, e) => sum + (e.duration || 0), 0);
+
   useEffect(() => { return () => { stopTracker(); }; }, [stopTracker]);
 
   return {
     isLoading, error, status, trackingMode, detectionMode,
     lookAwayCount, isFaceDetected, recordedVideoUrl, lookAwayEvents,
     currentDevX, currentDevY, calibrationData, settings,
+    totalDistractedTime,
     setSettings, loadModel, startCamera, startCalibration,
     startRecording, runDetectionLoop, stopTracker,
     setLookAwayCount, setTrackingMode, clearRecording,

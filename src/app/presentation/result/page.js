@@ -2,7 +2,7 @@
 
 // src/app/presentation/result/page.js
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -13,11 +13,18 @@ import {
   Timer,
   Smile,
   Play,
+  Pause,
   CheckCircle,
   XCircle,
   Zap,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  Film,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
+import { getSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
 
 // ── Static demo data ────────────────────────────────────────
 const METRICS = [
@@ -250,6 +257,91 @@ const WORDINESS_ITEMS = [
   },
 ];
 
+// ── Session data loading hook ──────────────────────────────
+function useSessionData() {
+  const [sessionData, setSessionData] = useState(null);
+  const [videoBlob, setVideoBlob] = useState(null);
+  const [videoUrl, setVideoUrl] = useState(null);
+  const [clips, setClips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        // Load metadata from localStorage
+        const raw = localStorage.getItem("pitcho_session_data");
+        if (!raw) { setLoading(false); return; }
+        const data = JSON.parse(raw);
+        if (cancelled) return;
+        setSessionData(data);
+
+        // Load video from IndexedDB
+        const blob = await getSessionVideo();
+        if (cancelled) return;
+        if (blob) {
+          setVideoBlob(blob);
+          const url = URL.createObjectURL(blob);
+          setVideoUrl(url);
+
+          // Extract clips from events
+          const events = data.lookAwayEvents || [];
+          const extracted = events.map((evt) => {
+            const ts = evt.timestamp || 0;
+            const clipStart = Math.max(0, ts - 7);
+            const clipEnd = ts + 7;
+            return {
+              id: evt.id,
+              timestamp: ts,
+              type: evt.type || "Unknown",
+              duration: evt.duration || 0,
+              clipStart,
+              clipEnd,
+              clipDuration: clipEnd - clipStart,
+              clipUrl: url, // share the full video URL; playback is windowed
+              thumbnail: null,
+            };
+          });
+          if (!cancelled) setClips(extracted);
+        }
+      } catch (err) {
+        console.error("Failed to load session data:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+      // Don't revoke URL here — the player may still need it
+    };
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
+    };
+  }, [videoUrl]);
+
+  return { sessionData, videoBlob, videoUrl, clips, loading };
+}
+
+// ── Format seconds as mm:ss ────────────────────────────────
+function formatTime(secs) {
+  if (secs == null || isNaN(secs)) return "00:00";
+  const m = Math.floor(secs / 60).toString().padStart(2, "0");
+  const s = Math.floor(secs % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function formatDuration(secs) {
+  if (secs == null || isNaN(secs)) return "0.0s";
+  return `${secs.toFixed(1)}s`;
+}
+
 // ── Score ring SVG ──────────────────────────────────────────
 function ScoreRing({ score }) {
   const r = 52;
@@ -328,6 +420,11 @@ function MetricCard({ metric }) {
         <span className={`text-xs font-bold ${metric.subColor}`}>
           {metric.subValue}
         </span>
+        {metric.extra && (
+          <span className="text-[10px] font-semibold text-slate-400">
+            {metric.extra}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -389,10 +486,313 @@ function BreakdownRow({ metric }) {
   );
 }
 
+// ── Custom Video Player (clip-windowed) ─────────────────────
+function CustomVideoPlayer({ clip, onClipEnded }) {
+  const videoRef = useRef(null);
+  const progressRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [seeking, setSeeking] = useState(false);
+
+  const clipDuration = clip?.clipDuration || 0;
+  const clipStart = clip?.clipStart || 0;
+  const clipEnd = clip?.clipEnd || 0;
+
+  // When clip changes, seek to clip start
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !clip) return;
+    video.currentTime = clipStart;
+    setCurrentTime(0);
+    setPlaying(false);
+  }, [clip, clipStart]);
+
+  // Sync currentTime from video, clamped to clip window
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const onTimeUpdate = () => {
+      if (seeking) return;
+      const localTime = video.currentTime - clipStart;
+      setCurrentTime(Math.max(0, Math.min(localTime, clipDuration)));
+
+      // Stop at clip end
+      if (video.currentTime >= clipEnd) {
+        video.pause();
+        setPlaying(false);
+        setCurrentTime(clipDuration);
+        if (onClipEnded) onClipEnded();
+      }
+    };
+
+    const onLoaded = () => setDuration(clipDuration);
+
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("loadedmetadata", onLoaded);
+    return () => {
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("loadedmetadata", onLoaded);
+    };
+  }, [clipStart, clipEnd, clipDuration, seeking, onClipEnded]);
+
+  const togglePlay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !clip) return;
+    if (video.paused || video.ended) {
+      // If at end, rewind to clip start
+      if (video.currentTime >= clipEnd - 0.1) {
+        video.currentTime = clipStart;
+        setCurrentTime(0);
+      }
+      video.play().then(() => setPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      setPlaying(false);
+    }
+  }, [clip, clipStart, clipEnd]);
+
+  const handleSeek = useCallback((e) => {
+    const video = videoRef.current;
+    const bar = progressRef.current;
+    if (!video || !bar || !clip) return;
+    const rect = bar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const seekTime = clipStart + pct * clipDuration;
+    video.currentTime = Math.min(seekTime, clipEnd - 0.1);
+    setCurrentTime(pct * clipDuration);
+  }, [clip, clipStart, clipDuration, clipEnd]);
+
+  const handleProgressMouseDown = useCallback((e) => {
+    setSeeking(true);
+    handleSeek(e);
+    const onMove = (ev) => handleSeek(ev);
+    const onUp = () => { setSeeking(false); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [handleSeek]);
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setMuted(video.muted);
+  };
+
+  const handleVolumeChange = (e) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const v = parseFloat(e.target.value);
+    video.volume = v;
+    setVolume(v);
+    setMuted(v === 0);
+  };
+
+  const toggleFullscreen = () => {
+    const container = videoRef.current?.parentElement;
+    if (!container) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      container.requestFullscreen();
+    }
+  };
+
+  const progressPct = clipDuration > 0 ? (currentTime / clipDuration) * 100 : 0;
+
+  if (!clip) {
+    return (
+      <div className="rounded-xl overflow-hidden bg-slate-900 relative aspect-video flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-white/60">
+          <Film size={40} />
+          <span className="text-xs font-bold">Select a highlight to play</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden bg-slate-900 relative aspect-video group">
+      {/* Hidden full video element */}
+      <video
+        ref={videoRef}
+        src={clip.clipUrl}
+        className="absolute inset-0 w-full h-full object-contain"
+        playsInline
+        preload="auto"
+      />
+
+      {/* Clip label */}
+      <div className="absolute top-3 left-3 bg-black/60 text-white text-[10px] font-bold px-2.5 py-1 rounded-md z-10">
+        {clip.type}
+      </div>
+
+      {/* Center play button (when paused) */}
+      {!playing && (
+        <div
+          className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer"
+          onClick={togglePlay}
+        >
+          <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center hover:bg-white/30 transition-colors">
+            <Play size={22} className="text-white ml-1" />
+          </div>
+        </div>
+      )}
+
+      {/* Bottom control bar */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 px-4 pb-3 pt-8 z-10">
+        {/* Progress bar */}
+        <div
+          ref={progressRef}
+          className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 relative"
+          onMouseDown={handleProgressMouseDown}
+        >
+          <div
+            className="h-full bg-main rounded-full relative transition-[width] duration-75"
+            style={{ width: `${progressPct}%` }}
+          >
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+
+        {/* Controls row */}
+        <div className="flex items-center gap-3 text-white">
+          {/* Play/Pause */}
+          <button onClick={togglePlay} className="hover:text-white/70 transition-colors">
+            {playing ? <Pause size={15} /> : <Play size={15} />}
+          </button>
+
+          {/* Time display */}
+          <span className="text-[10px] font-mono font-bold tabular-nums">
+            {formatTime(currentTime)} / {formatTime(clipDuration)}
+          </span>
+
+          <div className="flex-1" />
+
+          {/* Volume */}
+          <div className="flex items-center gap-1.5">
+            <button onClick={toggleMute} className="hover:text-white/70 transition-colors">
+              {muted || volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={muted ? 0 : volume}
+              onChange={handleVolumeChange}
+              className="w-16 h-1 accent-white cursor-pointer"
+            />
+          </div>
+
+          {/* Fullscreen */}
+          <button onClick={toggleFullscreen} className="hover:text-white/70 transition-colors">
+            <Maximize size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Clip card (sidebar) ─────────────────────────────────────
+function ClipCard({ clip, isActive, onClick, thumbnailUrl }) {
+  return (
+    <div
+      onClick={onClick}
+      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+        isActive
+          ? "border-main bg-blue-50/50 shadow-sm"
+          : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50"
+      }`}
+    >
+      {/* Thumbnail placeholder */}
+      <div className="w-16 aspect-video shrink-0 rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center">
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Film size={14} className="text-slate-400" />
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-mono font-black text-slate-400">
+            {formatTime(clip.timestamp)}
+          </span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+            clip.type.includes("Eye") || clip.type.includes("Head")
+              ? "bg-blue-50 text-blue-600"
+              : clip.type.includes("Face out")
+                ? "bg-red-50 text-red-600"
+                : "bg-orange-50 text-orange-600"
+          }`}>
+            {clip.type}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold text-slate-500">
+            Duration: {formatDuration(clip.duration)}
+          </span>
+        </div>
+      </div>
+
+      {/* Play button */}
+      <button
+        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+          isActive ? "bg-main text-white" : "bg-slate-100 text-slate-400 hover:bg-main/10"
+        }`}
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+      >
+        <Play size={9} className="ml-0.5" />
+      </button>
+    </div>
+  );
+}
+
 // ── Main Page ───────────────────────────────────────────────
 export default function PresentationResultPage() {
-  const [playbackProgress, setPlaybackProgress] = useState(36); // demo %
+  const { sessionData, videoBlob, videoUrl, clips, loading } = useSessionData();
+  const [activeClipIndex, setActiveClipIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState("eye"); // 'eye' | 'tempo' | 'filler' | 'wordiness'
+
+  // Build dynamic metrics based on session data
+  const hasSession = sessionData && clips.length > 0;
+  const eyeMetric = hasSession
+    ? {
+        id: "eye",
+        icon: Eye,
+        label: "Eye Contact",
+        value: `${sessionData.lookAwayCount} distractions`,
+        subValue:
+          sessionData.lookAwayCount === 0 ? "Excellent" :
+          sessionData.lookAwayCount <= 2 ? "Good" :
+          sessionData.lookAwayCount <= 5 ? "Fair" :
+          sessionData.lookAwayCount <= 9 ? "Poor" : "Very Poor",
+        subColor:
+          sessionData.lookAwayCount === 0 ? "text-green-500" :
+          sessionData.lookAwayCount <= 2 ? "text-green-500" :
+          sessionData.lookAwayCount <= 5 ? "text-amber-500" :
+          sessionData.lookAwayCount <= 9 ? "text-orange-500" : "text-red-500",
+        iconBg: "bg-blue-50",
+        iconColor: "text-blue-500",
+        barColor: "bg-blue-500",
+        barPct: Math.max(0, 100 - sessionData.lookAwayCount * 8),
+        range: "70 – 100%",
+        avgPct: 50,
+        avgValue: "50%",
+        userPct: Math.max(10, 100 - sessionData.lookAwayCount * 8),
+        extra: sessionData.totalDistractedTime
+          ? `Total distracted: ${formatDuration(sessionData.totalDistractedTime)}`
+          : null,
+      }
+    : METRICS[0];
+
+  const dynamicMetrics = [eyeMetric, ...METRICS.slice(1)];
 
   return (
     <div className="w-full min-h-screen">
@@ -402,12 +802,24 @@ export default function PresentationResultPage() {
           <h1 className="text-3xl font-bold">Post-Session Analysis</h1>
           <p className="text-sm text-slate-400 font-semibold mt-1 flex items-center gap-2">
             <span>Presentation Practice</span>
-            <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
-            <span>May 27, 2025</span>
-            <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
-            <span>10:24 AM</span>
-            <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
-            <span>12m 45s</span>
+            {hasSession && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
+                <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
+                <span>{formatTime(sessionData.sessionDuration)}</span>
+              </>
+            )}
+            {!hasSession && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
+                <span>May 27, 2025</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
+                <span>10:24 AM</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
+                <span>12m 45s</span>
+              </>
+            )}
           </p>
         </div>
 
@@ -445,7 +857,7 @@ export default function PresentationResultPage() {
 
         {/* Metric top cards grid */}
         <div className="flex-1 grid grid-cols-3 gap-3">
-          {METRICS.map((m) => (
+          {dynamicMetrics.map((m) => (
             <MetricCard key={m.id} metric={m} />
           ))}
         </div>
@@ -499,114 +911,102 @@ export default function PresentationResultPage() {
       {/* ── Tab 1: Eye Tracking ── */}
       {activeTab === "eye" && (
         <div className="grid grid-cols-12 gap-4">
-          {/* Performance Playback View */}
+          {/* Left: Custom Media Player */}
           <div className="col-span-8 bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="font-black text-slate-800 text-sm">
                 Focus & Eye Tracking Replay
               </h2>
               <span className="text-xs font-bold text-slate-400">
-                Visualizing look-away moments
+                {hasSession
+                  ? `Clip ${activeClipIndex + 1} of ${clips.length}`
+                  : "No session data available"}
               </span>
             </div>
 
-            {/* Video player mockup */}
-            <div className="rounded-xl overflow-hidden bg-slate-900 relative aspect-video">
-              {/* Thumbnail gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3 text-white/80">
-                  <div className="w-14 h-14 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-colors">
-                    <Play size={22} className="text-white ml-1" />
-                  </div>
-                  <span className="text-xs font-bold">
-                    Click to play session recording
-                  </span>
-                </div>
-                {/* Cue card overlay */}
-                <div className="absolute right-4 top-4 bg-black/60 rounded-xl px-4 py-3 text-white max-w-[180px]">
-                  <p className="text-[11px] font-black mb-2 text-white/80 uppercase tracking-wider">
-                    The Future of Work
-                  </p>
-                  <ul className="flex flex-col gap-1">
-                    {[
-                      "Automation and AI transformation",
-                      "Remote work and digital collaboration",
-                      "Skills of the future",
-                      "Adapting to change",
-                    ].map((t, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-1.5 text-[10px] text-white/70 font-medium"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50 mt-1 shrink-0" />
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
+            {loading ? (
+              <div className="rounded-xl bg-slate-100 aspect-video flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <div className="w-8 h-8 border-2 border-slate-300 border-t-main rounded-full animate-spin" />
+                  <span className="text-xs font-bold">Loading session video...</span>
                 </div>
               </div>
-
-              {/* Progress bar */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 px-4 pb-3 pt-6">
-                <div className="flex items-center gap-3 text-white mb-2">
-                  <Play
-                    size={14}
-                    className="cursor-pointer hover:text-white/70"
-                  />
-                  <span className="text-[10px] font-mono font-bold">
-                    05:38 / 12:45
-                  </span>
-                  <div className="flex-1" />
-                </div>
-                <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-main rounded-full relative"
-                    style={{ width: `${playbackProgress}%` }}
-                  />
-                </div>
-
-                {/* Marker legend */}
-                <div className="flex items-center gap-4 mt-2.5">
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-blue-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />{" "}
-                    Eye Contact Drop
-                  </span>
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-yellow-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />{" "}
-                    Distraction Moment
-                  </span>
+            ) : !hasSession ? (
+              <div className="rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 aspect-video flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <Film size={40} />
+                  <span className="text-xs font-bold">No session recording available</span>
+                  <span className="text-[10px] text-slate-300">Complete a presentation session to see your replay</span>
                 </div>
               </div>
-            </div>
-
+            ) : (
+              <CustomVideoPlayer
+                clip={activeClipIndex >= 0 ? clips[activeClipIndex] : null}
+                onClipEnded={() => {
+                  // Auto-advance to next clip
+                  if (activeClipIndex < clips.length - 1) {
+                    setActiveClipIndex(activeClipIndex + 1);
+                  }
+                }}
+              />
+            )}
           </div>
 
-          {/* Right sidebar details */}
+          {/* Right: Eye Focus Events / Highlights */}
           <div className="col-span-4 flex flex-col gap-4">
             <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
-              <h3 className="font-black text-slate-800 text-sm">
-                Eye Focus Events
-              </h3>
-              <div className="flex flex-col gap-2.5">
-                {KEY_MOMENTS.map((m, i) => {
-                  const Icon = m.icon;
-                  return (
-                    <div key={i} className="flex items-center gap-2.5">
-                      <span className="text-[10px] font-mono font-black text-slate-400 w-10 shrink-0">
-                        {m.time}
-                      </span>
-                      <Icon size={12} className={`${m.iconClass} shrink-0`} />
-                      <span className="text-xs text-slate-600 font-medium flex-1">
-                        {m.label}
-                      </span>
-                      <button className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center hover:bg-main/10 transition-colors shrink-0">
-                        <Play size={8} className="text-slate-400 ml-0.5" />
-                      </button>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-slate-800 text-sm">
+                  Eye Focus Events
+                </h3>
+                {hasSession && (
+                  <span className="text-[10px] font-bold text-slate-400">
+                    {clips.length} highlight{clips.length !== 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
+
+              {!hasSession ? (
+                <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
+                  <Film size={28} />
+                  <span className="text-xs font-medium text-center">No highlights to show</span>
+                  <span className="text-[10px] text-slate-300 text-center">Distraction events from your session will appear here</span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5 max-h-[480px] overflow-y-auto">
+                  {clips.map((clip, i) => (
+                    <ClipCard
+                      key={clip.id}
+                      clip={clip}
+                      isActive={i === activeClipIndex}
+                      thumbnailUrl={clip.thumbnail}
+                      onClick={() => setActiveClipIndex(i)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Summary stats */}
+            {hasSession && (
+              <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-3">
+                <h3 className="font-black text-slate-800 text-sm">Session Summary</h3>
+                <div className="flex flex-col gap-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-medium">Duration</span>
+                    <span className="font-bold text-slate-700">{formatTime(sessionData.sessionDuration)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-medium">Distractions</span>
+                    <span className="font-bold text-slate-700">{sessionData.lookAwayCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-medium">Total Distracted</span>
+                    <span className="font-bold text-slate-700">{formatDuration(sessionData.totalDistractedTime)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
