@@ -276,6 +276,9 @@ export default function PresentationSetupPage() {
       alert("Please verify and allow access to both your camera and microphone before starting the simulation session.");
       return;
     }
+    if (cueCardStatus === "loading") {
+      return;
+    }
 
     // Save all configurations to localStorage
     localStorage.setItem("pitcho_presentation_file", JSON.stringify(uploadedFile));
@@ -984,9 +987,10 @@ export default function PresentationSetupPage() {
         </div>
         <div className="flex flex-col justify-center items-center">
           <button 
+            disabled={cameraStatus !== "ready" || micStatus !== "ready" || cueCardStatus === "loading"}
             onClick={handleStartPresentation}
             className={`flex gap-2 items-center rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors ${
-              cameraStatus === "ready" && micStatus === "ready"
+              cameraStatus === "ready" && micStatus === "ready" && cueCardStatus !== "loading"
                 ? "bg-main hover:bg-main/90 cursor-pointer"
                 : "bg-slate-300 cursor-not-allowed opacity-75"
             }`}
