@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/UI/button";
 import {
   Play,
@@ -18,11 +18,13 @@ import {
   Trophy,
   Flame,
   Gift,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import PerformanceCircle from "@/components/UI/PerformanceCircle";
 import MiniLineChart from "@/components/UI/MiniLineChart";
+import { fetchHistory } from "@/lib/api";
 
 export default function StationPage() {
   React.useEffect(() => {
@@ -63,56 +65,69 @@ export default function StationPage() {
 
   const [activeSessionIndex, setActiveSessionIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState("right");
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
 
-  const recentSessions = [
-    {
-      id: 1,
-      topic: "Pitching Kompetisi Bisnis",
-      date: "May 24, 2026",
-      time: "02:00 PM",
-      score: 92,
-      color: "#10b981", // Green
-      feedback: "Excellent! Outstanding eye contact and pacing.",
-    },
-    {
-      id: 2,
-      topic: "Presentasi Akhir Proyek",
-      date: "May 22, 2026",
-      time: "11:15 AM",
-      score: 85,
-      color: "#3b82f6", // Blue
-      feedback: "Great attempt! Very confident tone, keep it up.",
-    },
-    {
-      id: 3,
-      topic: "Sambutan Singkat Ketua",
-      date: "May 19, 2026",
-      time: "09:45 AM",
-      score: 74,
-      color: "#f59e0b", // Yellow
-      feedback: "Fair effort. Work on reducing filler words.",
-    },
-    {
-      id: 4,
-      topic: "Final Thesis Presentation",
-      date: "May 17, 2026",
-      time: "10:30 AM",
-      score: 78,
-      color: "#8b5cf6", // Purple
-      feedback: "Good Job! You showed improvement in focus and clarity.",
-    },
-    {
-      id: 5,
-      topic: "Latihan Wawancara Kerja",
-      date: "May 15, 2026",
-      time: "04:30 PM",
-      score: 63,
-      color: "#ef4444", // Red
-      feedback: "Practice needed. Keep eye contact with your interviewer.",
-    },
-  ];
+  // ── Fetch last 5 sessions from /api/history ──────────────
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setSessionsLoading(true);
+      try {
+        const raw = await fetchHistory({ limit: 5 });
+        if (cancelled) return;
 
-  const activeSession = recentSessions[activeSessionIndex];
+        const mapped = raw.map((s) => {
+          const score = s.overall_score ?? s.score ?? 0;
+          const color =
+            score >= 90 ? "#10b981"
+            : score >= 80 ? "#3b82f6"
+            : score >= 70 ? "#f59e0b"
+            : score >= 60 ? "#8b5cf6"
+            : "#ef4444";
+
+          const feedback =
+            score >= 90 ? "Excellent! Outstanding delivery and pacing."
+            : score >= 80 ? "Great job! Very confident tone, keep it up."
+            : score >= 70 ? "Fair effort. Keep working on your delivery."
+            : score >= 60 ? "Good start. Focus on eye contact and clarity."
+            : "Practice needed. Keep at it — you'll improve!";
+
+          const rawDate = s.created_at || s.date;
+          const d = rawDate ? new Date(rawDate) : new Date();
+          const dateStr = d.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
+          const timeStr = d.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          return {
+            id: s.id || s._id,
+            topic: s.name || s.topic || "Untitled Session",
+            date: dateStr,
+            time: timeStr,
+            score,
+            color,
+            feedback,
+          };
+        });
+
+        if (!cancelled) setRecentSessions(mapped);
+      } catch (err) {
+        console.warn("Failed to fetch session history:", err);
+      } finally {
+        if (!cancelled) setSessionsLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeSession = recentSessions.length > 0 ? recentSessions[activeSessionIndex] : null;
 
   return (
     <div className="space-y-6">
@@ -440,108 +455,127 @@ export default function StationPage() {
             </Link>
           </div>
 
-          <div
-            key={activeSessionIndex}
-            className={`w-full border-2 rounded-xl py-3.5 px-4 flex flex-col justify-between h-[185px] mt-6 ${
-              slideDirection === "left"
-                ? "animate-slide-fade-in-left"
-                : "animate-slide-fade-in-right"
-            }`}
-          >
-            <div className="flex flex-col">
-              <h6 className="font-bold text-slate-800 line-clamp-1 leading-snug">
-                {activeSession.topic}
-              </h6>
-              <div className="flex items-center text-slate-400 font-extrabold text-[10px] gap-1 mt-1 uppercase tracking-wide">
-                <span>{activeSession.date}</span>
-                <span>·</span>
-                <span>{activeSession.time}</span>
-              </div>
+          {sessionsLoading ? (
+            <div className="w-full border-2 rounded-xl py-6 px-4 flex flex-col items-center justify-center h-[185px] mt-6 gap-3">
+              <Loader2 size={24} className="text-slate-400 animate-spin" />
+              <span className="text-xs font-bold text-slate-400">Loading sessions…</span>
             </div>
-
-            <div className="flex flex-col gap-2.5">
-              <div className="flex gap-4 items-center">
-                <PerformanceCircle
-                  value={activeSession.score}
-                  color={activeSession.color}
-                  size={64}
-                  strokeWidth={5}
-                />
+          ) : !activeSession ? (
+            <div className="w-full border-2 rounded-xl py-6 px-4 flex flex-col items-center justify-center h-[185px] mt-6 gap-3 border-dashed border-slate-200">
+              <Calendar size={28} className="text-slate-300" />
+              <span className="text-xs font-bold text-slate-400 text-center">
+                No sessions yet
+              </span>
+              <span className="text-[10px] text-slate-300 text-center">
+                Complete a practice session to see it here.
+              </span>
+            </div>
+          ) : (
+            <>
+              <div
+                key={activeSessionIndex}
+                className={`w-full border-2 rounded-xl py-3.5 px-4 flex flex-col justify-between h-[185px] mt-6 ${
+                  slideDirection === "left"
+                    ? "animate-slide-fade-in-left"
+                    : "animate-slide-fade-in-right"
+                }`}
+              >
                 <div className="flex flex-col">
-                  <span className="font-bold text-slate-800 text-sm">
-                    {activeSession.score >= 90
-                      ? "Excellent!"
-                      : activeSession.score >= 80
-                        ? "Good Job!"
-                        : activeSession.score >= 70
-                          ? "Fair Effort"
-                          : "Keep Practicing!"}
-                  </span>
-                  <span className="text-slate-550 text-[11px] font-bold leading-tight mt-0.5 max-w-[140px] line-clamp-2">
-                    {activeSession.feedback}
-                  </span>
-                  <Link
-                    href="/presentation/result"
-                    className="flex items-center text-main hover:underline font-bold text-xs mt-1.5 cursor-pointer"
-                  >
-                    See full report
-                    <ChevronRight size={14} className="ml-0.5" />
-                  </Link>
+                  <h6 className="font-bold text-slate-800 line-clamp-1 leading-snug">
+                    {activeSession.topic}
+                  </h6>
+                  <div className="flex items-center text-slate-400 font-extrabold text-[10px] gap-1 mt-1 uppercase tracking-wide">
+                    <span>{activeSession.date}</span>
+                    <span>·</span>
+                    <span>{activeSession.time}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex gap-4 items-center">
+                    <PerformanceCircle
+                      value={activeSession.score}
+                      color={activeSession.color}
+                      size={64}
+                      strokeWidth={5}
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-800 text-sm">
+                        {activeSession.score >= 90
+                          ? "Excellent!"
+                          : activeSession.score >= 80
+                            ? "Good Job!"
+                            : activeSession.score >= 70
+                              ? "Fair Effort"
+                              : "Keep Practicing!"}
+                      </span>
+                      <span className="text-slate-550 text-[11px] font-bold leading-tight mt-0.5 max-w-[140px] line-clamp-2">
+                        {activeSession.feedback}
+                      </span>
+                      <Link
+                        href="/presentation/result"
+                        className="flex items-center text-main hover:underline font-bold text-xs mt-1.5 cursor-pointer"
+                      >
+                        Lihat laporan
+                        <ChevronRight size={14} className="ml-0.5" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Dots and chevrons control bar */}
-          <div className="flex items-center justify-between w-full mt-4 px-1">
-            <button
-              onClick={() => {
-                setSlideDirection("left");
-                setActiveSessionIndex((prev) =>
-                  prev > 0 ? prev - 1 : recentSessions.length - 1,
-                );
-              }}
-              className="p-1 rounded-full border border-slate-200 bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors"
-              aria-label="Previous session"
-            >
-              <ChevronLeft size={20} className="text-slate-500" />
-            </button>
-
-            <div className="flex gap-x-1.5 items-center justify-center">
-              {recentSessions.map((_, i) => (
+              {/* Dots and chevrons control bar */}
+              <div className="flex items-center justify-between w-full mt-4 px-1">
                 <button
-                  key={i}
                   onClick={() => {
-                    if (i > activeSessionIndex) {
-                      setSlideDirection("right");
-                    } else if (i < activeSessionIndex) {
-                      setSlideDirection("left");
-                    }
-                    setActiveSessionIndex(i);
+                    setSlideDirection("left");
+                    setActiveSessionIndex((prev) =>
+                      prev > 0 ? prev - 1 : recentSessions.length - 1,
+                    );
                   }}
-                  className={`size-2 rounded-full transition-all duration-300 cursor-pointer ${
-                    activeSessionIndex === i
-                      ? "bg-main w-4"
-                      : "bg-slate-200 hover:bg-slate-350"
-                  }`}
-                  aria-label={`Go to session ${i + 1}`}
-                />
-              ))}
-            </div>
+                  className="p-1 rounded-full border border-slate-200 bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors"
+                  aria-label="Previous session"
+                >
+                  <ChevronLeft size={20} className="text-slate-500" />
+                </button>
 
-            <button
-              onClick={() => {
-                setSlideDirection("right");
-                setActiveSessionIndex((prev) =>
-                  prev < recentSessions.length - 1 ? prev + 1 : 0,
-                );
-              }}
-              className="p-1 rounded-full border border-slate-200 bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors"
-              aria-label="Next session"
-            >
-              <ChevronRight size={20} className="text-slate-500" />
-            </button>
-          </div>
+                <div className="flex gap-x-1.5 items-center justify-center">
+                  {recentSessions.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (i > activeSessionIndex) {
+                          setSlideDirection("right");
+                        } else if (i < activeSessionIndex) {
+                          setSlideDirection("left");
+                        }
+                        setActiveSessionIndex(i);
+                      }}
+                      className={`size-2 rounded-full transition-all duration-300 cursor-pointer ${
+                        activeSessionIndex === i
+                          ? "bg-main w-4"
+                          : "bg-slate-200 hover:bg-slate-350"
+                      }`}
+                      aria-label={`Go to session ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setSlideDirection("right");
+                    setActiveSessionIndex((prev) =>
+                      prev < recentSessions.length - 1 ? prev + 1 : 0,
+                    );
+                  }}
+                  className="p-1 rounded-full border border-slate-200 bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors"
+                  aria-label="Next session"
+                >
+                  <ChevronRight size={20} className="text-slate-500" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

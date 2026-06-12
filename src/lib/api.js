@@ -109,3 +109,40 @@ export async function saveSession(payload) {
 
   return res.json();
 }
+
+/**
+ * Fetch session history from the backend.
+ * GETs JSON from /api/history (optionally limited to last N).
+ * Returns an array of session objects, or [] on failure.
+ *
+ * @param {Object} opts - { limit?: number }
+ * @returns {Promise<Array>}
+ */
+export async function fetchHistory({ limit } = {}) {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("auth-token")
+      : null;
+
+  if (!token) return [];
+
+  try {
+    const url = new URL("https://pitcho-be.vercel.app/api/history");
+    if (limit != null) url.searchParams.set("limit", String(limit));
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) return [];
+
+    const json = await res.json();
+    const sessions = Array.isArray(json) ? json : json.data ?? [];
+    return sessions;
+  } catch {
+    return [];
+  }
+}
