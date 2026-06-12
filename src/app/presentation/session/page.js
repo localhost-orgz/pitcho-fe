@@ -309,7 +309,9 @@ export default function PresentationSessionPage() {
   } = tracker;
 
   const [sessionDuration, setSessionDuration] = useState(600); // dynamic duration in seconds
-  const [presentationTitle, setPresentationTitle] = useState("The Future of Remote Work");
+  const [presentationTitle, setPresentationTitle] = useState(
+    "The Future of Remote Work",
+  );
   const [distractionLevel, setDistractionLevel] = useState("High Distraction");
   const [sessionCueCards, setSessionCueCards] = useState([]);
   const [sessionActiveSlide, setSessionActiveSlide] = useState(0);
@@ -377,7 +379,9 @@ export default function PresentationSessionPage() {
     }
 
     const storedFile = localStorage.getItem("pitcho_presentation_file");
-    const storedDistraction = localStorage.getItem("pitcho_selected_distraction");
+    const storedDistraction = localStorage.getItem(
+      "pitcho_selected_distraction",
+    );
     const storedCueCards = localStorage.getItem("pitcho_cue_cards");
 
     if (storedFile) {
@@ -397,7 +401,7 @@ export default function PresentationSessionPage() {
           ? "Low Distraction"
           : storedDistraction === "medium"
             ? "Medium Distraction"
-            : "High Distraction"
+            : "High Distraction",
       );
     }
 
@@ -480,7 +484,14 @@ export default function PresentationSessionPage() {
     if (classroomVideoRef.current) {
       classroomVideoRef.current.play().catch(() => {});
     }
-  }, [runDetectionLoop, startRecording, startSpeechTracking, sessionDuration, difficultyKey, distractionSchedule]);
+  }, [
+    runDetectionLoop,
+    startRecording,
+    startSpeechTracking,
+    sessionDuration,
+    difficultyKey,
+    distractionSchedule,
+  ]);
 
   // ── End Session handler ─────────────────────────────────
   const [isEnding, setIsEnding] = useState(false);
@@ -521,10 +532,16 @@ export default function PresentationSessionPage() {
       try {
         const response = await analyzeSpeech(audioBlob);
         if (response?.success && response?.data) {
-          localStorage.setItem("pitcho_speech_analysis", JSON.stringify(response.data));
+          localStorage.setItem(
+            "pitcho_speech_analysis",
+            JSON.stringify(response.data),
+          );
         }
       } catch (analysisErr) {
-        console.warn("Speech analysis failed, continuing without it:", analysisErr);
+        console.warn(
+          "Speech analysis failed, continuing without it:",
+          analysisErr,
+        );
       }
 
       // 6. Navigate to result page
@@ -533,7 +550,17 @@ export default function PresentationSessionPage() {
       console.error("Failed to end session:", err);
       setIsEnding(false);
     }
-  }, [isEnding, stopSpeechTracking, stopTracker, lookAwayEvents, lookAwayCount, totalSessionTime, totalDistractedTime, router, videoController]);
+  }, [
+    isEnding,
+    stopSpeechTracking,
+    stopTracker,
+    lookAwayEvents,
+    lookAwayCount,
+    totalSessionTime,
+    totalDistractedTime,
+    router,
+    videoController,
+  ]);
 
   // Determine eye-contact status based on cumulative look-away count
   // Scale: 0 → Excellent | 1-2 → Good | 3-5 → Fair | 6-9 → Poor | 10+ → Very Poor
@@ -589,26 +616,19 @@ export default function PresentationSessionPage() {
       ? "bg-red-500 animate-pulse"
       : eyeContactTier.dotClass;
 
-  const distractionsRef = useRef([
-    "Coughing",
-    "Door opening",
-    "Falling objects",
-    "Phone usage",
-    "Side conversations",
-    "And more...",
-  ]);
-
   return (
     <div className="flex flex-col h-screen bg-white overflow-hidden relative">
       {totalSessionTime > sessionDuration && (
         <>
           {/* Pulsing Red Border and Inset Glow with Ping animation */}
           <div className="absolute inset-0 border-4 pointer-events-none z-50 animate-border-ping" />
-          
+
           {/* Floating warning banner */}
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[60] bg-red-600 text-white font-extrabold px-6 py-3 rounded-full shadow-2xl flex items-center gap-2.5 animate-ambulance-flash border-2 border-white pointer-events-auto">
             <span className="text-base animate-pulse">⚠️</span>
-            <span className="text-xs tracking-wide uppercase">Time is over, please stop the session as soon as possible.</span>
+            <span className="text-xs tracking-wide uppercase">
+              Time is over, please stop the session as soon as possible.
+            </span>
           </div>
         </>
       )}
@@ -619,13 +639,15 @@ export default function PresentationSessionPage() {
             Presentation Simulation
           </span>
           {/* Distraction Badge */}
-          <span className={`px-2.5 py-1 text-xs font-bold rounded-md border ${
-            distractionLevel === "Low Distraction"
-              ? "bg-green-50 border-green-200 text-green-600"
-              : distractionLevel === "Medium Distraction"
-                ? "bg-yellow-50 border-yellow-250 text-yellow-600"
-                : "bg-red-50 border-red-200 text-red-600"
-          }`}>
+          <span
+            className={`px-2.5 py-1 text-xs font-bold rounded-md border ${
+              distractionLevel === "Low Distraction"
+                ? "bg-green-50 border-green-200 text-green-600"
+                : distractionLevel === "Medium Distraction"
+                  ? "bg-yellow-50 border-yellow-250 text-yellow-600"
+                  : "bg-red-50 border-red-200 text-red-600"
+            }`}
+          >
             {distractionLevel}
           </span>
 
@@ -663,98 +685,6 @@ export default function PresentationSessionPage() {
           {isEnding ? "Ending..." : "End Session"}
         </Button>
       </header>
-
-      {/* ── Debug: Distraction State Triggers ────────────────── */}
-      <div className="flex items-center gap-2 px-6 py-1.5 bg-slate-950 border-b border-slate-800 shrink-0">
-        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider mr-1">
-          Debug
-        </span>
-        <button
-          onClick={() => videoController.playIdleLoop()}
-          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-slate-600 text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
-        >
-          IDLE
-        </button>
-        <button
-          onClick={() => videoController.playDistraction("COUGH")}
-          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-amber-600/50 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors cursor-pointer"
-        >
-          COUGH
-        </button>
-        <button
-          onClick={() => videoController.playDistraction("SNEEZE")}
-          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-cyan-600/50 text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors cursor-pointer"
-        >
-          SNEEZE
-        </button>
-        <button
-          onClick={() => videoController.playDistraction("YAWN")}
-          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-purple-600/50 text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors cursor-pointer"
-        >
-          YAWN
-        </button>
-        <button
-          onClick={() => videoController.playDistraction("DROP_BOTTLE")}
-          className="px-2.5 py-1 text-[10px] font-bold rounded-md border border-red-600/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors cursor-pointer"
-        >
-          DROP_BOTTLE
-        </button>
-
-        {/* Divider */}
-        <div className="w-px h-4 bg-slate-700 mx-1" />
-
-        {/* Current state indicator */}
-        <span className="text-[10px] font-mono text-slate-500">
-          State:{" "}
-          <span className={`font-bold ${
-            videoController.currentState === "idle"
-              ? "text-slate-300"
-              : "text-amber-400"
-          }`}>
-            {videoController.currentState}
-          </span>
-        </span>
-
-        {/* Next distraction countdown */}
-        <div className="w-px h-4 bg-slate-700 mx-1" />
-        {sessionRunning ? (
-          nextEvent ? (
-            <span className="text-[10px] font-mono text-slate-400">
-              Next:{" "}
-              <span className={`font-bold ${
-                nextEvent.secondsUntil <= 5
-                  ? "text-red-400 animate-pulse"
-                  : nextEvent.secondsUntil <= 10
-                    ? "text-amber-400"
-                    : "text-emerald-400"
-              }`}>
-                {nextEvent.type}
-              </span>
-              <span className="text-slate-500"> in </span>
-              <span className={`font-black text-xs ${
-                nextEvent.secondsUntil <= 5
-                  ? "text-red-400"
-                  : nextEvent.secondsUntil <= 10
-                    ? "text-amber-400"
-                    : "text-emerald-400"
-              }`}>
-                {nextEvent.secondsUntil}s
-              </span>
-              <span className="text-slate-600 ml-1">
-                (@{nextEvent.timestamp}s)
-              </span>
-            </span>
-          ) : (
-            <span className="text-[10px] font-mono text-slate-600">
-              All distractions triggered
-            </span>
-          )
-        ) : (
-          <span className="text-[10px] font-mono text-slate-600">
-            Session not started
-          </span>
-        )}
-      </div>
 
       {/* ── Audience Alert Banner ───────────────────────────── */}
       <div className="flex items-center gap-3 px-6 py-2.5 bg-violet-50 border-b-2 border-violet-100 shrink-0">
@@ -851,7 +781,9 @@ export default function PresentationSessionPage() {
                   {eyeTrackingActive && (
                     <div
                       className={`absolute top-2 left-2 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md z-10 ${
-                        trackerStatus === "warning" ? "bg-orange-500 text-white" : "bg-main/90 text-white"
+                        trackerStatus === "warning"
+                          ? "bg-orange-500 text-white"
+                          : "bg-main/90 text-white"
                       }`}
                     >
                       <Eye size={9} />
@@ -879,7 +811,9 @@ export default function PresentationSessionPage() {
                   </div>
                   {/* Eye Contact */}
                   <div className="flex items-center gap-1">
-                    <div className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`} />
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`}
+                    />
                     <span className="text-[10px] font-semibold text-white/70">
                       {eyeContactStatus}
                     </span>
@@ -966,9 +900,12 @@ export default function PresentationSessionPage() {
                   <FileText size={36} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <h5 className="font-bold text-slate-800 text-sm">No Material Uploaded</h5>
+                  <h5 className="font-bold text-slate-800 text-sm">
+                    No Material Uploaded
+                  </h5>
                   <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                    You are not uploading a material. Add material to unlock this feature.
+                    You are not uploading a material. Add material to unlock
+                    this feature.
                   </p>
                 </div>
               </div>
@@ -985,81 +922,127 @@ export default function PresentationSessionPage() {
                 </div>
 
                 {/* Key Points / Slide Carousel */}
-                {sessionCueCards.length > 0 ? (() => {
-                  const activeSlide = sessionCueCards[sessionActiveSlide] || {};
-                  const isSlideObject = typeof activeSlide === "object" && activeSlide !== null;
-                  
-                  const title = isSlideObject ? (activeSlide.title || `Slide ${sessionActiveSlide + 1}`) : activeSlide;
-                  const talkingPoints = isSlideObject ? (activeSlide.talking_points || []) : [];
-                  const transitionSentence = isSlideObject ? activeSlide.transition_sentence : "";
+                {sessionCueCards.length > 0 ? (
+                  (() => {
+                    const activeSlide =
+                      sessionCueCards[sessionActiveSlide] || {};
+                    const isSlideObject =
+                      typeof activeSlide === "object" && activeSlide !== null;
 
-                  return (
-                    <div className="flex flex-col gap-4">
-                      {/* Carousel Header Controls */}
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                        <span className="text-xs font-bold text-slate-700">
-                          Slide {sessionActiveSlide + 1} of {sessionCueCards.length}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => setSessionActiveSlide(prev => Math.max(0, prev - 1))}
-                            disabled={sessionActiveSlide === 0}
-                            className="p-1 rounded-md border border-slate-200 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
-                            title="Previous Slide"
-                          >
-                            <ChevronLeft size={14} className="text-slate-600" />
-                          </button>
-                          <button
-                            onClick={() => setSessionActiveSlide(prev => Math.min(sessionCueCards.length - 1, prev + 1))}
-                            disabled={sessionActiveSlide === sessionCueCards.length - 1}
-                            className="p-1 rounded-md border border-slate-200 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
-                            title="Next Slide"
-                          >
-                            <ChevronRight size={14} className="text-slate-600" />
-                          </button>
-                        </div>
-                      </div>
+                    const title = isSlideObject
+                      ? activeSlide.title || `Slide ${sessionActiveSlide + 1}`
+                      : activeSlide;
+                    const talkingPoints = isSlideObject
+                      ? activeSlide.talking_points || []
+                      : [];
+                    const transitionSentence = isSlideObject
+                      ? activeSlide.transition_sentence
+                      : "";
 
-                      {/* 1. Slide Title */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Slide Title</span>
-                        <h5 className="text-xs font-bold text-slate-800 leading-snug bg-slate-50 p-2.5 rounded-lg border border-slate-200/50">
-                          {title}
-                        </h5>
-                      </div>
-
-                      {/* 2. Talking Points */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Speaking Guide</span>
-                        <div className="flex flex-col gap-2 bg-slate-50/50 p-2.5 rounded-lg border border-slate-200/50 min-h-[80px]">
-                          {talkingPoints.length > 0 ? (
-                            talkingPoints.map((point, index) => (
-                              <div key={index} className="flex items-start gap-2">
-                                <span className="text-main font-bold shrink-0 mt-0.5">•</span>
-                                <span className="text-xs text-slate-600 font-medium leading-relaxed">
-                                  {point}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">No speaking notes.</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* 3. Transition Sentence */}
-                      {transitionSentence && (
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Next Slide Bridge</span>
-                          <div className="text-xs text-slate-700 font-medium italic leading-relaxed bg-amber-50 border border-amber-100 p-2.5 rounded-lg flex items-start gap-2">
-                            <span className="text-amber-500 shrink-0 mt-0.5">🔗</span>
-                            <span>"{transitionSentence}"</span>
+                    return (
+                      <div className="flex flex-col gap-4">
+                        {/* Carousel Header Controls */}
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                          <span className="text-xs font-bold text-slate-700">
+                            Slide {sessionActiveSlide + 1} of{" "}
+                            {sessionCueCards.length}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() =>
+                                setSessionActiveSlide((prev) =>
+                                  Math.max(0, prev - 1),
+                                )
+                              }
+                              disabled={sessionActiveSlide === 0}
+                              className="p-1 rounded-md border border-slate-200 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+                              title="Previous Slide"
+                            >
+                              <ChevronLeft
+                                size={14}
+                                className="text-slate-600"
+                              />
+                            </button>
+                            <button
+                              onClick={() =>
+                                setSessionActiveSlide((prev) =>
+                                  Math.min(
+                                    sessionCueCards.length - 1,
+                                    prev + 1,
+                                  ),
+                                )
+                              }
+                              disabled={
+                                sessionActiveSlide ===
+                                sessionCueCards.length - 1
+                              }
+                              className="p-1 rounded-md border border-slate-200 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+                              title="Next Slide"
+                            >
+                              <ChevronRight
+                                size={14}
+                                className="text-slate-600"
+                              />
+                            </button>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })() : (
+
+                        {/* 1. Slide Title */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">
+                            Slide Title
+                          </span>
+                          <h5 className="text-xs font-bold text-slate-800 leading-snug bg-slate-50 p-2.5 rounded-lg border border-slate-200/50">
+                            {title}
+                          </h5>
+                        </div>
+
+                        {/* 2. Talking Points */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">
+                            Speaking Guide
+                          </span>
+                          <div className="flex flex-col gap-2 bg-slate-50/50 p-2.5 rounded-lg border border-slate-200/50 min-h-[80px]">
+                            {talkingPoints.length > 0 ? (
+                              talkingPoints.map((point, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-2"
+                                >
+                                  <span className="text-main font-bold shrink-0 mt-0.5">
+                                    •
+                                  </span>
+                                  <span className="text-xs text-slate-600 font-medium leading-relaxed">
+                                    {point}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">
+                                No speaking notes.
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 3. Transition Sentence */}
+                        {transitionSentence && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">
+                              Next Slide Bridge
+                            </span>
+                            <div className="text-xs text-slate-700 font-medium italic leading-relaxed bg-amber-50 border border-amber-100 p-2.5 rounded-lg flex items-start gap-2">
+                              <span className="text-amber-500 shrink-0 mt-0.5">
+                                🔗
+                              </span>
+                              <span>"{transitionSentence}"</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                ) : (
                   /* Timeline Fallback */
                   <div>
                     <div className="mb-3">

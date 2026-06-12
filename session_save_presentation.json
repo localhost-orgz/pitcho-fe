@@ -1,0 +1,51 @@
+{
+  "practice_type": "PRESENTATION",
+  "document_id": "40e3427e-701d-4679-8330-7e2045217b5e",
+  "name": "Latihan Tesis",
+
+  "distraction_intensity": "Medium",
+  "audience_type": "Classroom",
+  "session_length": 5,
+
+  "transcript": "Selamat sore semuanya. Hari ini saya ingin mempresentasikan tentang arsitektur sistem Pitcho. Pertama, kita menggunakan Express JS untuk membangun backend API. Kedua, kita menggunakan Prisma ORM untuk terhubung ke database PostgreSQL kita, uhm, untuk memastikan eksekusi query yang type-safe pada saat sekarang ini.",
+  "distract_count": 5,
+  "total_distract_duration": 18,
+  "total_duration": 120,
+  "wpm": 140,
+
+  "efficiency_score": 80,
+  "overall_score": 78,
+
+  "filler_incidents": [
+    {
+      "word": "uhm",
+      "context_text": "terhubung ke database PostgreSQL kita, uhm, untuk memastikan eksekusi query yang type-safe"
+    }
+  ],
+  "word_findings": [
+    {
+      "issue_type": "Pleonasm",
+      "original_phrase": "pada saat sekarang ini",
+      "recommended_phrase": "saat ini / sekarang",
+      "transcript_context": "untuk memastikan eksekusi query yang type-safe pada saat sekarang ini.",
+      "coach_tip": "Hindari menggunakan frasa bertumpuk yang bermakna sama seperti 'pada saat' disandingkan dengan 'sekarang ini'. Cukup gunakan salah satu agar kalimat terdengar lebih lugas."
+    }
+  ],
+  "interview_details": [],
+  "distraction_clips": [
+    {
+      "video_url": "https://umexhcshrsdopnqpqhby.supabase.co/storage/v1/object/public/pitcho-documents/clips/c777f285-57a6-47aa-aa65-72314882bf4b.mp4",
+      "type": "Look Away",
+      "timestamp_start": 14,
+      "timestamp_end": 17,
+      "duration": 3
+    },
+    {
+      "video_url": "https://umexhcshrsdopnqpqhby.supabase.co/storage/v1/object/public/pitcho-documents/clips/c777f285-57a6-47aa-aa65-72314882bf4b.mp4",
+      "type": "Eye Contact Drop",
+      "timestamp_start": 85,
+      "timestamp_end": 89,
+      "duration": 4
+    }
+  ]
+}

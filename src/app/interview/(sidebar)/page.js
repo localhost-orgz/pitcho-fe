@@ -29,6 +29,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import DocumentLibrary from "@/components/DocumentLibrary";
 
 export default function InterviewSetupPage() {
   // Set beautiful body background on mount
@@ -48,6 +49,7 @@ export default function InterviewSetupPage() {
   const fileInputRef = useRef(null);
   const [jobTitle, setJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [libraryDocId, setLibraryDocId] = useState(null);
 
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -248,6 +250,22 @@ export default function InterviewSetupPage() {
     setUploadError("");
   };
 
+  // Handle selecting a document from the library
+  const handleSelectFromLibrary = (doc) => {
+    const fileName = doc.fileName || doc.name || "Untitled";
+    const pages = doc.pageCount ?? doc.pages ?? "?";
+    const fileSize = doc.fileSize ?? doc.size ?? 0;
+    const sizeFormatted =
+      fileSize > 0
+        ? (Number(fileSize) / 1024).toFixed(0) + " KB"
+        : "?";
+
+    setUploadedFile({ name: fileName, pages: pages, size: sizeFormatted });
+    setLibraryDocId(doc.id || doc._id);
+    setRawFile(null);
+    setUploadError("");
+  };
+
   // ── Start Interview: validate, submit, navigate ────────────
   const handleStartInterview = useCallback(async () => {
     // Validate job title (required)
@@ -278,6 +296,8 @@ export default function InterviewSetupPage() {
       const formData = new FormData();
       if (rawFile) {
         formData.append("file", rawFile);
+      } else if (libraryDocId) {
+        formData.append("documentId", libraryDocId);
       }
       formData.append("question_type", JSON.stringify(questionTypes));
       formData.append(
@@ -323,6 +343,7 @@ export default function InterviewSetupPage() {
     }
   }, [
     rawFile,
+    libraryDocId,
     jobTitle,
     jobDescription,
     questionTypes,
@@ -568,6 +589,13 @@ export default function InterviewSetupPage() {
               questions tailored to your experience.
             </p>
           </div>
+
+          {/* Document Library */}
+          <hr className="border-slate-100 my-4" />
+          <DocumentLibrary
+            onSelectDocument={handleSelectFromLibrary}
+            disabled={isSubmitting}
+          />
         </div>
 
         {/* Card 2: Question Preferences */}

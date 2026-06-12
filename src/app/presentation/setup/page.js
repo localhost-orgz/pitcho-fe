@@ -31,6 +31,7 @@ import {
 import Image from "next/image";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import DocumentLibrary from "@/components/DocumentLibrary";
 
 export default function PresentationSetupPage() {
   const router = useRouter();
@@ -311,6 +312,75 @@ export default function PresentationSetupPage() {
     router.push("/presentation/session");
   };
 
+  // Handle selecting a document from the library
+  const handleSelectFromLibrary = async (doc) => {
+    const fileName = doc.fileName || doc.name || "Untitled";
+    const pages = doc.pageCount ?? doc.pages ?? "?";
+    const fileSize = doc.fileSize ?? doc.size ?? 0;
+    const sizeFormatted =
+      fileSize > 0
+        ? (Number(fileSize) / (1024 * 1024)).toFixed(2) + " MB"
+        : "?";
+
+    setUploadedFile({ name: fileName, pages: pages, size: sizeFormatted });
+    setRawFile(null);
+    setUploadError("");
+    setCueCardStatus("loading");
+
+    try {
+      const token = localStorage.getItem("auth-token");
+      const formData = new FormData();
+      formData.append("documentId", doc.id || doc._id);
+
+      const res = await fetch(
+        "https://pitcho-be.vercel.app/api/presentation/upload",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(`Failed to upload: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+
+      let slidesData = null;
+      if (data) {
+        if (Array.isArray(data.data)) {
+          slidesData = data.data;
+        } else if (data.slide) {
+          slidesData = data.slide;
+        } else if (data.data && data.data.slide) {
+          slidesData = data.data.slide;
+        } else if (data.slides) {
+          slidesData = data.slides;
+        } else if (data.data && data.data.slides) {
+          slidesData = data.data.slides;
+        }
+      }
+
+      if (slidesData) {
+        const slidesArray = Array.isArray(slidesData)
+          ? slidesData
+          : [slidesData];
+        setCueCards(slidesArray);
+        setActiveSlideIndex(0);
+        setCueCardStatus("ready");
+      } else {
+        throw new Error("Invalid response structure from server");
+      }
+    } catch (error) {
+      console.error("Error processing library document:", error);
+      setUploadError(error.message || "Failed to generate speaking notes.");
+      setCueCardStatus("error");
+    }
+  };
+
   const renderDeviceStatus = (status, type) => {
     if (status === "ready") {
       return (
@@ -488,6 +558,13 @@ export default function PresentationSetupPage() {
               </div>
             </>
           )}
+
+          {/* Document Library */}
+          <hr className="border-slate-100 my-4" />
+          <DocumentLibrary
+            onSelectDocument={handleSelectFromLibrary}
+            disabled={cueCardStatus === "loading"}
+          />
         </div>
 
         {/* card 2: equipemnt check */}
