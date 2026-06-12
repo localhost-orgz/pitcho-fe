@@ -208,40 +208,6 @@ const IconInstagram = (props) => (
   </svg>
 );
 
-// ── Dummy Image Placeholder ─────────────────────────────────────────────────
-function DummyImg({ width, height, label, className, style }) {
-  return (
-    <div
-      className={`dummyImg bg-gradient-to-br from-[#e8eef9] to-[#d0dcf5] rounded-[14px] flex items-center justify-center relative overflow-hidden border-[1.5px] border-dashed border-[#b0c0e0] ${className || ""}`}
-      style={{ width, height, ...style }}
-      aria-label={label}
-    >
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04]"
-        style={{
-          background:
-            "repeating-linear-gradient(45deg, transparent, transparent 10px, #0388ff 10px, #0388ff 20px)",
-        }}
-      />
-      <span
-        className={`dummyImgLabel text-[0.72rem] font-semibold text-[#7090c0] text-center py-2 px-3 relative z-[1] leading-[1.4]`}
-      >
-        {label || "Image"}
-      </span>
-    </div>
-  );
-}
-
-// ── Avatar Dummies ──────────────────────────────────────────────────────────
-function AvatarDummy({ size = 36, color }) {
-  return (
-    <div
-      className="avatarDummy rounded-full border-[2.5px] border-white -ml-2 first:ml-0 shrink-0"
-      style={{ width: size, height: size, background: color }}
-    />
-  );
-}
-
 // ── Navbar ──────────────────────────────────────────────────────────────────
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -251,12 +217,12 @@ function Navbar() {
         {/* Logo */}
         <a
           href="#"
-          className="logo flex items-center gap-2 no-underline shrink-0 group"
+          className="logo flex items-center gap-2 no-underline shrink-0"
         >
-          <div className="logoIcon w-9 h-9 bg-gradient-to-br from-[#0388ff] to-[#005fd3] rounded-lg flex items-center justify-center text-white shadow-sm transition-transform duration-300 group-hover:scale-105">
+          <div className="logoIcon w-9 h-9 bg-gradient-to-br from-[#0388ff] to-[#005fd3] rounded-lg flex items-center justify-center text-white shadow-sm">
             <IconMic />
           </div>
-          <span className="logoText text-[1.2rem] font-bold text-slate-900 tracking-tight transition-colors duration-200 group-hover:text-[#0388ff]">
+          <span className="logoText text-[1.2rem] font-bold text-slate-900 tracking-tight">
             Pitcho
           </span>
         </a>
@@ -266,39 +232,39 @@ function Navbar() {
           <li>
             <a
               href="#how-it-works"
-              className="text-sm font-medium text-slate-600 no-underline transition-colors duration-200 hover:text-[#0388ff]"
+              className="text-sm font-medium text-slate-600 no-underline"
             >
-              How it Works
+              Cara Kerja
             </a>
           </li>
           <li>
             <a
               href="#features"
-              className="text-sm font-medium text-slate-600 no-underline transition-colors duration-200 hover:text-[#0388ff]"
+              className="text-sm font-medium text-slate-600 no-underline"
             >
-              Features
+              Fitur
             </a>
           </li>
           <li>
             <a
               href="#educators"
-              className="text-sm font-medium text-slate-600 no-underline transition-colors duration-200 hover:text-[#0388ff]"
+              className="text-sm font-medium text-slate-600 no-underline"
             >
-              For Educators
+              Buat Pengajar
             </a>
           </li>
           <li>
             <a
               href="#pricing"
-              className="text-sm font-medium text-slate-600 no-underline transition-colors duration-200 hover:text-[#0388ff]"
+              className="text-sm font-medium text-slate-600 no-underline"
             >
-              Pricing
+              Harga
             </a>
           </li>
           <li>
             <a
               href="#resources"
-              className="text-sm font-medium text-slate-600 no-underline transition-colors duration-200 hover:text-[#0388ff]"
+              className="text-sm font-medium text-slate-600 no-underline"
             >
               Resources
             </a>
@@ -306,7 +272,7 @@ function Navbar() {
           <li>
             <a
               href="#faq"
-              className="text-sm font-medium text-slate-600 no-underline transition-colors duration-200 hover:text-[#0388ff]"
+              className="text-sm font-medium text-slate-600 no-underline"
             >
               FAQ
             </a>
@@ -317,15 +283,15 @@ function Navbar() {
         <div className="navCta hidden md:flex items-center gap-4 shrink-0">
           <a
             href="#"
-            className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors duration-200 no-underline"
+            className="inline-flex items-center text-sm font-medium text-slate-600 no-underline"
           >
-            Log in
+            Masuk
           </a>
           <a
             href="#"
-            className="inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline transition-all duration-200 hover:bg-[#0266cc] hover:shadow-[0_4px_16px_rgba(3,136,255,0.25)] hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline"
           >
-            Get Started Free <IconArrowRight />
+            Mulai Gratis <IconArrowRight />
           </a>
         </div>
 
@@ -351,52 +317,52 @@ function Navbar() {
         <div className="mobileMenu md:hidden flex flex-col gap-1 border-t border-slate-100 py-3 px-4 bg-white/95 backdrop-blur-md absolute top-full left-0 right-0 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <a
             href="#how-it-works"
-            className="text-[0.95rem] font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg no-underline py-2.5 px-3 transition-colors"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
           >
-            How it Works
+            Cara Kerja
           </a>
           <a
             href="#features"
-            className="text-[0.95rem] font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg no-underline py-2.5 px-3 transition-colors"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
           >
-            Features
+            Fitur
           </a>
           <a
             href="#educators"
-            className="text-[0.95rem] font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg no-underline py-2.5 px-3 transition-colors"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
           >
-            For Educators
+            Buat Pengajar
           </a>
           <a
             href="#pricing"
-            className="text-[0.95rem] font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg no-underline py-2.5 px-3 transition-colors"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
           >
-            Pricing
+            Harga
           </a>
           <a
             href="#resources"
-            className="text-[0.95rem] font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg no-underline py-2.5 px-3 transition-colors"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
           >
             Resources
           </a>
           <a
             href="#faq"
-            className="text-[0.95rem] font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg no-underline py-2.5 px-3 transition-colors"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
           >
             FAQ
           </a>
           <div className="pt-2 px-3 pb-1 flex flex-col gap-2">
             <a
               href="#"
-              className="inline-flex items-center justify-center text-sm font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg py-2.5 transition-colors"
+              className="inline-flex items-center justify-center text-sm font-medium text-slate-700 rounded-lg py-2.5"
             >
-              Log in
+              Masuk
             </a>
             <a
               href="#"
-              className="inline-flex items-center justify-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline transition-all duration-200 hover:bg-[#0266cc]"
+              className="inline-flex items-center justify-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline"
             >
-              Get Started Free <IconArrowRight />
+              Mulai Gratis <IconArrowRight />
             </a>
           </div>
         </div>
@@ -411,31 +377,30 @@ function HeroSection() {
     <section className="hero max-w-[800px] mx-auto pt-16 px-5 pb-12 md:pt-24 md:px-6 md:pb-20 flex flex-col items-center text-center">
       <div className="flex flex-col items-center">
         <h1 className="heroTitle text-[clamp(2.2rem,5vw,3.6rem)] font-black leading-[1.15] text-[#0f1d35] mt-0 mx-0 mb-6 tracking-[-0.02em]">
-          Practice speaking.
+          Latihan ngomong.
           <br />
-          Face distractions.
+          Lawan gangguan.
           <br />
-          <span className="heroAccent text-[#fabf24]">Grow</span> with feedback.
+          <span className="heroAccent text-[#fabf24]">Makin jago</span> lewat feedback.
         </h1>
 
         <p className="heroDesc text-[1.05rem] text-[#5a7090] leading-[1.7] mb-8 max-w-[620px] mx-auto">
-          Pitcho helps you build real-world communication skills through
-          immersive simulations and AI-powered feedback that actually makes you
-          better.
+          Pitcho bantu kamu asah skill ngomong lewat simulasi yang kerasa nyata,
+          plus feedback dari AI yang beneran bikin kamu makin luwes.
         </p>
 
         <div className="heroBtns flex gap-3.5 flex-wrap mb-10 justify-center">
           <a
             href="#"
-            className="btnHeroPrimary inline-flex items-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-3.5 px-7 rounded-xl no-underline transition-[background,transform,box-shadow] duration-200 shadow-[0_4px_20px_rgba(3,136,255,0.3)] hover:bg-[#0271d6] hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(3,136,255,0.4)]"
+            className="btnHeroPrimary inline-flex items-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-3.5 px-7 rounded-xl no-underline shadow-[0_4px_20px_rgba(3,136,255,0.3)]"
           >
-            Start Free Practice <IconArrowRight />
+            Coba Latihan Gratis <IconArrowRight />
           </a>
           <a
             href="#how-it-works"
-            className="btnHeroSecondary inline-flex items-center gap-2 text-[#0f1d35] font-bold text-base py-[13px] px-6 rounded-xl border-2 border-[#d5dff5] bg-white no-underline transition-[border-color,transform] duration-200 hover:border-[#0388ff] hover:-translate-y-0.5"
+            className="btnHeroSecondary inline-flex items-center gap-2 text-[#0f1d35] font-bold text-base py-[13px] px-6 rounded-xl border-2 border-[#d5dff5] bg-white no-underline"
           >
-            Watch Demo
+            Lihat Demo
           </a>
         </div>
       </div>
@@ -446,32 +411,32 @@ function HeroSection() {
 // ── Pain Points Section ─────────────────────────────────────────────────────
 const painPoints = [
   {
-  icon: AlertCircle,
+    icon: AlertCircle,
     colorClass:
       "bg-red-50/50 text-red-500 border-red-100/40 shadow-sm shadow-red-500/5",
-    title: "Distractions happen in real life",
-    desc: "Crowded rooms, interruptions, people not paying attention. You can't control them. But you can prepare for it.",
+    title: "Gangguan di mana-mana",
+    desc: "Ruangan rame, orang motong ngomong, ada yang main HP. Kamu nggak bisa ngontrol itu semua. Tapi kamu bisa siap-siap.",
   },
   {
     icon: HeartPulse,
     colorClass:
       "bg-amber-50/50 text-amber-500 border-amber-100/40 shadow-sm shadow-amber-500/5",
-    title: "Nerves get in the way",
-    desc: "You know your topic, you've rehearsed, yet when the moment comes your confidence drops. Experience builds it back.",
+    title: "Gugup tiba-tiba",
+    desc: "Udah kuasai materi, udah latihan berkali-kali. Giliran tampil di depan orang, eh malah blank dan lupa semuanya.",
   },
   {
     icon: MessageSquare,
     colorClass:
       "bg-indigo-50/50 text-indigo-500 border-indigo-100/40 shadow-sm shadow-indigo-500/5",
-    title: "Feedback is hard to get",
-    desc: "Most of the time, you don't even know what you're doing wrong. There's no mirror, no one to tell you.",
+    title: "Nggak ada yang ngasih tahu",
+    desc: "Kebanyakan kita nggak sadar apa yang salah pas ngomong. Nggak ada yang ngingetin, nggak ada yang ngebenerin.",
   },
   {
     icon: Target,
     colorClass:
       "bg-emerald-50/50 text-emerald-500 border-emerald-100/40 shadow-sm shadow-emerald-500/5",
-    title: "Practice makes progress",
-    desc: "With the right practice and structure, you can turn any presentation into a confidence-building exercise.",
+    title: "Latihan itu kuncinya",
+    desc: "Latihan yang pas dan terstruktur bisa bikin presentasi sesulit apa pun jadi ajang buat ningkatin pede.",
   },
 ];
 
@@ -479,24 +444,23 @@ function PainSection() {
   return (
     <section className="painSection bg-[#f7f9ff] py-18 px-6 text-center">
       <div className="sectionLabel inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#fabf24] uppercase mb-3">
-        WHAT MATTERS
+        INI PENTING
       </div>
       <h2 className="painTitle text-[clamp(1.5rem,3vw,2.2rem)] font-extrabold text-[#0f1d35] leading-[1.3] mb-13">
-        Most people know what to say.
+        Kebanyakan orang tahu mau ngomong apa.
         <br />
-        But struggle when it <em className="italic text-[#0388ff]">
-          really
-        </em>{" "}
-        matters.
+        Tapi gugup pas momennya{" "}
+        <em className="italic text-[#0388ff]">beneran</em>{" "}
+        penting.
       </h2>
       <div className="painGrid grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7 max-w-[1100px] mx-auto">
         {painPoints.map((p, i) => (
           <div
             key={i}
-            className="painCard group bg-white rounded-[18px] py-7 px-5.5 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)] transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_6px_24px_rgba(3,136,255,0.12)]"
+            className="painCard bg-white rounded-[18px] py-7 px-5.5 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)]"
           >
             <div
-              className={`w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center border ${p.colorClass} transition-all duration-300 group-hover:scale-105 group-hover:shadow-md`}
+              className={`w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center border ${p.colorClass}`}
             >
               <p.icon size={28} strokeWidth={1.8} />
             </div>
@@ -517,23 +481,23 @@ function PainSection() {
 const featureHighlights = [
   {
     icon: <IconBrain />,
-    title: "Realistic Distractions",
-    desc: "Face audience noise, phone interruptions, and unexpected events in a safe, controlled environment.",
+    title: "Gangguan Realistis",
+    desc: "Ada suara berisik, HP bunyi, orang batuk. Pokoknya hal-hal yang bikin kamu ke-distract di dunia nyata, tapi di sini aman buat latihan.",
   },
   {
     icon: <IconZap />,
-    title: "AI-Powered Feedback",
-    desc: "Get instant analysis on your delivery, tone, fluency, and body language after every session.",
+    title: "Feedback dari AI",
+    desc: "Begitu sesi selesai, langsung dikasih tahu: cara ngomongmu gimana, nadanya pas apa nggak, lancar apa terbata, gesturmu oke apa enggak.",
   },
   {
     icon: <IconActivity />,
-    title: "Track Your Progress",
-    desc: "See your improvement over time with detailed analytics and personalized suggestions.",
+    title: "Pantau Progress",
+    desc: "Liat sendiri gimana skillmu naik dari waktu ke waktu. Ada data lengkap dan saran yang nyambung sama kebutuhan kamu.",
   },
   {
     icon: <IconTrendingUp />,
-    title: "Build Real Confidence",
-    desc: "Train in increasingly challenging scenarios and watch your speaking skills soar.",
+    title: "Pede Beneran",
+    desc: "Latihan di skenario yang makin lama makin susah. Liat sendiri skill ngomongmu naik level demi level.",
   },
 ];
 
@@ -543,26 +507,26 @@ function FeaturesSection() {
       <div className="featuresInner max-w-[1100px] mx-auto flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
         <div className="featuresLeft flex-1 min-w-0">
           <div className="sectionLabelBlue inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#0388ff] uppercase mb-3">
-            WHAT MAKES US DIFFERENT
+            YANG BIKIN BEDA
           </div>
           <h2 className="featuresTitle text-[clamp(1.6rem,3vw,2.4rem)] font-black text-[#0f1d35] leading-tight mb-4.5 tracking-[-0.02em]">
-            Realistic simulation.
+            Simulasi yang kerasa nyata.
             <br />
-            Personalized feedback.
+            Feedback yang personal.
             <br />
-            <span className="heroAccent text-[#fabf24]">Real results.</span>
+            <span className="heroAccent text-[#fabf24]">Hasil yang keliatan.</span>
           </h2>
           <p className="featuresDesc text-[0.95rem] text-[#5a7090] leading-[1.7] mb-7 max-w-full lg:max-w-[380px]">
-            We pair you with real-world scenarios and give you the tools to
-            improve, all backed by AI that truly understands the nuances of
-            great communication.
+            Kami gabungin skenario dunia nyata sama tools yang bikin kamu terus
+            improve. Semuanya didukung AI yang ngerti banget gimana caranya
+            komunikasi yang oke.
           </p>
           <a
             href="#"
-            className="btnPrimary inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-bold text-[0.88rem] py-2.5 px-5 rounded-[10px] no-underline transition-[background,transform,box-shadow] duration-200 shadow-[0_4px_12px_rgba(3,136,255,0.28)] whitespace-nowrap hover:bg-[#0271d6] hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(3,136,255,0.38)]"
+            className="btnPrimary inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-bold text-[0.88rem] py-2.5 px-5 rounded-[10px] no-underline shadow-[0_4px_12px_rgba(3,136,255,0.28)] whitespace-nowrap"
             style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}
           >
-            Explore Features <IconArrowRight />
+            Lihat Fitur Lengkap <IconArrowRight />
           </a>
         </div>
 
@@ -570,7 +534,7 @@ function FeaturesSection() {
           {featureHighlights.map((f, i) => (
             <div
               key={i}
-              className="featureCard flex items-start gap-4 bg-[#f7f9ff] rounded-[14px] py-4.5 px-5 border-[1.5px] border-transparent transition-[transform,box-shadow,border-color] duration-200 hover:translate-x-1 hover:border-[#0388ff20] hover:shadow-[0_4px_18px_rgba(3,136,255,0.08)]"
+              className="featureCard flex items-start gap-4 bg-[#f7f9ff] rounded-[14px] py-4.5 px-5 border-[1.5px] border-transparent"
             >
               <div className="featureCardIcon w-11 h-11 bg-gradient-to-br from-[#0388ff] to-[#005fd3] rounded-xl flex items-center justify-center text-white shrink-0">
                 {f.icon}
@@ -596,29 +560,29 @@ function FeaturesSection() {
 const steps = [
   {
     num: "1",
-    title: "Choose Your Mode",
-    desc: "Pick Presentation or Interview simulation based on your goals.",
+    title: "Pilih Mode",
+    desc: "Mau latihan presentasi atau wawancara? Pilih aja sesuai kebutuhan kamu.",
     color: "#0388ff",
     imgSrc: "/step1.png",
   },
   {
     num: "2",
-    title: "Set Up Your Session",
-    desc: "Calibrate your camera, choose scenario intensity and difficulty.",
+    title: "Atur Sesi",
+    desc: "Setting kamera, tentuin seberapa intens dan susah skenarionya.",
     color: "#fabf24",
     imgSrc: "/step2.png",
   },
   {
     num: "3",
-    title: "Start the Simulation",
-    desc: "Speak, make mistakes, handle distractions in real-time.",
+    title: "Mulai Simulasi",
+    desc: "Ngobrol, bikin kesalahan sampe ngulang-ngulang, hadapi gangguan — semua terjadi langsung.",
     color: "#0388ff",
     imgSrc: "/step3.png",
   },
   {
     num: "4",
-    title: "Review & Improve",
-    desc: "Get AI feedback and actionable tips to level up your skills.",
+    title: "Evaluasi & Asah Lagi",
+    desc: "Terima feedback dari AI dan tips yang bisa langsung kamu praktekkin.",
     color: "#fabf24",
     imgSrc: "/step1.png",
   },
@@ -631,27 +595,24 @@ function HowItWorksSection() {
       id="how-it-works"
     >
       <div className="sectionLabelBlue inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#0388ff] uppercase mb-3">
-        HOW IT WORKS
+        CARA KERJA
       </div>
       <h2 className="sectionTitle text-[clamp(1.6rem,3vw,2.4rem)] font-extrabold text-[#0f1d35] leading-snug mb-4 text-center">
-        Simple steps to become
-        <br />a better communicator
+        Langkah gampang biar makin
+        <br />jago ngomong
       </h2>
 
-      <div className="stepsGrid max-w-[1100px] mt-13 mx-auto mb-0 grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7 relative">
-        {/* Connecting dashed line for process flow on desktop */}
-        <div className="hidden lg:block absolute top-[166px] left-[12%] right-[12%] h-0.5 border-t-2 border-dashed border-slate-200/80 pointer-events-none z-0" />
-
+      <div className="stepsGrid max-w-[1100px] mt-13 mx-auto mb-0 grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7">
         {steps.map((s, i) => (
           <div
             key={i}
-            className="stepCard bg-white rounded-[18px] pt-0 px-0 pb-7 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)] overflow-hidden relative transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(3,136,255,0.12)] z-10"
+            className="stepCard bg-white rounded-[18px] pt-0 px-0 pb-7 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)] overflow-hidden"
           >
-            <div className="stepImgContainer w-full h-[130px] overflow-hidden bg-slate-50 relative group">
+            <div className="stepImgContainer w-full h-[130px] overflow-hidden bg-slate-50">
               <img
                 src={s.imgSrc}
-                alt={`Step ${s.num}: ${s.title}`}
-                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                alt={`Langkah ${s.num}: ${s.title}`}
+                className="w-full h-full object-cover"
               />
             </div>
             <div
@@ -677,32 +638,32 @@ function HowItWorksSection() {
 // ── FAQ Section ──────────────────────────────────────────────────────────────
 const faqItems = [
   {
-    q: "What exactly is Pitcho?",
-    a: "Pitcho is an AI-powered communication coach that simulates real-world speaking scenarios — like presentations and interviews — with realistic distractions such as audience noise, phone interruptions, and unexpected events. After each session, you get detailed feedback on your delivery, tone, fluency, and more.",
+    q: "Apa sih Pitcho itu?",
+    a: "Pitcho itu semacam pelatih ngomong pribadi yang pakai AI. Kamu bakal simulasi ngomong di depan audiens — bisa presentasi, bisa wawancara — lengkap sama gangguannya: suara bising, notifikasi HP, kejadian nggak terduga. Abis sesi, kamu langsung dikasih tahu apa yang udah oke dan apa yang masih perlu diasah.",
   },
   {
-    q: "How does the AI feedback work?",
-    a: "Our AI analyzes your speech in real time, evaluating factors like pace, filler words, tone variation, eye contact (via your camera), and how well you handle distractions. After the session, you receive a breakdown with actionable tips so you know exactly what to improve.",
+    q: "Gimana AI-nya ngasih feedback?",
+    a: "AI kami ngecek ucapanmu langsung pas kamu lagi ngomong. Yang dicek: kecepatan ngomong, kata-kata filler (kayak 'anu', 'eee'), naik-turun nada, kontak mata lewat kamera, sampai gimana kamu ngadepin gangguan. Begitu kelar, kamu dapet laporan lengkap plus tips yang tinggal dipraktikkin.",
   },
   {
-    q: "Do I need any special equipment?",
-    a: "Just a device with a camera and microphone — a laptop, tablet, or even your phone works. We recommend using headphones for the best experience, but they're not required.",
+    q: "Perlu alat khusus nggak?",
+    a: "Nggak perlu yang aneh-aneh. Cukup laptop atau HP yang ada kamera sama mik-nya. Kalo pakai headphone sih lebih enak, tapi ya nggak wajib juga.",
   },
   {
-    q: "Is Pitcho free to use?",
-    a: "Yes! You can start with a free practice session right away — no credit card required. We also offer premium plans with more scenarios, advanced analytics, and unlimited practice time for those who want to go deeper.",
+    q: "Gratis atau bayar?",
+    a: "Langsung coba aja dulu, gratis kok. Nggak perlu masukin kartu kredit atau yang ribet-ribet. Nanti kalo udah cocok dan pengen akses lebih banyak, ada paket premium dengan skenario tambahan, analitik lebih detail, dan latihan sepuasnya.",
   },
   {
-    q: "Can Pitcho help with interview preparation?",
-    a: "Absolutely. Pitcho has a dedicated Interview mode that simulates common interview questions, follow-ups, and pressure scenarios. You'll practice thinking on your feet and delivering confident answers under realistic conditions.",
+    q: "Bisa buat latihan wawancara kerja?",
+    a: "Bisa banget. Ada mode Wawancara khusus yang nyimulasikan pertanyaan-pertanyaan umum, follow-up, dan situasi yang bikin deg-degan. Kamu bakal dilatih mikir cepat dan jawab dengan pede di kondisi yang semirip mungkin sama aslinya.",
   },
   {
-    q: "Is my data private and secure?",
-    a: "We take privacy seriously. Your video and audio are processed locally on your device whenever possible, and we never share your practice sessions with third parties. You can delete your data at any time.",
+    q: "Data aku aman nggak?",
+    a: "Tenang, aman. Sebisa mungkin video dan suaramu diproses langsung di perangkatmu sendiri, nggak diunggah ke mana-mana. Kami nggak pernah ngeshare sesi latihanmu ke siapa pun. Kalo kamu mau hapus semua data, tinggal hapus aja kapan aja.",
   },
   {
-    q: "How is Pitcho different from just practicing in front of a mirror?",
-    a: "A mirror can't interrupt you mid-sentence, analyze your tone and pace, or give you personalized feedback. Pitcho creates the unpredictable, high-pressure environment of real communication — and then tells you exactly how to get better.",
+    q: "Bedanya sama latihan depan kaca?",
+    a: "Cermin nggak bakal motong kamu pas lagi ngomong, nggak bisa nilai nada dan kecepatanmu, apalagi ngasih masukan yang jelas. Pitcho bikin suasana yang nggak tertebak dan penuh tekanan — mirip kayak komunikasi beneran — terus ngasih tahu kamu mesti improve di bagian mana.",
   },
 ];
 
@@ -720,10 +681,10 @@ function FAQSection() {
           FAQ
         </div>
         <h2 className="sectionTitle text-[clamp(1.6rem,3vw,2.4rem)] font-extrabold text-[#0f1d35] leading-snug mb-3">
-          Questions you might have
+          Yang sering ditanyain
         </h2>
         <p className="faqSubtitle text-[0.95rem] text-[#5a7090] leading-[1.7] mb-10">
-          Everything you need to know before you start your first practice session.
+          Hal-hal yang biasanya muncul sebelum mulai latihan pertama.
         </p>
 
         <div className="faqList flex flex-col gap-3">
@@ -732,7 +693,7 @@ function FAQSection() {
             return (
               <div
                 key={i}
-                className="faqItem bg-[#f7f9ff] rounded-[14px] border-[1.5px] border-transparent transition-[border-color,box-shadow] duration-200 hover:border-[#0388ff15] hover:shadow-[0_4px_18px_rgba(3,136,255,0.06)]"
+                className="faqItem bg-[#f7f9ff] rounded-[14px] border-[1.5px] border-transparent"
               >
                 <button
                   onClick={() => toggle(i)}
@@ -750,7 +711,7 @@ function FAQSection() {
                 </button>
                 <div
                   className={`faqAnswer overflow-hidden transition-all duration-300 ease-in-out ${
-                    isOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
+                    isOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
                   }`}
                 >
                   <p className="faqAnswerText text-[0.88rem] text-[#6880a0] leading-[1.7] px-6 pb-5 -mt-0.5">
@@ -766,53 +727,11 @@ function FAQSection() {
   );
 }
 
-// ── CTA Banner ──────────────────────────────────────────────────────────────
-function CTABanner() {
-  return (
-    <section className="ctaBanner bg-gradient-to-br from-[#0f1d35] to-[#1a3260] py-18 px-6">
-      <div className="ctaContent max-w-[1000px] mx-auto flex flex-col md:flex-row items-center text-center md:text-left gap-9 md:gap-14">
-        <div className="ctaText flex-1">
-          <h2 className="ctaTitle text-[clamp(1.8rem,4vw,2.8rem)] font-black text-white leading-tight tracking-[-0.02em]">
-            Ready to{" "}
-            <span className="ctaAccent text-[#fabf24] italic">boost</span> your
-            <br />
-            speaking skills?
-          </h2>
-          <p className="ctaDesc text-[0.95rem] text-white/70 leading-[1.7] mt-3.5 max-w-full md:max-w-[440px] mx-auto md:mx-0">
-            Start your free practice today and see for yourself how
-            reward-confident communication begins here.
-          </p>
-          <a
-            href="#"
-            className="btnCta inline-flex items-center gap-2 bg-[#fabf24] text-[#0f1d35] font-extrabold text-[1.05rem] py-4 px-9 rounded-xl no-underline transition-[background,transform,box-shadow] duration-200 shadow-[0_4px_20px_rgba(250,191,36,0.35)] mt-6 mb-3 hover:bg-[#f5b000] hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(250,191,36,0.45)]"
-          >
-            Join Free Practice
-          </a>
-          <p className="ctaNote text-[0.8rem] text-white/45 mt-1">
-            No credit card required · Cancel anytime
-          </p>
-        </div>
-        <div className="ctaIllustration shrink-0 relative">
-          <DummyImg
-            width="200px"
-            height="200px"
-            label="CTA Illustration — Confident speaker thumbs up"
-            className="ctaImg rounded-[20px]! border-white/15!"
-          />
-          <div className="ctaSpeechBubble absolute top-[-16px] right-[-16px] bg-[#fabf24] text-[#0f1d35] font-extrabold text-[0.82rem] py-2 px-3.5 rounded-[12px_12px_12px_0] whitespace-nowrap shadow-[0_4px_14px_rgba(250,191,36,0.35)]">
-            You've got this! 🎉
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ── Footer ──────────────────────────────────────────────────────────────────
 const footerLinks = {
-  Product: ["Presentation Mode", "Interview Mode", "AI Feedback", "Progress Tracking"],
-  Resources: ["Help Center", "Video Tutorials", "Speaking Tips", "Community"],
-  Company: ["About", "Blog", "Careers", "Contact"],
+  Produk: ["Mode Presentasi", "Mode Wawancara", "Feedback AI", "Pantau Kemajuan"],
+  Bantuan: ["Pusat Bantuan", "Video Tutorial", "Tips Public Speaking", "Komunitas"],
+  Perusahaan: ["Tentang Kami", "Blog", "Karir", "Hubungi Kami"],
 };
 
 function Footer() {
@@ -831,27 +750,27 @@ function Footer() {
             />
           </a>
           <p className="footerTagline text-[0.85rem] text-white/50 leading-[1.6] mt-3 mx-0 mb-5 max-w-[240px]">
-            Practice speaking. Face distractions. Grow with feedback.
+            Latihan ngomong. Lawan gangguan. Makin jago lewat feedback.
           </p>
           <div className="socialLinks flex gap-3">
             <a
               href="#"
               aria-label="Twitter"
-              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 transition-[background,color] duration-200 no-underline hover:bg-[#0388ff] hover:text-white"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
             >
               <IconTwitter />
             </a>
             <a
               href="#"
               aria-label="Instagram"
-              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 transition-[background,color] duration-200 no-underline hover:bg-[#0388ff] hover:text-white"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
             >
               <IconInstagram />
             </a>
             <a
               href="#"
               aria-label="LinkedIn"
-              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 transition-[background,color] duration-200 no-underline hover:bg-[#0388ff] hover:text-white"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
             >
               <IconLinkedin />
             </a>
@@ -868,7 +787,7 @@ function Footer() {
                 <li key={l}>
                   <a
                     href="#"
-                    className="text-sm text-white/65 no-underline transition-colors duration-150 hover:text-white"
+                    className="text-sm text-white/65 no-underline"
                   >
                     {l}
                   </a>
@@ -879,19 +798,19 @@ function Footer() {
         ))}
       </div>
       <div className="footerBottom max-w-[1100px] mt-6 mx-auto mb-0 flex flex-col md:flex-row items-center justify-between flex-wrap gap-3 text-[0.8rem] text-white/35 text-center">
-        <span>© 2024 Pitcho. All rights reserved.</span>
+        <span>© 2026 Pitcho. Hak cipta dilindungi.</span>
         <div className="footerBottomLinks flex gap-6">
           <a
             href="#"
-            className="text-white/35 no-underline transition-colors duration-150 hover:text-white/70"
+            className="text-white/35 no-underline"
           >
-            Privacy Policy
+            Kebijakan Privasi
           </a>
           <a
             href="#"
-            className="text-white/35 no-underline transition-colors duration-150 hover:text-white/70"
+            className="text-white/35 no-underline"
           >
-            Terms of Service
+            Syarat & Ketentuan
           </a>
         </div>
       </div>
@@ -910,7 +829,6 @@ export default function LandingPage() {
         <FeaturesSection />
         <HowItWorksSection />
         <FAQSection />
-        <CTABanner />
       </main>
       <Footer />
     </div>
