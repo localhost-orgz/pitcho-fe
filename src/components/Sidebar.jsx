@@ -49,17 +49,16 @@ const SidebarItem = ({ label, href, icon: Icon, active }) => {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [practiceOpen, setPracticeOpen] = useState(false);
+  const isPracticeActive = pathname.startsWith("/interview") || pathname.startsWith("/presentation");
+  const [practiceOpen, setPracticeOpen] = useState(isPracticeActive);
+  const [prevPathname, setPrevPathname] = useState(pathname);
 
-  // Auto-open Practice dropdown if we are currently inside interview or presentation routes
-  useEffect(() => {
-    if (
-      pathname.startsWith("/interview") ||
-      pathname.startsWith("/presentation")
-    ) {
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (isPracticeActive) {
       setPracticeOpen(true);
     }
-  }, [pathname]);
+  }
 
   // Match active state for Pitcho routing mapping
   const getActiveState = (href) => {
@@ -74,8 +73,7 @@ export default function Sidebar() {
     return pathname === href || pathname.startsWith(href);
   };
 
-  const isPracticeActive =
-    pathname.startsWith("/interview") || pathname.startsWith("/presentation");
+
 
   return (
     <div className="hidden md:flex flex-col justify-between w-20 lg:w-64 h-screen fixed left-0 top-0 p-4 border-r border-slate-100 bg-white text-slate-800 z-10 select-none">
@@ -181,21 +179,23 @@ export default function Sidebar() {
             active={getActiveState("/progress")}
           />
 
-          {/* Challenges Link */}
+          {/* Challenges Link (hidden)
           <SidebarItem
             label="Challenges"
             href="/challenges"
             icon={Trophy}
             active={getActiveState("/challenges")}
           />
+          */}
 
-          {/* Resources Link */}
+          {/* Resources Link (hidden)
           <SidebarItem
             label="Resources"
             href="/resources"
             icon={FileText}
             active={getActiveState("/resources")}
           />
+          */}
         </div>
       </div>
 
@@ -205,13 +205,13 @@ export default function Sidebar() {
         <div className="flex flex-col gap-y-2 lg:px-2">
           <div className="flex items-center gap-x-3 justify-center lg:justify-start">
             <img
-              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150"
-              alt="Aulia Rahman"
+              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+              alt="Faza Mumtaz"
               className="size-10 rounded-full border border-slate-100 object-cover"
             />
             <div className="hidden lg:flex flex-col select-text">
               <span className="text-sm font-extrabold text-slate-850 leading-tight">
-                Aulia Rahman
+                Faza Mumtaz
               </span>
               <span className="text-xs font-bold text-slate-400">Level 12</span>
             </div>

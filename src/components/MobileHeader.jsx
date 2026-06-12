@@ -27,21 +27,21 @@ const navItems = [
     icon: Mic,
     isDropdown: true,
   },
-  {
+  /* {
     label: "Challenges",
     href: "/challenges",
     icon: Trophy,
-  },
+  }, */
   {
     label: "Progress",
     href: "/progress",
     icon: Target,
   },
-  {
+  /* {
     label: "Resources",
     href: "/resources",
     icon: FileText,
-  },
+  }, */
 ];
 
 // Using /logo-text-transparent.svg directly in render
