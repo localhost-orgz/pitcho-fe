@@ -359,8 +359,12 @@ function useSessionData() {
 // ── Format seconds as mm:ss ────────────────────────────────
 function formatTime(secs) {
   if (secs == null || isNaN(secs)) return "00:00";
-  const m = Math.floor(secs / 60).toString().padStart(2, "0");
-  const s = Math.floor(secs % 60).toString().padStart(2, "0");
+  const m = Math.floor(secs / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = Math.floor(secs % 60)
+    .toString()
+    .padStart(2, "0");
   return `${m}:${s}`;
 }
 
@@ -583,32 +587,48 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
         video.currentTime = clipStart;
         setCurrentTime(0);
       }
-      video.play().then(() => setPlaying(true)).catch(() => {});
+      video
+        .play()
+        .then(() => setPlaying(true))
+        .catch(() => {});
     } else {
       video.pause();
       setPlaying(false);
     }
   }, [clip, clipStart, clipEnd]);
 
-  const handleSeek = useCallback((e) => {
-    const video = videoRef.current;
-    const bar = progressRef.current;
-    if (!video || !bar || !clip) return;
-    const rect = bar.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const seekTime = clipStart + pct * clipDuration;
-    video.currentTime = Math.min(seekTime, clipEnd - 0.1);
-    setCurrentTime(pct * clipDuration);
-  }, [clip, clipStart, clipDuration, clipEnd]);
+  const handleSeek = useCallback(
+    (e) => {
+      const video = videoRef.current;
+      const bar = progressRef.current;
+      if (!video || !bar || !clip) return;
+      const rect = bar.getBoundingClientRect();
+      const pct = Math.max(
+        0,
+        Math.min(1, (e.clientX - rect.left) / rect.width),
+      );
+      const seekTime = clipStart + pct * clipDuration;
+      video.currentTime = Math.min(seekTime, clipEnd - 0.1);
+      setCurrentTime(pct * clipDuration);
+    },
+    [clip, clipStart, clipDuration, clipEnd],
+  );
 
-  const handleProgressMouseDown = useCallback((e) => {
-    setSeeking(true);
-    handleSeek(e);
-    const onMove = (ev) => handleSeek(ev);
-    const onUp = () => { setSeeking(false); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }, [handleSeek]);
+  const handleProgressMouseDown = useCallback(
+    (e) => {
+      setSeeking(true);
+      handleSeek(e);
+      const onMove = (ev) => handleSeek(ev);
+      const onUp = () => {
+        setSeeking(false);
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [handleSeek],
+  );
 
   const toggleMute = () => {
     const video = videoRef.current;
@@ -672,7 +692,10 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
       {!playing && (
         <div
           className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer"
-          onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            togglePlay();
+          }}
         >
           <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center hover:bg-white/30 transition-colors">
             <Play size={22} className="text-white ml-1" />
@@ -702,7 +725,10 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
         {/* Controls row */}
         <div className="flex items-center gap-3 text-white">
           {/* Play/Pause */}
-          <button onClick={togglePlay} className="hover:text-white/70 transition-colors">
+          <button
+            onClick={togglePlay}
+            className="hover:text-white/70 transition-colors"
+          >
             {playing ? <Pause size={15} /> : <Play size={15} />}
           </button>
 
@@ -715,8 +741,15 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
 
           {/* Volume */}
           <div className="flex items-center gap-1.5">
-            <button onClick={toggleMute} className="hover:text-white/70 transition-colors">
-              {muted || volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            <button
+              onClick={toggleMute}
+              className="hover:text-white/70 transition-colors"
+            >
+              {muted || volume === 0 ? (
+                <VolumeX size={14} />
+              ) : (
+                <Volume2 size={14} />
+              )}
             </button>
             <input
               type="range"
@@ -730,7 +763,10 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
           </div>
 
           {/* Fullscreen */}
-          <button onClick={toggleFullscreen} className="hover:text-white/70 transition-colors">
+          <button
+            onClick={toggleFullscreen}
+            className="hover:text-white/70 transition-colors"
+          >
             <Maximize size={14} />
           </button>
         </div>
@@ -753,7 +789,11 @@ function ClipCard({ clip, isActive, onClick, thumbnailUrl }) {
       {/* Thumbnail placeholder */}
       <div className="w-16 aspect-video shrink-0 rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center">
         {thumbnailUrl ? (
-          <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="w-full h-full object-cover"
+          />
         ) : (
           <Film size={14} className="text-slate-400" />
         )}
@@ -765,13 +805,15 @@ function ClipCard({ clip, isActive, onClick, thumbnailUrl }) {
           <span className="text-[10px] font-mono font-black text-slate-400">
             {formatTime(clip.timestamp)}
           </span>
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-            clip.type.includes("Eye") || clip.type.includes("Head")
-              ? "bg-blue-50 text-blue-600"
-              : clip.type.includes("Face out")
-                ? "bg-red-50 text-red-600"
-                : "bg-orange-50 text-orange-600"
-          }`}>
+          <span
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+              clip.type.includes("Eye") || clip.type.includes("Head")
+                ? "bg-blue-50 text-blue-600"
+                : clip.type.includes("Face out")
+                  ? "bg-red-50 text-red-600"
+                  : "bg-orange-50 text-orange-600"
+            }`}
+          >
             {clip.type}
           </span>
         </div>
@@ -785,9 +827,14 @@ function ClipCard({ clip, isActive, onClick, thumbnailUrl }) {
       {/* Play button */}
       <button
         className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-          isActive ? "bg-main text-white" : "bg-slate-100 text-slate-400 hover:bg-main/10"
+          isActive
+            ? "bg-main text-white"
+            : "bg-slate-100 text-slate-400 hover:bg-main/10"
         }`}
-        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
       >
         <Play size={9} className="ml-0.5" />
       </button>
@@ -927,9 +974,7 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
           <div className="absolute inset-0 flex items-end justify-around pb-1">
             {segments.map((seg, i) => {
               const barHeight =
-                maxWpm > 0
-                  ? (seg.wpm / maxWpm) * (chartHeight - 20)
-                  : 0;
+                maxWpm > 0 ? (seg.wpm / maxWpm) * (chartHeight - 20) : 0;
               const isSelected = selectedSegment === i;
               const segDuration = sessionDuration / 5;
               const startTime = i * segDuration;
@@ -979,12 +1024,10 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
 
                   {/* Clickable bar */}
                   <button
-                    onClick={() =>
-                      setSelectedSegment(isSelected ? null : i)
-                    }
-                    className={`w-8 xs:w-10 md:w-14 rounded-t-md transition-all duration-500 cursor-pointer relative focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-600 ${
-                      getBarColor(seg.wpm)
-                    } ${
+                    onClick={() => setSelectedSegment(isSelected ? null : i)}
+                    className={`w-8 xs:w-10 md:w-14 rounded-t-md transition-all duration-500 cursor-pointer relative focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-600 ${getBarColor(
+                      seg.wpm,
+                    )} ${
                       isSelected
                         ? "ring-2 ring-offset-2 ring-slate-600 scale-110"
                         : "hover:brightness-110"
@@ -1061,7 +1104,9 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
               >
                 {getStatusLabel(segments[selectedSegment].wpm)}
               </span>
-              <span className="text-[9px] font-bold text-slate-400">Status</span>
+              <span className="text-[9px] font-bold text-slate-400">
+                Status
+              </span>
             </div>
           </div>
         </div>
@@ -1074,16 +1119,16 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
           Slow (&lt;100)
         </span>
         <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-          <span className="w-2 h-2 rounded-sm bg-green-500 inline-block" /> Ideal
-          (100–130)
+          <span className="w-2 h-2 rounded-sm bg-green-500 inline-block" />{" "}
+          Ideal (100–130)
         </span>
         <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
           <span className="w-2 h-2 rounded-sm bg-orange-400 inline-block" />{" "}
           Slightly Fast (130–150)
         </span>
         <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-          <span className="w-2 h-2 rounded-sm bg-red-500 inline-block" /> Too Fast
-          (&gt;150)
+          <span className="w-2 h-2 rounded-sm bg-red-500 inline-block" /> Too
+          Fast (&gt;150)
         </span>
       </div>
     </div>
@@ -1092,7 +1137,8 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
 
 // ── Main Page ───────────────────────────────────────────────
 export default function PresentationResultPage() {
-  const { sessionData, videoBlob, videoUrl, clips, loading, analysisData } = useSessionData();
+  const { sessionData, videoBlob, videoUrl, clips, loading, analysisData } =
+    useSessionData();
   const [activeClipIndex, setActiveClipIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState("eye"); // 'eye' | 'tempo' | 'filler' | 'wordiness'
 
@@ -1104,23 +1150,52 @@ export default function PresentationResultPage() {
 
   // ── Score templates by interval ──────────────────────────
   const SCORE_TEMPLATES = [
-    { min: 90, title: "Outstanding! 🏆", message: "You delivered with confidence, clarity, and excellent pacing — a top-tier performance." },
-    { min: 80, title: "Great job! 🎉", message: "Strong delivery overall. A few small refinements will take you to the next level." },
-    { min: 70, title: "Good effort! 👍", message: "Solid foundation — sharpen a couple of areas and you'll shine even brighter." },
-    { min: 50, title: "Keep it up! 💪", message: "A promising session. With more practice, your delivery will feel smoother and more natural." },
-    { min:  0, title: "Just getting started! 📣", message: "Every great speaker starts somewhere. Keep practicing — you're building real skills." },
+    {
+      min: 90,
+      title: "Outstanding! 🏆",
+      message:
+        "You delivered with confidence, clarity, and excellent pacing — a top-tier performance.",
+    },
+    {
+      min: 80,
+      title: "Great job! 🎉",
+      message:
+        "Strong delivery overall. A few small refinements will take you to the next level.",
+    },
+    {
+      min: 70,
+      title: "Good effort! 👍",
+      message:
+        "Solid foundation — sharpen a couple of areas and you'll shine even brighter.",
+    },
+    {
+      min: 50,
+      title: "Keep it up! 💪",
+      message:
+        "A promising session. With more practice, your delivery will feel smoother and more natural.",
+    },
+    {
+      min: 0,
+      title: "Just getting started! 📣",
+      message:
+        "Every great speaker starts somewhere. Keep practicing — you're building real skills.",
+    },
   ];
 
   // Overall score — calculated from all available session + analysis data
   const scoreResult = calculateSessionScore(sessionData, analysisData);
   const overallScore = scoreResult.overallScore;
 
-  const activeTemplate = SCORE_TEMPLATES.find((t) => overallScore >= t.min) || SCORE_TEMPLATES[SCORE_TEMPLATES.length - 1];
+  const activeTemplate =
+    SCORE_TEMPLATES.find((t) => overallScore >= t.min) ||
+    SCORE_TEMPLATES[SCORE_TEMPLATES.length - 1];
   const scoreLabel = activeTemplate.title;
   const scoreMessage = activeTemplate.message;
 
   // Build dynamic metrics based on session data
-  const hasSession = sessionData && (clips.length > 0 || sessionData.speechSegments?.length === 5);
+  const hasSession =
+    sessionData &&
+    (clips.length > 0 || sessionData.speechSegments?.length === 5);
   const eyeMetric = hasSession
     ? {
         id: "eye",
@@ -1128,15 +1203,25 @@ export default function PresentationResultPage() {
         label: "Eye Contact",
         value: `${sessionData.lookAwayCount} distractions`,
         subValue:
-          sessionData.lookAwayCount === 0 ? "Excellent" :
-          sessionData.lookAwayCount <= 2 ? "Good" :
-          sessionData.lookAwayCount <= 5 ? "Fair" :
-          sessionData.lookAwayCount <= 9 ? "Poor" : "Very Poor",
+          sessionData.lookAwayCount === 0
+            ? "Excellent"
+            : sessionData.lookAwayCount <= 2
+              ? "Good"
+              : sessionData.lookAwayCount <= 5
+                ? "Fair"
+                : sessionData.lookAwayCount <= 9
+                  ? "Poor"
+                  : "Very Poor",
         subColor:
-          sessionData.lookAwayCount === 0 ? "text-green-500" :
-          sessionData.lookAwayCount <= 2 ? "text-green-500" :
-          sessionData.lookAwayCount <= 5 ? "text-amber-500" :
-          sessionData.lookAwayCount <= 9 ? "text-orange-500" : "text-red-500",
+          sessionData.lookAwayCount === 0
+            ? "text-green-500"
+            : sessionData.lookAwayCount <= 2
+              ? "text-green-500"
+              : sessionData.lookAwayCount <= 5
+                ? "text-amber-500"
+                : sessionData.lookAwayCount <= 9
+                  ? "text-orange-500"
+                  : "text-red-500",
         iconBg: "bg-blue-50",
         iconColor: "text-blue-500",
         barColor: "bg-blue-500",
@@ -1189,17 +1274,11 @@ export default function PresentationResultPage() {
               : sessionData.averageWpm >= 100
                 ? "bg-green-500"
                 : "bg-blue-500",
-        barPct: Math.min(
-          100,
-          Math.round((sessionData.averageWpm / 150) * 70)
-        ),
+        barPct: Math.min(100, Math.round((sessionData.averageWpm / 150) * 70)),
         range: "100 – 150 wpm",
         avgPct: 64,
         avgValue: "117 wpm",
-        userPct: Math.min(
-          100,
-          Math.round((sessionData.averageWpm / 150) * 70)
-        ),
+        userPct: Math.min(100, Math.round((sessionData.averageWpm / 150) * 70)),
         extra: sessionData.totalWordCount
           ? `${sessionData.totalWordCount} words total`
           : null,
@@ -1207,30 +1286,31 @@ export default function PresentationResultPage() {
     : METRICS[2];
 
   // Build dynamic filler metric from analysis data
-  const fillerMetric = hasAnalysis && fillerWordsData
-    ? {
-        ...METRICS[1],
-        value: `${fillerWordsData.total_filler_count} filler word${fillerWordsData.total_filler_count !== 1 ? "s" : ""}`,
-        subValue:
-          fillerWordsData.total_filler_count === 0
-            ? "Excellent"
-            : fillerWordsData.total_filler_count <= 2
-              ? "Good"
-              : fillerWordsData.total_filler_count <= 5
-                ? "Needs Work"
-                : "Poor",
-        subColor:
-          fillerWordsData.total_filler_count === 0
-            ? "text-green-500"
-            : fillerWordsData.total_filler_count <= 2
+  const fillerMetric =
+    hasAnalysis && fillerWordsData
+      ? {
+          ...METRICS[1],
+          value: `${fillerWordsData.total_filler_count} filler word${fillerWordsData.total_filler_count !== 1 ? "s" : ""}`,
+          subValue:
+            fillerWordsData.total_filler_count === 0
+              ? "Excellent"
+              : fillerWordsData.total_filler_count <= 2
+                ? "Good"
+                : fillerWordsData.total_filler_count <= 5
+                  ? "Needs Work"
+                  : "Poor",
+          subColor:
+            fillerWordsData.total_filler_count === 0
               ? "text-green-500"
-              : fillerWordsData.total_filler_count <= 5
-                ? "text-orange-500"
-                : "text-red-500",
-        barPct: Math.max(5, 100 - fillerWordsData.total_filler_count * 15),
-        userPct: Math.max(5, 100 - fillerWordsData.total_filler_count * 15),
-      }
-    : METRICS[1];
+              : fillerWordsData.total_filler_count <= 2
+                ? "text-green-500"
+                : fillerWordsData.total_filler_count <= 5
+                  ? "text-orange-500"
+                  : "text-red-500",
+          barPct: Math.max(5, 100 - fillerWordsData.total_filler_count * 15),
+          userPct: Math.max(5, 100 - fillerWordsData.total_filler_count * 15),
+        }
+      : METRICS[1];
 
   const dynamicMetrics = [eyeMetric, fillerMetric, paceMetric];
 
@@ -1316,25 +1396,39 @@ export default function PresentationResultPage() {
   }
 
   // Items to render per tab (dynamic or static fallback)
-  var fillerEvents = (hasAnalysis && dynamicFillerEvents) ? dynamicFillerEvents : FILLER_EVENTS;
+  var fillerEvents =
+    hasAnalysis && dynamicFillerEvents ? dynamicFillerEvents : FILLER_EVENTS;
   var fillerHasData = hasAnalysis;
-  var fillerIsEmpty = hasAnalysis && dynamicFillerEvents && dynamicFillerEvents.length === 0;
-  var wordinessItems = (hasAnalysis && dynamicWordinessItems) ? dynamicWordinessItems : WORDINESS_ITEMS;
+  var fillerIsEmpty =
+    hasAnalysis && dynamicFillerEvents && dynamicFillerEvents.length === 0;
+  var wordinessItems =
+    hasAnalysis && dynamicWordinessItems
+      ? dynamicWordinessItems
+      : WORDINESS_ITEMS;
   var wordinessHasData = hasAnalysis;
-  var wordinessIsEmpty = hasAnalysis && dynamicWordinessItems && dynamicWordinessItems.length === 0;
+  var wordinessIsEmpty =
+    hasAnalysis && dynamicWordinessItems && dynamicWordinessItems.length === 0;
 
   return (
     <div className="w-full min-h-screen">
       {/* ── Page header ──────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Post-Session Analysis</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            Post-Session Analysis
+          </h1>
           <p className="text-xs sm:text-sm text-slate-400 font-semibold mt-1 flex items-center gap-2 flex-wrap">
             <span>Presentation Practice</span>
             {hasSession && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
-                <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                <span>
+                  {new Date().toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
                 <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
                 <span>{formatTime(sessionData.sessionDuration)}</span>
               </>
@@ -1350,20 +1444,6 @@ export default function PresentationResultPage() {
               </>
             )}
           </p>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-3 shrink-0 flex-wrap">
-          <Button className="text-xs sm:text-sm">
-            <Download size={15} />
-            <span className="hidden sm:inline">Download Report</span>
-            <span className="sm:hidden">Download</span>
-          </Button>
-          <Button variant={"primary"} className="text-xs sm:text-sm">
-            <RotateCcw size={15} />
-            <span className="hidden sm:inline">Practice Again</span>
-            <span className="sm:hidden">Retry</span>
-          </Button>
         </div>
       </div>
 
@@ -1396,15 +1476,27 @@ export default function PresentationResultPage() {
       {/* ── Improvement Suggestions (from speech analysis) ────── */}
       {hasAnalysis && suggestions && suggestions.length > 0 && (
         <div className="mb-6 bg-white rounded-2xl border-bold p-5">
-          <h3 className="font-black text-slate-800 text-sm mb-3">Improvement Suggestions</h3>
+          <h3 className="font-black text-slate-800 text-sm mb-3">
+            Improvement Suggestions
+          </h3>
           <div className="flex flex-col gap-3">
             {suggestions.map(function (s, i) {
               return (
-                <div key={i} className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                  <Lightbulb size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                <div
+                  key={i}
+                  className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl"
+                >
+                  <Lightbulb
+                    size={16}
+                    className="text-amber-500 shrink-0 mt-0.5"
+                  />
                   <div>
-                    <span className="text-xs font-bold text-slate-700">{s.focus_area}</span>
-                    <p className="text-xs text-slate-500 mt-1">{s.concrete_action}</p>
+                    <span className="text-xs font-bold text-slate-700">
+                      {s.focus_area}
+                    </span>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {s.concrete_action}
+                    </p>
                   </div>
                 </div>
               );
@@ -1478,15 +1570,21 @@ export default function PresentationResultPage() {
               <div className="rounded-xl bg-slate-100 aspect-video flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3 text-slate-400">
                   <div className="w-8 h-8 border-2 border-slate-300 border-t-main rounded-full animate-spin" />
-                  <span className="text-xs font-bold">Loading session video...</span>
+                  <span className="text-xs font-bold">
+                    Loading session video...
+                  </span>
                 </div>
               </div>
             ) : !hasSession ? (
               <div className="rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 aspect-video flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3 text-slate-400">
                   <Film size={40} />
-                  <span className="text-xs font-bold">No session recording available</span>
-                  <span className="text-[10px] text-slate-300">Complete a presentation session to see your replay</span>
+                  <span className="text-xs font-bold">
+                    No session recording available
+                  </span>
+                  <span className="text-[10px] text-slate-300">
+                    Complete a presentation session to see your replay
+                  </span>
                 </div>
               </div>
             ) : (
@@ -1550,8 +1648,12 @@ export default function PresentationResultPage() {
               {!hasSession ? (
                 <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
                   <Film size={28} />
-                  <span className="text-xs font-medium text-center">No highlights to show</span>
-                  <span className="text-[10px] text-slate-300 text-center">Distraction events from your session will appear here</span>
+                  <span className="text-xs font-medium text-center">
+                    No highlights to show
+                  </span>
+                  <span className="text-[10px] text-slate-300 text-center">
+                    Distraction events from your session will appear here
+                  </span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5 max-h-[320px] lg:max-h-[480px] overflow-y-auto">
@@ -1571,19 +1673,31 @@ export default function PresentationResultPage() {
             {/* Summary stats */}
             {hasSession && (
               <div className="bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-3">
-                <h3 className="font-black text-slate-800 text-xs sm:text-sm">Session Summary</h3>
+                <h3 className="font-black text-slate-800 text-xs sm:text-sm">
+                  Session Summary
+                </h3>
                 <div className="flex flex-col gap-2 text-[11px] sm:text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Duration</span>
-                    <span className="font-bold text-slate-700">{formatTime(sessionData.sessionDuration)}</span>
+                    <span className="font-bold text-slate-700">
+                      {formatTime(sessionData.sessionDuration)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Distractions</span>
-                    <span className="font-bold text-slate-700">{sessionData.lookAwayCount}</span>
+                    <span className="text-slate-500 font-medium">
+                      Distractions
+                    </span>
+                    <span className="font-bold text-slate-700">
+                      {sessionData.lookAwayCount}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Total Distracted</span>
-                    <span className="font-bold text-slate-700">{formatDuration(sessionData.totalDistractedTime)}</span>
+                    <span className="text-slate-500 font-medium">
+                      Total Distracted
+                    </span>
+                    <span className="font-bold text-slate-700">
+                      {formatDuration(sessionData.totalDistractedTime)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1610,9 +1724,10 @@ export default function PresentationResultPage() {
             <PaceChart
               segments={paceSegments}
               averageWpm={hasSpeechData ? sessionData.averageWpm : null}
-              sessionDuration={hasSpeechData ? sessionData.sessionDuration : 765}
+              sessionDuration={
+                hasSpeechData ? sessionData.sessionDuration : 765
+              }
             />
-
           </div>
 
           {/* Right sidebar pace summary */}
@@ -1692,15 +1807,24 @@ export default function PresentationResultPage() {
               {!fillerHasData && (
                 <div className="flex flex-col items-center gap-3 py-12">
                   <AudioLines size={40} className="text-slate-300" />
-                  <span className="text-sm font-bold text-slate-400">No Filler Word Analysis Available</span>
-                  <span className="text-xs text-slate-300">Filler word analysis requires microphone access during your session.</span>
+                  <span className="text-sm font-bold text-slate-400">
+                    No Filler Word Analysis Available
+                  </span>
+                  <span className="text-xs text-slate-300">
+                    Filler word analysis requires microphone access during your
+                    session.
+                  </span>
                 </div>
               )}
               {fillerIsEmpty && (
                 <div className="flex flex-col items-center gap-3 py-12">
                   <CheckCircle size={40} className="text-green-400" />
-                  <span className="text-sm font-bold text-green-600">No Filler Words Detected</span>
-                  <span className="text-xs text-slate-400">Great job! Your speech was clean and free of filler words.</span>
+                  <span className="text-sm font-bold text-green-600">
+                    No Filler Words Detected
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Great job! Your speech was clean and free of filler words.
+                  </span>
                 </div>
               )}
               {fillerHasData && !fillerIsEmpty && (
@@ -1718,16 +1842,18 @@ export default function PresentationResultPage() {
                           </span>
                         </p>
                         <p className="text-xs text-slate-700 mt-1 italic font-medium leading-relaxed">
-                          {event.phrase.split("*" + event.word + "*").map((part, idx, arr) => (
-                            <React.Fragment key={idx}>
-                              {part}
-                              {idx < arr.length - 1 && (
-                                <span className="text-red-500 bg-red-50 border-b-2 border-red-300 font-black px-1 rounded not-italic">
-                                  {event.word}
-                                </span>
-                              )}
-                            </React.Fragment>
-                          ))}
+                          {event.phrase
+                            .split("*" + event.word + "*")
+                            .map((part, idx, arr) => (
+                              <React.Fragment key={idx}>
+                                {part}
+                                {idx < arr.length - 1 && (
+                                  <span className="text-red-500 bg-red-50 border-b-2 border-red-300 font-black px-1 rounded not-italic">
+                                    {event.word}
+                                  </span>
+                                )}
+                              </React.Fragment>
+                            ))}
                         </p>
                       </div>
                     </div>
@@ -1756,15 +1882,25 @@ export default function PresentationResultPage() {
             {!wordinessHasData && (
               <div className="flex flex-col items-center gap-3 py-12">
                 <FileText size={40} className="text-slate-300" />
-                <span className="text-sm font-bold text-slate-400">No Wordiness Analysis Available</span>
-                <span className="text-xs text-slate-300">Wordiness analysis requires microphone access during your session.</span>
+                <span className="text-sm font-bold text-slate-400">
+                  No Wordiness Analysis Available
+                </span>
+                <span className="text-xs text-slate-300">
+                  Wordiness analysis requires microphone access during your
+                  session.
+                </span>
               </div>
             )}
             {wordinessIsEmpty && (
               <div className="flex flex-col items-center gap-3 py-12">
                 <CheckCircle size={40} className="text-green-400" />
-                <span className="text-sm font-bold text-green-600">No Wordiness Issues Detected</span>
-                <span className="text-xs text-slate-400">Your speech was concise and efficient — no redundant phrases found.</span>
+                <span className="text-sm font-bold text-green-600">
+                  No Wordiness Issues Detected
+                </span>
+                <span className="text-xs text-slate-400">
+                  Your speech was concise and efficient — no redundant phrases
+                  found.
+                </span>
               </div>
             )}
             {wordinessHasData && !wordinessIsEmpty && (
@@ -1802,16 +1938,18 @@ export default function PresentationResultPage() {
                         Transcript Context
                       </span>
                       <span>
-                        {item.context.split("*" + item.original + "*").map((part, idx, arr) => (
-                          <React.Fragment key={idx}>
-                            {part}
-                            {idx < arr.length - 1 && (
-                              <span className="text-red-500 font-bold underline decoration-2">
-                                {item.original}
-                              </span>
-                            )}
-                          </React.Fragment>
-                        ))}
+                        {item.context
+                          .split("*" + item.original + "*")
+                          .map((part, idx, arr) => (
+                            <React.Fragment key={idx}>
+                              {part}
+                              {idx < arr.length - 1 && (
+                                <span className="text-red-500 font-bold underline decoration-2">
+                                  {item.original}
+                                </span>
+                              )}
+                            </React.Fragment>
+                          ))}
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 font-medium leading-relaxed">

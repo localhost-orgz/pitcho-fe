@@ -331,6 +331,10 @@ export default function InterviewSetupPage() {
       // Save to sessionStorage for the session page
       sessionStorage.setItem("interview_configured", "true");
       sessionStorage.setItem("interview_questions", JSON.stringify(data));
+      sessionStorage.setItem("interview_job_title", trimmedTitle);
+      if (jobDescription.trim()) {
+        sessionStorage.setItem("interview_job_desc", jobDescription.trim());
+      }
 
       // Capture and save documentId for posting later
       const documentId =
@@ -775,7 +779,7 @@ export default function InterviewSetupPage() {
           <div className="">
             <h3 className="font-bold text-lg">What to Expect?</h3>
           </div>
-          <div className="col-span-2 bg-white w-full flex justify-evenly gap-5 mt-5">
+          <div className="col-span-2 bg-white w-full grid grid-cols-1 sm:grid-cols-2 lg:flex lg:justify-evenly gap-5 mt-5">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-full bg-indigo-500/20">
                 <FileText
@@ -834,7 +838,7 @@ export default function InterviewSetupPage() {
         </div>
       </div>
 
-      <div className="w-full border-bold p-5 flex items-center mt-6 bg-main/3 justify-between">
+      <div className="w-full border-bold p-5 flex flex-col lg:flex-row items-center gap-4 mt-6 bg-main/3 lg:justify-between">
         <div className="flex items-center gap-5">
           <div className="p-4 bg-main/20 rounded-full">
             <Trophy className="text-main" size={25} strokeWidth={2.5} />

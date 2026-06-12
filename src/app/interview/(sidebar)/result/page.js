@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { getSessionVideo } from "@/utils/videoStorage";
+import { saveSession } from "@/lib/api";
 
 // ── Tabs ────────────────────────────────────────────────────
 const TABS = [
@@ -556,6 +557,112 @@ export default function InterviewResultPage() {
   const qaAnalysis = evaluateData?.qa_analysis || [];
   const overallScore = evaluateData?.overall_interview_score ?? 0;
   const metricsSummary = evaluateData?.metrics_summary || {};
+
+  // ── Save session to backend ─────────────────────────────────
+  const hasPostedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (loading || error || !resultData || hasPostedRef.current) return;
+    hasPostedRef.current = true;
+
+    async function postSession() {
+      try {
+        // Collect filler incidents across all questions
+        const allFillerIncidents = [];
+        perQuestionData.forEach((q) => {
+          const analysis = q.speech_analysis;
+          const incidents =
+            analysis?.analysis?.filler_words?.incidents ||
+            analysis?.filler_words?.incidents ||
+            [];
+          incidents.forEach((inc) => {
+            allFillerIncidents.push({
+              word: inc.word,
+              context_text: inc.context_text || "",
+            });
+          });
+        });
+
+        // Collect wordiness findings across all questions
+        const allWordFindings = [];
+        perQuestionData.forEach((q) => {
+          const analysis = q.speech_analysis;
+          const findings =
+            analysis?.analysis?.word_efficiency?.findings ||
+            analysis?.word_efficiency?.findings ||
+            [];
+          findings.forEach((f) => {
+            allWordFindings.push({
+              issue_type: f.issue_type || "Pleonasm",
+              original_phrase: f.original_phrase || "",
+              recommended_phrase: f.recommended_phrase || "",
+              transcript_context: f.transcript_context || "",
+              coach_tip: f.coach_tip || "",
+            });
+          });
+        });
+
+        // Build interview_details from qaAnalysis
+        const interviewDetails = qaAnalysis.map((qa, i) => {
+          const qData = perQuestionData[i] || {};
+          return {
+            question_number: qa.question_number || qData.question_number || i + 1,
+            question_text: qa.question_text || qData.question_text || "",
+            user_answer: qa.user_answer || qData.user_answer || "",
+            duration: qData.answer_duration_seconds ?? 0,
+            relevancy_score: qa.scores?.relevancy_score ?? qa.relevancy_score ?? 0,
+            star_structure_score: qa.scores?.star_structure_score ?? qa.star_structure_score ?? 0,
+            overall_answer_score: qa.scores?.overall_answer_score ?? qa.overall_answer_score ?? 0,
+            strengths: qa.feedback?.strengths || qa.strengths || "",
+            weaknesses: qa.feedback?.weaknesses || qa.weaknesses || "",
+            recommended_answer: qa.feedback?.recommended_answer_improvement || qa.recommended_answer || "",
+          };
+        });
+
+        const jobTitle = sessionStorage.getItem("interview_job_title") || "";
+
+        const payload = {
+          name: jobTitle ? `Interview: ${jobTitle}` : "Interview Session",
+          practice_type: "INTERVIEW",
+          document_id:
+            resultData.document_id ||
+            resultData.documentId ||
+            sessionStorage.getItem("interview_document_id") ||
+            "",
+          job_title: jobTitle,
+          job_desc: sessionStorage.getItem("interview_job_desc") || "",
+          question_count: perQuestionData.length,
+          distract_count: (resultData.lookAwayEvents || []).length,
+          total_distract_duration: perQuestionData.reduce(
+            (s, q) => s + (q.distract_duration_seconds || 0),
+            0
+          ),
+          total_duration: perQuestionData.reduce(
+            (s, q) => s + (q.answer_duration_seconds || 0),
+            0
+          ),
+          wpm:
+            perQuestionData.length > 0
+              ? Math.round(
+                  perQuestionData.reduce((s, q) => s + (q.wpm || 0), 0) /
+                    perQuestionData.length
+                )
+              : 0,
+          efficiency_score: evaluateData.efficiency_score ?? 0,
+          overall_score: overallScore,
+          filler_incidents: allFillerIncidents,
+          word_findings: allWordFindings,
+          interview_details: interviewDetails,
+        };
+
+        await saveSession(payload);
+      } catch (err) {
+        console.warn("Failed to save interview session to history:", err);
+      }
+    }
+
+    postSession();
+  }, [loading, error, resultData, perQuestionData, evaluateData, qaAnalysis, overallScore]);
 
   // ── Loading state ──────────────────────────────────────────
   if (loading) {

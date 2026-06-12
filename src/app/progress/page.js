@@ -112,36 +112,28 @@ function generateSessions(rng) {
         100,
         Math.max(
           25,
-          50 +
-            Math.round(progress * 42) +
-            Math.round((rng() - 0.5) * 14),
+          50 + Math.round(progress * 42) + Math.round((rng() - 0.5) * 14),
         ),
       ),
       pace: Math.min(
         100,
         Math.max(
           30,
-          55 +
-            Math.round(progress * 25) +
-            Math.round((rng() - 0.5) * 12),
+          55 + Math.round(progress * 25) + Math.round((rng() - 0.5) * 12),
         ),
       ),
       filler: Math.min(
         100,
         Math.max(
           20,
-          40 +
-            Math.round(progress * 40) +
-            Math.round((rng() - 0.5) * 18),
+          40 + Math.round(progress * 40) + Math.round((rng() - 0.5) * 18),
         ),
       ),
       efficiency: Math.min(
         100,
         Math.max(
           25,
-          48 +
-            Math.round(progress * 35) +
-            Math.round((rng() - 0.5) * 14),
+          48 + Math.round(progress * 35) + Math.round((rng() - 0.5) * 14),
         ),
       ),
     };
@@ -359,7 +351,9 @@ export default function ProgressPage() {
         const res = await fetch("/api/badges/my-badges");
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Failed to fetch badges (${res.status})`);
+          throw new Error(
+            err.error || `Failed to fetch badges (${res.status})`,
+          );
         }
         const data = await res.json();
         setFetchedBadgeStates(data.badges || []);
@@ -511,15 +505,6 @@ export default function ProgressPage() {
 
         {/* Month Selector Dropdown */}
         <div className="relative">
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 bg-white border-bold px-4 py-2.5 hover:bg-slate-50 active:translate-y-[2px] transition-all duration-100 cursor-pointer font-extrabold text-slate-700 text-sm"
-          >
-            <Calendar size={16} className="text-slate-400" />
-            <span>{activeMonth.name}</span>
-            <ChevronDown size={14} className="text-slate-400" />
-          </button>
-
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white border-bold shadow-lg z-20 overflow-hidden">
               {MONTHS.map((month, idx) => (
@@ -545,50 +530,50 @@ export default function ProgressPage() {
 
       {/* ─── Row 1: Stats Widgets ─── */}
       <div className="grid grid-cols-3 gap-4 mb-5">
-          {/* Day Streak */}
-          <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
-              <Flame size={20} className="text-orange-500 fill-orange-500" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-lg font-black text-slate-800 leading-none">
-                {streakData.current}
-              </span>
-              <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
-                Day Streak
-              </span>
-            </div>
+        {/* Day Streak */}
+        <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
+          <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
+            <Flame size={20} className="text-orange-500 fill-orange-500" />
           </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-lg font-black text-slate-800 leading-none">
+              {streakData.current}
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
+              Day Streak
+            </span>
+          </div>
+        </div>
 
-          {/* Sessions */}
-          <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center shrink-0">
-              <Mic size={20} className="text-sky-500" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-lg font-black text-slate-800 leading-none">
-                {filteredSessions.length}
-              </span>
-              <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
-                Sessions
-              </span>
-            </div>
+        {/* Sessions */}
+        <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
+          <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center shrink-0">
+            <Mic size={20} className="text-sky-500" />
           </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-lg font-black text-slate-800 leading-none">
+              {filteredSessions.length}
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
+              Sessions
+            </span>
+          </div>
+        </div>
 
-          {/* Badges */}
-          <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-              <Trophy size={20} className="text-amber-500 fill-amber-100" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-lg font-black text-slate-800 leading-none">
-                {unlockedBadgeCount}
-              </span>
-              <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
-                Badges
-              </span>
-            </div>
+        {/* Badges */}
+        <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+            <Trophy size={20} className="text-amber-500 fill-amber-100" />
           </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-lg font-black text-slate-800 leading-none">
+              {unlockedBadgeCount}
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
+              Badges
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ─── Row 2: Consistency Heatmap + StreakRing ─── */}
@@ -637,9 +622,7 @@ export default function ProgressPage() {
         {/* Badge Grid — full width */}
         {badgesError ? (
           <div className="rounded-[20px] bg-white border-bold py-10 flex flex-col items-center gap-3">
-            <p className="text-sm font-bold text-slate-400">
-              {badgesError}
-            </p>
+            <p className="text-sm font-bold text-slate-400">{badgesError}</p>
             <button
               onClick={() => window.location.reload()}
               className="text-xs font-extrabold text-main hover:underline cursor-pointer bg-transparent border-0"
@@ -648,7 +631,11 @@ export default function ProgressPage() {
             </button>
           </div>
         ) : (
-          <BadgeGrid badges={badgeDisplayData} loading={badgesLoading} maxCols={6} />
+          <BadgeGrid
+            badges={badgeDisplayData}
+            loading={badgesLoading}
+            maxCols={6}
+          />
         )}
 
         {/* Session History — full width with pagination */}

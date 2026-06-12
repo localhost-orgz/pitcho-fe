@@ -503,7 +503,7 @@ export default function PresentationSetupPage() {
       </div>
 
       {/* main grid */}
-      <div className="w-full mt-10 grid grid-cols-3 grid-rows-2 gap-4">
+      <div className="w-full mt-10 grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-4">
         {/* card 1: presentation material */}
         <div className="col-span-1 row-span-1 w-full px-4 py-6 rounded-2xl border-bold bg-white">
           <div className="flex items-start gap-3">
@@ -596,7 +596,7 @@ export default function PresentationSetupPage() {
         </div>
 
         {/* card 2: equipemnt check */}
-        <div className="col-span-1 row-span-1 row-start-2 w-full px-4 py-6 rounded-2xl border-bold bg-white">
+        <div className="col-span-1 row-span-1 lg:row-start-2 w-full px-4 py-6 rounded-2xl border-bold bg-white">
           <div className="flex items-start gap-3">
             <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
               2
@@ -647,7 +647,7 @@ export default function PresentationSetupPage() {
         </div>
 
         {/* card 3: cue card */}
-        <div className="col-span-1 row-span-2 w-full px-4 py-5 rounded-2xl border-bold bg-white">
+        <div className="col-span-1 lg:row-span-2 w-full px-4 py-5 rounded-2xl border-bold bg-white">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
               <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
@@ -832,7 +832,7 @@ export default function PresentationSetupPage() {
         </div>
 
         {/* card 4: simulation environment */}
-        <div className="col-span-1 row-span-2 w-full px-4 py-5 rounded-2xl border-bold bg-white">
+        <div className="col-span-1 lg:row-span-2 w-full px-4 py-5 rounded-2xl border-bold bg-white">
           <div className="flex items-start gap-3">
             <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
               4
@@ -1085,7 +1085,7 @@ export default function PresentationSetupPage() {
           <div className="">
             <h3 className="font-bold text-lg">What to Expect?</h3>
           </div>
-          <div className="col-span-2 bg-white w-full flex justify-evenly gap-5 mt-5">
+          <div className="col-span-2 bg-white w-full grid grid-cols-1 sm:grid-cols-2 lg:flex lg:justify-evenly gap-5 mt-5">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-full bg-indigo-500/20">
                 <Users className="text-indigo-500" strokeWidth={2} size={18} />
@@ -1142,7 +1142,7 @@ export default function PresentationSetupPage() {
           </div>
         </div>
       </div>
-      <div className="w-full border-bold p-5 flex items-center mt-6 bg-main/3 justify-between">
+      <div className="w-full border-bold p-5 flex flex-col lg:flex-row items-center gap-4 mt-6 bg-main/3 lg:justify-between">
         <div className="flex items-center gap-5">
           <div className="p-4 bg-main/20 rounded-full">
             <Trophy className="text-main" size={25} strokeWidth={2.5} />
