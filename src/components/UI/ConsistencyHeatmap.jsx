@@ -1,98 +1,234 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef } from "react";
+
+// ── GitHub green palette (light + dark) ──────────────────────
+const LEVEL_COLORS = {
+  0: "bg-[#ebedf0] dark:bg-[#2d333b]",
+  1: "bg-[#9be9a8] dark:bg-[#0e4429]",
+  2: "bg-[#40c463] dark:bg-[#006d32]",
+  3: "bg-[#30a14e] dark:bg-[#26a641]",
+  4: "bg-[#216e39] dark:bg-[#39d353]",
+};
+
+const ROW_LABELS = ["Mon", "", "Wed", "", "Fri", "", ""];
+const MONTH_ABBR = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const CELL_SIZE = 12;
+const CELL_GAP = 3;
+
+// ── Helpers ──────────────────────────────────────────────────
+
+/** Monday-based weekday index: 0=Mon … 6=Sun */
+function getMondayIndex(date) {
+  const d = date.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
+  return d === 0 ? 6 : d - 1;
+}
+
+/** Local‑timezone‑safe date → "YYYY‑MM‑DD" */
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Total seconds → human readable */
+function formatDuration(totalSeconds) {
+  const mins = Math.round(totalSeconds / 60);
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+}
+
+/** "2026-06-12" → "Fri, Jun 12, 2026" */
+function formatDateLabel(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/** Map total seconds → level 0‑4 */
+function getLevel(totalSeconds) {
+  if (totalSeconds === 0) return 0;
+  if (totalSeconds <= 300) return 1;   // 1–5 min
+  if (totalSeconds <= 600) return 2;   // 6–10 min
+  if (totalSeconds <= 1200) return 3;  // 11–20 min
+  return 4;                             // 20+ min
+}
+
+/** Is `year` a leap year? */
+function isLeapYear(year) {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+// ── Component ────────────────────────────────────────────────
 
 export default function ConsistencyHeatmap({
-  year = 2025,
-  month = 4, // 0-indexed: 4 is May
-  sessionData = {}, // Map of "YYYY-MM-DD" or day number (1-31) to session count
+  year = new Date().getFullYear(),
+  dailyData = {},
 }) {
-  // Get number of days in the month
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const containerRef = useRef(null);
+  const [tooltip, setTooltip] = useState(null);
 
-  // Weekdays order: 0 = Mon, 1 = Tue, 2 = Wed, 3 = Thu, 4 = Fri, 5 = Sat, 6 = Sun
-  const getWeekdayIndex = (day) => {
-    const date = new Date(year, month, day);
-    const dayOfWeek = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-    return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  };
+  // ── Build the 7‑row × N‑week grid ─────────────────────────
+  const startOfYear = new Date(year, 0, 1);               // Jan 1
+  const startDayOfWeek = getMondayIndex(startOfYear);      // Mon‑based
+  const daysInYear = isLeapYear(year) ? 366 : 365;
+  const totalWeeks = Math.ceil((daysInYear + startDayOfWeek) / 7);
 
-  // Row labels
-  const rowLabels = ["Mon", "", "Wed", "", "Fri", "", ""];
+  // 7 rows (Mon‑Sun), each with totalWeeks columns
+  const grid = Array.from({ length: 7 }, () => Array(totalWeeks).fill(null));
 
-  // Generate grid cells
-  // We have 7 rows (Mon-Sun) and daysInMonth columns
-  const grid = Array.from({ length: 7 }, () => Array(daysInMonth).fill(null));
+  for (let day = 1; day <= daysInYear; day++) {
+    const date = new Date(year, 0, day); // month 0 = Jan, day = 1‑based
+    const dateStr = formatLocalDate(date);
+    const weekday = getMondayIndex(date);
+    const weekIndex = Math.floor((day - 1 + startDayOfWeek) / 7);
+    const seconds = dailyData[dateStr] || 0;
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const r = getWeekdayIndex(d);
-    const c = d - 1;
-    
-    // Get session count for this day
-    const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    const sessions = sessionData[d] || sessionData[dateString] || 0;
-    
-    grid[r][c] = {
-      day: d,
-      sessions,
+    grid[weekday][weekIndex] = {
+      date: dateStr,
+      seconds,
+      level: getLevel(seconds),
     };
   }
 
-  // Get color class based on session count
-  const getColorClass = (sessions) => {
-    if (sessions === 0) return "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700";
-    if (sessions === 1) return "bg-sky-200 text-sky-800 hover:bg-sky-300";
-    if (sessions === 2) return "bg-sky-400 text-white hover:bg-sky-500";
-    return "bg-sky-600 text-white hover:bg-sky-700"; // 3+ sessions
+  // ── Month label positions ──────────────────────────────────
+  const monthLabelRow = Array(totalWeeks).fill(null);
+  const seenWeeks = new Set();
+
+  for (let m = 0; m < 12; m++) {
+    const firstDay = new Date(year, m, 1);
+    const dayOfYear =
+      Math.floor((firstDay - startOfYear) / 86400000) + 1;
+    const weekIndex = Math.floor((dayOfYear - 1 + startDayOfWeek) / 7);
+
+    // Deduplicate: if multiple months start in the same week, only label the first
+    if (!seenWeeks.has(weekIndex)) {
+      seenWeeks.add(weekIndex);
+      monthLabelRow[weekIndex] = MONTH_ABBR[m];
+    }
+  }
+
+  // ── Tooltip handlers ──────────────────────────────────────
+  const handleMouseEnter = (e, cell) => {
+    if (!containerRef.current) return;
+    const cellRect = e.target.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    setTooltip({
+      date: cell.date,
+      seconds: cell.seconds,
+      x: cellRect.left - containerRect.left + cellRect.width / 2,
+      y: cellRect.top - containerRect.top - 6,
+    });
   };
 
+  const handleMouseLeave = () => setTooltip(null);
+
+  // ── Render ─────────────────────────────────────────────────
   return (
-    <div className="w-full overflow-x-auto pb-2 select-none">
-      <div className="min-w-[640px] flex flex-col gap-1.5">
-        {/* Days Header */}
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 pl-10 mb-1">
-          {Array.from({ length: daysInMonth }).map((_, idx) => (
-            <div key={idx} className="w-[18px] text-center">
-              {idx + 1}
-            </div>
-          ))}
+    <div
+      ref={containerRef}
+      data-heatmap-container
+      className="relative select-none overflow-visible"
+    >
+      {/* ── Tooltip ────────────────────────────────────────── */}
+      {tooltip && (
+        <div
+          className="absolute z-50 px-2.5 py-1.5 rounded-md bg-[#1b1f23] text-white text-xs font-semibold shadow-lg pointer-events-none whitespace-nowrap -translate-x-1/2"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          {tooltip.seconds > 0
+            ? `${formatDuration(tooltip.seconds)} on ${formatDateLabel(tooltip.date)}`
+            : `No activity on ${formatDateLabel(tooltip.date)}`}
         </div>
+      )}
 
-        {/* Grid Rows */}
-        <div className="flex flex-col gap-1.5">
-          {grid.map((row, rIdx) => (
-            <div key={rIdx} className="flex items-center gap-1.5">
-              {/* Row Label */}
-              <div className="w-8 text-[11px] font-bold text-slate-400 text-right pr-2 shrink-0">
-                {rowLabels[rIdx]}
+      {/* ── Scrollable grid area ───────────────────────────── */}
+      <div className="overflow-x-auto pb-1">
+        <div className="flex flex-col" style={{ minWidth: totalWeeks * (CELL_SIZE + CELL_GAP) + 32 }}>
+          {/* Month labels */}
+          <div
+            className="flex text-[10px] text-slate-400 font-semibold mb-[2px]"
+            style={{ paddingLeft: 32 }}
+          >
+            {monthLabelRow.map((label, i) => (
+              <div
+                key={i}
+                className="shrink-0 flex items-end"
+                style={{ width: CELL_SIZE + CELL_GAP, height: 16 }}
+              >
+                {label && <span>{label}</span>}
               </div>
+            ))}
+          </div>
 
-              {/* Grid Cells */}
-              <div className="flex items-center gap-1.5">
+          {/* Day rows */}
+          <div className="flex flex-col" style={{ gap: CELL_GAP }}>
+            {grid.map((row, rIdx) => (
+              <div
+                key={rIdx}
+                className="flex items-center"
+                style={{ gap: CELL_GAP }}
+              >
+                {/* Row label */}
+                <div
+                  className="text-[10px] text-slate-400 font-semibold text-right shrink-0"
+                  style={{ width: 32 - CELL_GAP, paddingRight: CELL_GAP }}
+                >
+                  {ROW_LABELS[rIdx]}
+                </div>
+
+                {/* Week cells */}
                 {row.map((cell, cIdx) => {
                   if (!cell) {
-                    // Empty spacer cell where there is no date on this weekday
+                    // Empty spacer (before Jan 1 or after Dec 31)
                     return (
                       <div
                         key={cIdx}
-                        className="w-[18px] h-[18px] rounded bg-slate-50/20 dark:bg-slate-900/10 pointer-events-none"
+                        className="shrink-0 rounded-sm pointer-events-none invisible"
+                        style={{ width: CELL_SIZE, height: CELL_SIZE }}
                       />
                     );
                   }
-                  
+
+                  const colorClass = LEVEL_COLORS[cell.level];
+
                   return (
                     <div
                       key={cIdx}
-                      title={`Day ${cell.day}: ${cell.sessions} session${cell.sessions !== 1 ? "s" : ""}`}
-                      className={`w-[18px] h-[18px] rounded transition-all duration-100 cursor-pointer flex items-center justify-center ${getColorClass(
-                        cell.sessions
-                      )}`}
+                      onMouseEnter={(e) => handleMouseEnter(e, cell)}
+                      onMouseLeave={handleMouseLeave}
+                      className={`shrink-0 rounded-sm cursor-pointer transition-colors hover:ring-2 hover:ring-slate-400 hover:ring-offset-1 ${colorClass}`}
+                      style={{ width: CELL_SIZE, height: CELL_SIZE }}
                     />
                   );
                 })}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-slate-400 font-semibold">
+            <span>Less</span>
+            {[0, 1, 2, 3, 4].map((level) => (
+              <span
+                key={level}
+                className={`shrink-0 rounded-sm ${LEVEL_COLORS[level]}`}
+                style={{ width: 10, height: 10 }}
+              />
+            ))}
+            <span>More</span>
+          </div>
         </div>
       </div>
     </div>

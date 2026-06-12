@@ -140,18 +140,24 @@ export default function ProgressV2Page() {
     };
   }, [filteredSessions]);
 
-  // ── Heatmap data for selected month ──────────────────────────
-  const heatmapSessions = useMemo(() => {
+  // ── Year for the GitHub‑style heatmap (always current year) ──
+  const currentHeatmapYear = useMemo(() => new Date().getFullYear(), []);
+
+  // ── Daily duration data: "YYYY‑MM‑DD" → total seconds ────────
+  const dailyDurationData = useMemo(() => {
     const map = {};
     data.sessions.forEach((s) => {
       const d = new Date(s.date);
-      if (d.getMonth() === monthIndex && d.getFullYear() === year) {
-        const day = d.getDate();
-        map[day] = (map[day] || 0) + 1;
+      if (d.getFullYear() === currentHeatmapYear) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const dateStr = `${y}-${m}-${day}`;
+        map[dateStr] = (map[dateStr] || 0) + s.duration;
       }
     });
     return map;
-  }, [data.sessions, monthIndex, year]);
+  }, [data.sessions, currentHeatmapYear]);
 
   // ── Handlers ────────────────────────────────────────────────
   const handleMonthChange = useCallback(
@@ -319,26 +325,20 @@ export default function ProgressV2Page() {
                 Keep it up! Consistency is the key to improvement.
               </p>
             </div>
-            {/* Legend */}
+            {/* Legend — GitHub green palette */}
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-200" /> 0
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-sky-200 border border-sky-300" /> 1
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-sky-400 border border-sky-500" /> 2
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-sky-600" /> 3+
-              </span>
+              <span>Less</span>
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#ebedf0]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#9be9a8]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#40c463]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#30a14e]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#216e39]" />
+              <span>More</span>
             </div>
           </div>
           <ConsistencyHeatmap
-            year={year}
-            month={monthIndex}
-            sessionData={heatmapSessions}
+            year={currentHeatmapYear}
+            dailyData={dailyDurationData}
           />
         </div>
 
@@ -348,6 +348,7 @@ export default function ProgressV2Page() {
             current={data.streak.current}
             best={data.streak.best}
             practicedToday={data.streak.practicedToday}
+            weeklyHistory={data.streak.weeklyHistory}
           />
         </div>
       </div>

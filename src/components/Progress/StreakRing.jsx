@@ -1,87 +1,182 @@
 "use client";
 
 import React from "react";
-import { Flame, Trophy } from "lucide-react";
+import { Flame, Trophy, Check, X, Shield } from "lucide-react";
 
-export default function StreakRing({ current, best, practicedToday }) {
-  const radius = 42;
-  const circumference = 2 * Math.PI * radius;
-  const percent = best > 0 ? Math.min((current / best) * 100, 100) : 0;
-  const offset = circumference - (percent / 100) * circumference;
+// ── Helpers ──────────────────────────────────────────────────
+
+/** Pick motivational text based on streak length */
+function getMotivationalText(current, practicedToday) {
+  if (!practicedToday && current > 0) {
+    return "Don't break your streak — practice today! 🔥";
+  }
+  if (current >= 30) return "Unstoppable! What a legendary streak! 🔥";
+  if (current >= 14) return "You're on fire! Keep the momentum going!";
+  if (current >= 7) return "One week strong! Keep showing up! 💪";
+  if (current >= 3) return "Building momentum! You're doing great!";
+  if (current >= 1) return "Great start! Come back tomorrow!";
+  return "Start your streak today!";
+}
+
+// ── Day cell sub-component ───────────────────────────────────
+
+function DayCell({ day, status }) {
+  // Done (past)
+  if (status === "done") {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm">
+          <Check size={14} className="text-white" strokeWidth={3} />
+        </div>
+        <span className="text-[10px] font-bold text-slate-400">{day}</span>
+      </div>
+    );
+  }
+
+  // Today — practiced
+  if (status === "today-done") {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-md ring-2 ring-emerald-200 ring-offset-1">
+          <Check size={14} className="text-white" strokeWidth={3} />
+        </div>
+        <span className="text-[10px] font-extrabold text-emerald-600">{day}</span>
+      </div>
+    );
+  }
+
+  // Today — not yet practiced
+  if (status === "today-pending") {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <div className="w-8 h-8 rounded-full border-2 border-amber-400 bg-amber-50 flex items-center justify-center animate-pulse">
+          <Flame size={15} className="text-amber-500 fill-amber-400" />
+        </div>
+        <span className="text-[10px] font-extrabold text-amber-600">{day}</span>
+      </div>
+    );
+  }
+
+  // Missed
+  if (status === "missed") {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
+          <X size={12} className="text-slate-300" strokeWidth={2.5} />
+        </div>
+        <span className="text-[10px] font-bold text-slate-300">{day}</span>
+      </div>
+    );
+  }
+
+  // Future / unknown
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center" />
+      <span className="text-[10px] font-bold text-slate-200">{day}</span>
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────
+
+export default function StreakRing({
+  current = 0,
+  best = 0,
+  practicedToday = false,
+  weeklyHistory = [],
+}) {
+  const motivationalText = getMotivationalText(current, practicedToday);
 
   return (
-    <div className="flex flex-col items-center justify-center text-center h-full gap-3">
-      <h3 className="font-extrabold text-slate-800 text-sm self-start">Streak</h3>
+    <div className="flex flex-col h-full gap-4">
+      {/* Title */}
+      <h3 className="font-extrabold text-slate-800 text-sm">Streak</h3>
 
-      {/* Circular progress */}
-      <div className="relative w-24 h-24 flex items-center justify-center select-none">
-        <svg
-          className="absolute inset-0 w-full h-full -rotate-90"
-          viewBox="0 0 100 100"
-        >
-          <circle
-            cx={50}
-            cy={50}
-            r={radius}
-            className="stroke-slate-100 fill-none"
-            strokeWidth={7}
-          />
-          <circle
-            cx={50}
-            cy={50}
-            r={radius}
-            className="fill-none transition-all duration-700 ease-out"
-            strokeWidth={7}
-            stroke="url(#streakGradient)"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient id="streakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="100%" stopColor="#f59e0b" />
-            </linearGradient>
-          </defs>
-        </svg>
+      {/* ── Top row: Flame counter + Best streak ────────────── */}
+      <div className="flex items-center justify-between">
+        {/* Flame + count */}
+        <div className="flex items-center gap-3">
+          {/* Flame icon in orange circle */}
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-md shadow-orange-200">
+            <Flame
+              size={24}
+              className="text-white fill-white"
+              style={current > 0 ? { animation: "bounce 1s infinite" } : undefined}
+            />
+          </div>
 
-        {/* Center content */}
-        <div className="flex flex-col items-center z-10">
-          <Flame
-            size={24}
-            className="text-orange-500 fill-orange-500"
-            style={{ animation: current > 0 ? "bounce 1s infinite" : "none" }}
-          />
-          <span className="text-xl font-black text-slate-800 leading-none mt-0.5">
-            {current}
-          </span>
-          <span className="text-[8px] text-slate-400 font-extrabold tracking-wide uppercase">
-            Days
-          </span>
+          {/* Count + label */}
+          <div className="flex flex-col">
+            <span className="text-2xl font-black text-slate-900 leading-none">
+              {current}
+            </span>
+            <span className="text-[11px] font-bold text-slate-400">
+              day streak
+            </span>
+          </div>
+        </div>
+
+        {/* Best streak */}
+        <div className="flex flex-col items-center bg-amber-50 rounded-xl px-3 py-2 border border-amber-100">
+          <div className="flex items-center gap-1 text-amber-600 font-extrabold text-xs">
+            <Trophy size={12} className="fill-amber-300 text-amber-600" />
+            <span>{best}</span>
+          </div>
+          <span className="text-[9px] font-bold text-amber-400">best</span>
         </div>
       </div>
 
-      {/* Best streak */}
-      <div className="flex items-center gap-1 text-amber-500 font-extrabold text-xs">
-        <Trophy size={12} className="fill-amber-50" />
-        <span>Best: {best} days</span>
-      </div>
+      {/* ── Motivational text ───────────────────────────────── */}
+      <p className="text-xs font-bold text-slate-500 leading-relaxed">
+        {motivationalText}
+      </p>
 
-      {/* Practiced today indicator */}
-      <div className="flex items-center gap-1.5">
-        <div
-          className={`size-2 rounded-full ${
-            practicedToday ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
-          }`}
-        />
-        <span className="text-[10px] font-bold text-slate-400">
-          {practicedToday ? "Practiced today!" : "Not yet today"}
-        </span>
-      </div>
+      {/* ── 7-day mini calendar ─────────────────────────────── */}
+      {weeklyHistory.length === 7 && (
+        <div className="flex items-center justify-between px-1">
+          {weeklyHistory.map((entry, i) => (
+            <DayCell key={i} day={entry.day} status={entry.status} />
+          ))}
+        </div>
+      )}
 
+      {/* ── Today status banner ─────────────────────────────── */}
+      {practicedToday ? (
+        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+            <Check size={16} className="text-white" strokeWidth={3} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-extrabold text-emerald-700">
+              You practiced today!
+            </span>
+            <span className="text-[10px] font-semibold text-emerald-500">
+              Streak secured — see you tomorrow!
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <div className="w-8 h-8 rounded-full border-2 border-amber-400 bg-white flex items-center justify-center shrink-0">
+            <Flame size={16} className="text-amber-500 fill-amber-400" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-extrabold text-amber-700">
+              Practice today to keep your streak!
+            </span>
+            <span className="text-[10px] font-semibold text-amber-500">
+              Just one session — you&apos;ve got this!
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Action buttons ──────────────────────────────────── */}
       {current >= 3 && (
-        <button className="mt-1 text-[10px] font-extrabold text-orange-500 hover:text-orange-600 transition-colors cursor-pointer bg-orange-50 px-3 py-1 rounded-lg border border-orange-200">
-          Protect your streak 🔥
+        <button className="flex items-center justify-center gap-1.5 w-full text-[11px] font-extrabold text-orange-500 hover:text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg px-3 py-2 transition-colors cursor-pointer">
+          <Shield size={12} />
+          Freeze streak
         </button>
       )}
     </div>

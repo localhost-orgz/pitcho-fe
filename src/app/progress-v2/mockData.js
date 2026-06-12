@@ -231,6 +231,28 @@ function computeMockData() {
   else if (overallAvg >= 60) grade = "D";
   else grade = "F";
 
+  // ── Build 7‑day weekly history for streak widget ───────────
+  const practicedToday = true; // hardcoded for mock data
+  const last7Days = [];
+  const todayDate = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(todayDate);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
+    const isToday = i === 0;
+    last7Days.push({
+      day: d.toLocaleDateString("en-US", { weekday: "short" }),
+      status: isToday
+        ? practicedToday
+          ? "today-done"
+          : "today-pending"
+        : hasSession
+          ? "done"
+          : "missed",
+    });
+  }
+
   return {
     summary: {
       overallScore: overallAvg,
@@ -244,7 +266,7 @@ function computeMockData() {
       trendDirection: overallImprovement >= 5 ? "up" : overallImprovement <= -5 ? "down" : "steady",
     },
     level: { current: 12, title: "Focused Communicator", xp: 820, xpToNext: 1200 },
-    streak: { current: 12, best: 21, practicedToday: true },
+    streak: { current: 12, best: 21, practicedToday, weeklyHistory: last7Days },
     skills: {
       focus:    { current: avgScores.focus, starting: startingScores.focus, trend: trends.focus, improvement: skillImprovement.focus },
       pace:     { current: avgScores.pace, starting: startingScores.pace, trend: trends.pace, improvement: skillImprovement.pace },

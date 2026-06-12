@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Flame,
   TrendingUp,
@@ -139,6 +139,19 @@ export default function ProgressPage() {
   }, []);
 
   const activeData = MONTHS_DATA[selectedMonthIndex];
+
+  // ── Build full-year daily duration data for GitHub‑style heatmap ──
+  // Static mock data only has session counts, so assume 10 min (600 s) each.
+  const fullYearDailyData = useMemo(() => {
+    const map = {};
+    MONTHS_DATA.forEach((month) => {
+      Object.entries(month.sessions).forEach(([dayNum, count]) => {
+        const dateStr = `${month.year}-${String(month.monthIndex + 1).padStart(2, "0")}-${String(Number(dayNum)).padStart(2, "0")}`;
+        map[dateStr] = count * 600;
+      });
+    });
+    return map;
+  }, []);
 
   // ── Coordinates Helper for Triangle Radar Chart ────────────────
   // The center is (150, 160)
@@ -614,20 +627,15 @@ export default function ProgressPage() {
               </p>
             </div>
 
-            {/* Legend info */}
+            {/* Legend — GitHub green palette */}
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-200" /> No session
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-sky-200 border border-sky-300" /> 1 session
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-sky-400 border border-sky-500" /> 2 sessions
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-sky-600" /> 3+ sessions
-              </span>
+              <span>Less</span>
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#ebedf0]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#9be9a8]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#40c463]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#30a14e]" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#216e39]" />
+              <span>More</span>
             </div>
           </div>
 
@@ -635,8 +643,7 @@ export default function ProgressPage() {
           <div className="w-full mt-4">
             <ConsistencyHeatmap
               year={activeData.year}
-              month={activeData.monthIndex}
-              sessionData={activeData.sessions}
+              dailyData={fullYearDailyData}
             />
           </div>
         </div>
