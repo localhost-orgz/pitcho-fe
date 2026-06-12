@@ -115,7 +115,7 @@ export default function Sidebar() {
           {/* Practice Expandable Dropdown Container */}
           <div className="flex flex-col gap-y-1">
             <Link
-              href="/interview/setup"
+              href="/presentation/setup"
               onClick={(e) => {
                 if (
                   typeof window !== "undefined" &&
@@ -148,16 +148,6 @@ export default function Sidebar() {
             {practiceOpen && (
               <div className="hidden lg:flex flex-col gap-y-1 pl-9 mt-1">
                 <Link
-                  href="/interview/setup"
-                  className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all block ${
-                    pathname.startsWith("/interview")
-                      ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold pl-3.5"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                  }`}
-                >
-                  Interview
-                </Link>
-                <Link
                   href="/presentation/setup"
                   className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all block ${
                     pathname.startsWith("/presentation")
@@ -166,6 +156,16 @@ export default function Sidebar() {
                   }`}
                 >
                   Presentation
+                </Link>
+                <Link
+                  href="/interview/setup"
+                  className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all block ${
+                    pathname.startsWith("/interview")
+                      ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold pl-3.5"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                  }`}
+                >
+                  Interview
                 </Link>
               </div>
             )}

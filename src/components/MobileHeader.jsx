@@ -23,7 +23,7 @@ const navItems = [
   },
   {
     label: "Practice",
-    href: "/interview/setup",
+    href: "/presentation/setup",
     icon: Mic,
     isDropdown: true,
   },
@@ -122,17 +122,6 @@ export default function MobileHeader() {
                   {mobilePracticeOpen && (
                     <div className="flex flex-col gap-y-1 pl-10 mt-1">
                       <Link
-                        href="/interview/setup"
-                        onClick={() => setIsOpen(false)}
-                        className={`py-2 px-4 rounded-xl text-xs font-bold transition-all block ${
-                          pathname.startsWith("/interview")
-                            ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold border-l-2 border-[#0066ff] pl-3.5"
-                            : "text-slate-500 hover:bg-slate-50"
-                        }`}
-                      >
-                        Interview
-                      </Link>
-                      <Link
                         href="/presentation/setup"
                         onClick={() => setIsOpen(false)}
                         className={`py-2 px-4 rounded-xl text-xs font-bold transition-all block ${
@@ -142,6 +131,17 @@ export default function MobileHeader() {
                         }`}
                       >
                         Presentation
+                      </Link>
+                      <Link
+                        href="/interview/setup"
+                        onClick={() => setIsOpen(false)}
+                        className={`py-2 px-4 rounded-xl text-xs font-bold transition-all block ${
+                          pathname.startsWith("/interview")
+                            ? "text-[#0066ff] bg-[#e6f0ff]/50 font-extrabold border-l-2 border-[#0066ff] pl-3.5"
+                            : "text-slate-500 hover:bg-slate-50"
+                        }`}
+                      >
+                        Interview
                       </Link>
                     </div>
                   )}
