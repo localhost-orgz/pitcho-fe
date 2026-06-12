@@ -247,30 +247,6 @@ function Navbar() {
           </li>
           <li>
             <a
-              href="#educators"
-              className="text-sm font-medium text-slate-600 no-underline"
-            >
-              Buat Pengajar
-            </a>
-          </li>
-          <li>
-            <a
-              href="#pricing"
-              className="text-sm font-medium text-slate-600 no-underline"
-            >
-              Harga
-            </a>
-          </li>
-          <li>
-            <a
-              href="#resources"
-              className="text-sm font-medium text-slate-600 no-underline"
-            >
-              Resources
-            </a>
-          </li>
-          <li>
-            <a
               href="#faq"
               className="text-sm font-medium text-slate-600 no-underline"
             >
@@ -326,24 +302,6 @@ function Navbar() {
             className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
           >
             Fitur
-          </a>
-          <a
-            href="#educators"
-            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
-          >
-            Buat Pengajar
-          </a>
-          <a
-            href="#pricing"
-            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
-          >
-            Harga
-          </a>
-          <a
-            href="#resources"
-            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
-          >
-            Resources
           </a>
           <a
             href="#faq"
