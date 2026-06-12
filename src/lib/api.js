@@ -34,3 +34,78 @@ export async function fetchDocumentLibrary() {
 
   return documents;
 }
+
+/**
+ * Upload a single distraction clip to the backend.
+ * POSTs the clip as FormData to /api/clip/upload.
+ * Returns the parsed JSON response (expected { video_url: "..." }) or null on failure.
+ *
+ * @param {Blob} clipBlob - Video clip blob (WebM)
+ * @param {Object} metadata - { type, timestamp_start, timestamp_end, duration }
+ * @returns {Promise<Object|null>}
+ */
+export async function uploadClip(clipBlob, { type, timestamp_start, timestamp_end, duration } = {}) {
+  if (!clipBlob || clipBlob.size === 0) return null;
+
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("auth-token")
+      : null;
+
+  if (!token) return null;
+
+  const formData = new FormData();
+  formData.append("file", clipBlob, `clip-${timestamp_start ?? 0}.webm`);
+  if (type != null) formData.append("type", String(type));
+  if (timestamp_start != null) formData.append("timestamp_start", String(timestamp_start));
+  if (timestamp_end != null) formData.append("timestamp_end", String(timestamp_end));
+  if (duration != null) formData.append("duration", String(duration));
+
+  try {
+    const res = await fetch("https://pitcho-be.vercel.app/api/clip/upload", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save a completed session record to the backend.
+ * POSTs JSON to /api/history.
+ *
+ * @param {Object} payload - Full session payload matching the /api/history schema
+ * @returns {Promise<Object>} Parsed response JSON
+ */
+export async function saveSession(payload) {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("auth-token")
+      : null;
+
+  if (!token) {
+    throw new Error("No auth token found. Please log in again.");
+  }
+
+  const res = await fetch("https://pitcho-be.vercel.app/api/history", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to save session: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}

@@ -216,6 +216,13 @@ export default function PresentationSetupPage() {
       const data = await res.json();
       console.log("Upload response data:", data);
 
+      // Capture documentId from upload response
+      const uploadedDocumentId =
+        data.id || data.documentId || data.data?.id || data.data?.documentId;
+      if (uploadedDocumentId) {
+        setUploadedFile((prev) => ({ ...(prev || {}), documentId: uploadedDocumentId }));
+      }
+
       let slidesData = null;
       if (data) {
         if (Array.isArray(data.data)) {
@@ -322,7 +329,7 @@ export default function PresentationSetupPage() {
         ? (Number(fileSize) / (1024 * 1024)).toFixed(2) + " MB"
         : "?";
 
-    setUploadedFile({ name: fileName, pages: pages, size: sizeFormatted });
+    setUploadedFile({ name: fileName, pages: pages, size: sizeFormatted, documentId: doc.id || doc._id });
     setRawFile(null);
     setUploadError("");
     setCueCardStatus("loading");

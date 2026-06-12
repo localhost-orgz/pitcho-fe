@@ -53,6 +53,7 @@ body,
   --radius-xl: calc(var(--radius) + 4px);
   --animate-marquee: marquee var(--duration) infinite linear;
   --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-float-bob: floatBob 3s ease-in-out infinite;
   @keyframes marquee {
     from {
       transform: translateX(0);
@@ -67,6 +68,14 @@ body,
     }
     to {
       transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes floatBob {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
     }
   }
 }

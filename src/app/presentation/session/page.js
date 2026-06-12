@@ -32,6 +32,9 @@ import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useSpeechTracker } from "@/hooks/useSpeechTracker";
 import { saveSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
 import { analyzeSpeech } from "@/utils/speechAnalysis";
+import { extractClip } from "@/utils/clipExtractor";
+import { uploadClip, saveSession } from "@/lib/api";
+import { calculateSessionScore } from "@/utils/scoring";
 import { useVideoController } from "@/hooks/useVideoController";
 import { useDistractionSchedule } from "@/hooks/useDistractionSchedule";
 import { useDistractionEngine } from "@/hooks/useDistractionEngine";
@@ -544,7 +547,135 @@ export default function PresentationSessionPage() {
         );
       }
 
-      // 6. Navigate to result page
+      // 6. Save session to backend (non-blocking — failures don't stop navigation)
+      try {
+        // ── Load session config from localStorage ──────────
+        const storedFile = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("pitcho_presentation_file") || "null");
+          } catch {
+            return null;
+          }
+        })();
+        const storedDistraction = localStorage.getItem("pitcho_selected_distraction") || "medium";
+        const storedAudience = localStorage.getItem("pitcho_selected_audience") || "classroom";
+        const storedDuration = localStorage.getItem("pitcho_selected_duration") || "1";
+        const storedAnalysis = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("pitcho_speech_analysis") || "null");
+          } catch {
+            return null;
+          }
+        })();
+
+        const documentId = storedFile?.documentId || "00000000-0000-0000-0000-000000000000";
+        const name = storedFile?.name || "Untitled";
+
+        // Map distraction / audience to title case
+        const distractionIntensity =
+          storedDistraction.charAt(0).toUpperCase() + storedDistraction.slice(1);
+        const audienceType =
+          storedAudience.charAt(0).toUpperCase() + storedAudience.slice(1);
+        const sessionLength = parseInt(storedDuration, 10) || 1;
+
+        // ── Upload distraction clips ──────────────────────
+        const distractionClips = [];
+        if (videoBlob && lookAwayEvents.length > 0) {
+          for (const event of lookAwayEvents) {
+            try {
+              const clipStart = Math.max(0, (event.timestamp || 0) - 2);
+              const clipEnd = Math.min(
+                totalSessionTime,
+                (event.timestamp || 0) + (event.duration || 3) + 2,
+              );
+              const clipDuration = clipEnd - clipStart;
+
+              // Extract clip from full video via canvas + MediaRecorder
+              const clipBlob = await extractClip(videoBlob, clipStart, clipDuration);
+
+              if (clipBlob) {
+                const uploadResult = await uploadClip(clipBlob, {
+                  type: event.type || "Look Away",
+                  timestamp_start: Math.round(clipStart),
+                  timestamp_end: Math.round(clipEnd),
+                  duration: Math.round(clipDuration),
+                });
+
+                if (uploadResult?.video_url) {
+                  distractionClips.push({
+                    video_url: uploadResult.video_url,
+                    type: event.type || "Look Away",
+                    timestamp_start: Math.round(clipStart),
+                    timestamp_end: Math.round(clipEnd),
+                    duration: Math.round(clipDuration),
+                  });
+                }
+              }
+            } catch (clipErr) {
+              console.warn("Clip extraction/upload failed for event:", event.id, clipErr);
+            }
+          }
+        }
+
+        // ── Map speech analysis data ──────────────────────
+        const analysis = storedAnalysis?.analysis || {};
+
+        const fillerIncidents =
+          analysis.filler_words?.incidents?.map((item) => ({
+            word: item.word,
+            context_text: item.context_text,
+          })) || [];
+
+        const wordFindings =
+          analysis.word_efficiency?.findings?.map((item) => ({
+            issue_type: item.issue_type,
+            original_phrase: item.original_phrase,
+            recommended_phrase: item.recommended_phrase,
+            transcript_context: item.transcript_context,
+            coach_tip: item.coach_tip,
+          })) || [];
+
+        // Prefer transcript from analysis, fall back to speech tracker
+        const transcript =
+          analysis.transcript || speechData?.transcript || "";
+
+        // ── Calculate scores ──────────────────────────────
+        const scoreInput = {
+          sessionDuration: totalSessionTime,
+          totalWordCount: speechData?.totalWordCount || 0,
+          averageWpm: speechData?.averageWpm || 0,
+          totalDistractedTime,
+        };
+        const analysisInput = storedAnalysis;
+        const scoreResult = calculateSessionScore(scoreInput, analysisInput);
+
+        // ── Build payload and POST to /api/history ────────
+        const payload = {
+          practice_type: "PRESENTATION",
+          document_id: documentId,
+          name,
+          distraction_intensity: distractionIntensity,
+          audience_type: audienceType,
+          session_length: sessionLength,
+          transcript,
+          distract_count: lookAwayCount,
+          total_distract_duration: Math.round(totalDistractedTime),
+          total_duration: Math.round(totalSessionTime),
+          wpm: Math.round(speechData?.averageWpm || 0),
+          efficiency_score: scoreResult.breakdown.efficiency,
+          overall_score: scoreResult.overallScore,
+          filler_incidents: fillerIncidents,
+          word_findings: wordFindings,
+          interview_details: [],
+          distraction_clips: distractionClips,
+        };
+
+        await saveSession(payload);
+      } catch (saveErr) {
+        console.warn("Failed to save session to backend:", saveErr);
+      }
+
+      // 7. Navigate to result page
       router.push("/presentation/result");
     } catch (err) {
       console.error("Failed to end session:", err);
