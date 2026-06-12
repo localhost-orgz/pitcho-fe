@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Routes that unauthenticated users CAN access
-const PUBLIC_PATHS = ["/login", "/signup", "/callback"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/callback"];
 
 // Prefixes that are always allowed (API auth routes, static assets, Next.js internals)
 const ALWAYS_ALLOWED_PREFIXES = [
@@ -38,10 +38,10 @@ export function proxy(request) {
   const { pathname } = request.nextUrl;
   const authToken = request.cookies.get("auth-token");
 
-  // If the user is authenticated and trying to visit auth pages or root, redirect to studio
+  // If the user is authenticated and trying to visit auth pages, redirect to studio
   if (
     authToken &&
-    (pathname === "/login" || pathname === "/signup" || pathname === "/")
+    (pathname === "/login" || pathname === "/signup")
   ) {
     return NextResponse.redirect(new URL("/studio", request.url));
   }
