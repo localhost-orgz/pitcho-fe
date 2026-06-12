@@ -2,7 +2,7 @@
 
 // src/app/interview/result/page.js
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   Lightbulb,
   TrendingUp,
   TrendingDown,
+  Minus,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -24,8 +25,15 @@ import {
   Loader2,
   CircleAlert,
   AlertTriangle,
+  X,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Film,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
+import { getSessionVideo } from "@/utils/videoStorage";
 
 // ── Tabs ────────────────────────────────────────────────────
 const TABS = [
@@ -95,6 +103,387 @@ function MiniBar({ value, max, color = "bg-blue-500" }) {
   );
 }
 
+// ── Formatting helpers ──────────────────────────────────────
+function formatTime(secs) {
+  if (secs == null || isNaN(secs)) return "00:00";
+  const m = Math.floor(secs / 60).toString().padStart(2, "0");
+  const s = Math.floor(secs % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function formatDuration(secs) {
+  if (secs == null || isNaN(secs)) return "0.0s";
+  return `${secs.toFixed(1)}s`;
+}
+
+// ── Clip Video Player ───────────────────────────────────────
+function ClipVideoPlayer({ clip, onClipEnded }) {
+  const videoRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  const clipDuration = clip?.clipDuration || 0;
+  const clipStart = clip?.clipStart || 0;
+  const clipEnd = clip?.clipEnd || 0;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !clip) return;
+    video.currentTime = clipStart;
+    setCurrentTime(0);
+    setPlaying(false);
+  }, [clip, clipStart]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const tick = setInterval(() => {
+      if (video && !video.paused) {
+        const ct = video.currentTime - clipStart;
+        setCurrentTime(Math.max(0, ct));
+        if (video.currentTime >= clipEnd) {
+          video.pause();
+          setPlaying(false);
+          setCurrentTime(clipDuration);
+          onClipEnded?.();
+        }
+      }
+    }, 100);
+    return () => clearInterval(tick);
+  }, [clipStart, clipEnd, clipDuration, onClipEnded]);
+
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (playing) {
+      video.pause();
+      setPlaying(false);
+    } else {
+      if (video.currentTime >= clipEnd) video.currentTime = clipStart;
+      video.play().catch(() => {});
+      setPlaying(true);
+    }
+  };
+
+  const progressPct = clipDuration > 0 ? (currentTime / clipDuration) * 100 : 0;
+
+  return (
+    <div className="relative w-full aspect-video bg-slate-950 rounded-xl overflow-hidden group">
+      <video ref={videoRef} src={clip?.clipUrl || ""} className="absolute inset-0 w-full h-full object-contain" muted={false} playsInline />
+
+      {!playing && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer" onClick={togglePlay}>
+          <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center hover:bg-white/30 transition-colors">
+            <Play size={22} className="text-white ml-1" />
+          </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 px-4 pb-3 pt-8 z-10">
+        <div className="w-full h-1.5 bg-white/20 rounded-full mb-2">
+          <div className="h-full bg-main rounded-full transition-[width] duration-75" style={{ width: `${progressPct}%` }} />
+        </div>
+        <div className="flex items-center gap-3 text-white">
+          <button onClick={togglePlay}>
+            {playing ? <Pause size={15} /> : <Play size={15} />}
+          </button>
+          <span className="text-[10px] font-mono font-bold">
+            {formatTime(currentTime)} / {formatTime(clipDuration)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Clip Card ───────────────────────────────────────────────
+function ClipCard({ clip, isActive, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+        isActive ? "border-main bg-blue-50/50 shadow-sm" : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50"
+      }`}
+    >
+      <div className="w-16 aspect-video shrink-0 rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center">
+        <Film size={14} className="text-slate-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-mono font-black text-slate-400">
+            {formatTime(clip.timestamp)}
+          </span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-600">
+            Look Away
+          </span>
+        </div>
+        <span className="text-[10px] font-semibold text-slate-500">
+          Duration: {formatDuration(clip.duration)}
+        </span>
+      </div>
+      <button
+        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+          isActive ? "bg-main text-white" : "bg-slate-100 text-slate-400 hover:bg-main/10"
+        }`}
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+      >
+        <Play size={9} className="ml-0.5" />
+      </button>
+    </div>
+  );
+}
+
+// ── Interview Pace Chart (matching presentation result style) ─
+function InterviewPaceChart({ questions, averageWpm }) {
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [animateIn, setAnimateIn] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setAnimateIn(true));
+  }, []);
+
+  const maxWpm = Math.max(...questions.map((q) => q.wpm || 0), 180);
+
+  // Compute trend
+  const halfN = Math.floor(questions.length / 2) || 1;
+  const firstHalf = questions.slice(0, halfN);
+  const secondHalf = questions.slice(halfN);
+  const firstAvg =
+    firstHalf.length > 0
+      ? firstHalf.reduce((s, q) => s + (q.wpm || 0), 0) / firstHalf.length
+      : 0;
+  const secondAvg =
+    secondHalf.length > 0
+      ? secondHalf.reduce((s, q) => s + (q.wpm || 0), 0) / secondHalf.length
+      : 0;
+  const trend =
+    secondAvg > firstAvg ? "up" : secondAvg < firstAvg ? "down" : "stable";
+
+  const getBarColor = (wpm) => {
+    if (wpm <= 0) return "bg-slate-200";
+    if (wpm > 150) return "bg-red-500";
+    if (wpm >= 130) return "bg-orange-400";
+    if (wpm >= 100) return "bg-green-500";
+    return "bg-blue-400";
+  };
+
+  const getStatusLabel = (wpm) => {
+    if (wpm <= 0) return "No Speech";
+    if (wpm > 150) return "Too Fast";
+    if (wpm >= 130) return "Slightly Fast";
+    if (wpm >= 100) return "Ideal";
+    return "Too Slow";
+  };
+
+  const chartHeight = 200;
+  const idealTop = maxWpm > 0 ? ((maxWpm - 130) / maxWpm) * chartHeight : 0;
+  const idealBottom = maxWpm > 0 ? ((maxWpm - 100) / maxWpm) * chartHeight : 0;
+  const avgLineY = maxWpm > 0 ? ((maxWpm - (averageWpm || 0)) / maxWpm) * chartHeight : 0;
+
+  return (
+    <div className="bg-slate-50 border-2 border-slate-200/50 rounded-xl p-5 flex flex-col gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+            WPM Per Question
+          </span>
+          <span
+            className={`text-xs font-black flex items-center gap-1 ${
+              trend === "up"
+                ? "text-orange-500"
+                : trend === "down"
+                  ? "text-blue-500"
+                  : "text-slate-400"
+            }`}
+          >
+            {trend === "up" ? (
+              <><TrendingUp size={14} /> Speeding Up</>
+            ) : trend === "down" ? (
+              <><TrendingDown size={14} /> Slowing Down</>
+            ) : (
+              <><Minus size={14} /> Stable</>
+            )}
+          </span>
+        </div>
+        <div className="px-3 py-1 bg-white border border-slate-200 rounded-full flex items-center gap-2 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400">Avg</span>
+          <span className="text-sm font-black text-slate-800">{averageWpm || 0}</span>
+          <span className="text-[9px] font-bold text-slate-400">WPM</span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="relative" style={{ height: `${chartHeight}px` }}>
+        {/* Y-axis */}
+        <div className="absolute left-0 top-0 bottom-0 w-7 flex flex-col justify-between text-[9px] font-bold text-slate-300 pointer-events-none">
+          <span>{maxWpm}</span>
+          <span>{Math.round(maxWpm / 2)}</span>
+          <span>0</span>
+        </div>
+
+        <div className="relative ml-8 mr-2 h-full">
+          {/* Grid */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            <div className="border-t border-slate-200/60" />
+            <div className="border-t border-slate-200/60" />
+            <div className="border-t border-slate-200/60" />
+          </div>
+
+          {/* Ideal Zone */}
+          <div
+            className="absolute left-0 right-0 bg-green-100/50 border-y border-green-200/40 rounded-sm pointer-events-none transition-all duration-700"
+            style={{ top: `${Math.max(0, idealTop)}px`, height: `${Math.max(4, idealBottom - idealTop)}px` }}
+          >
+            <span className="absolute -top-3 right-0 text-[8px] font-bold text-green-500/70 tracking-wider">
+              IDEAL ZONE
+            </span>
+          </div>
+
+          {/* Average line */}
+          <div
+            className="absolute left-0 right-0 border-t-2 border-dashed border-slate-400/50 pointer-events-none transition-all duration-700"
+            style={{ top: `${Math.max(0, avgLineY)}px` }}
+          >
+            <span className="absolute -top-2.5 right-0 text-[8px] font-bold text-slate-400">avg</span>
+          </div>
+
+          {/* Bars */}
+          <div className="absolute inset-0 flex items-end justify-around pb-1">
+            {questions.map((q, i) => {
+              const wpm = q.wpm || 0;
+              const barHeight = maxWpm > 0 ? (wpm / maxWpm) * (chartHeight - 20) : 0;
+              const isSelected = selectedQuestion === i;
+
+              return (
+                <div key={i} className="flex flex-col items-center group relative">
+                  {/* Tooltip */}
+                  <div
+                    className={`absolute bottom-full mb-2 transition-all duration-200 z-20 ${
+                      isSelected
+                        ? "opacity-100 scale-100"
+                        : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-events-none"
+                    }`}
+                  >
+                    <div className="bg-slate-800 text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white">{wpm} WPM</span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[8px] font-black ${
+                            wpm > 150 ? "bg-red-500/20 text-red-300"
+                            : wpm >= 130 ? "bg-orange-500/20 text-orange-300"
+                            : wpm >= 100 ? "bg-green-500/20 text-green-300"
+                            : wpm > 0 ? "bg-blue-500/20 text-blue-300"
+                            : "bg-slate-500/20 text-slate-300"
+                          }`}
+                        >
+                          {getStatusLabel(wpm)}
+                        </span>
+                      </div>
+                      <div className="text-[8px] text-slate-400 mt-1">
+                        Question {q.question_number || i + 1}
+                      </div>
+                    </div>
+                    <div className="w-2 h-2 bg-slate-800 rotate-45 mx-auto -mt-1" />
+                  </div>
+
+                  {/* Bar */}
+                  <button
+                    onClick={() => setSelectedQuestion(isSelected ? null : i)}
+                    className={`w-10 md:w-14 rounded-t-md transition-all duration-500 cursor-pointer relative focus:outline-none ${
+                      getBarColor(wpm)
+                    } ${isSelected ? "ring-2 ring-offset-2 ring-slate-600 scale-110" : "hover:brightness-110"}`}
+                    style={{
+                      height: animateIn ? `${Math.max(barHeight, 4)}px` : "0px",
+                      transitionDelay: `${i * 80}ms`,
+                    }}
+                  >
+                    {barHeight > 32 && (
+                      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/60 pointer-events-none">
+                        {wpm}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Label */}
+                  <span
+                    className={`text-[9px] font-bold mt-1.5 transition-colors ${
+                      isSelected ? "text-slate-700" : "text-slate-400"
+                    }`}
+                  >
+                    Q{i + 1}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Detail panel */}
+      {selectedQuestion !== null && questions[selectedQuestion] && (
+        <div className="p-3 bg-white border border-slate-200 rounded-xl">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-black text-slate-700">
+              Question {selectedQuestion + 1} Details
+            </span>
+            <button
+              onClick={() => setSelectedQuestion(null)}
+              className="text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <span className="block text-lg font-black text-slate-800">
+                {questions[selectedQuestion].wpm || 0}
+              </span>
+              <span className="text-[9px] font-bold text-slate-400">WPM</span>
+            </div>
+            <div className="text-center">
+              <span className="block text-lg font-black text-slate-800">
+                {questions[selectedQuestion].answer_duration_seconds || 0}s
+              </span>
+              <span className="text-[9px] font-bold text-slate-400">Duration</span>
+            </div>
+            <div className="text-center">
+              <span
+                className={`block text-lg font-black ${
+                  (questions[selectedQuestion].wpm || 0) > 150 ? "text-red-500"
+                  : (questions[selectedQuestion].wpm || 0) >= 130 ? "text-orange-500"
+                  : (questions[selectedQuestion].wpm || 0) >= 100 ? "text-green-600"
+                  : (questions[selectedQuestion].wpm || 0) > 0 ? "text-blue-500"
+                  : "text-slate-400"
+                }`}
+              >
+                {getStatusLabel(questions[selectedQuestion].wpm || 0)}
+              </span>
+              <span className="text-[9px] font-bold text-slate-400">Status</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-4 flex-wrap">
+        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
+          <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block" /> Too Slow (&lt;100)
+        </span>
+        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
+          <span className="w-2 h-2 rounded-sm bg-green-500 inline-block" /> Ideal (100–130)
+        </span>
+        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
+          <span className="w-2 h-2 rounded-sm bg-orange-400 inline-block" /> Slightly Fast (130–150)
+        </span>
+        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
+          <span className="w-2 h-2 rounded-sm bg-red-500 inline-block" /> Too Fast (&gt;150)
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ───────────────────────────────────────────────
 export default function InterviewResultPage() {
   const router = useRouter();
@@ -103,23 +492,65 @@ export default function InterviewResultPage() {
   const [error, setError] = useState(null);
   const [resultData, setResultData] = useState(null);
 
+  // ── Clip state ────────────────────────────────────────────
+  const [clips, setClips] = useState([]);
+  const [activeClipIndex, setActiveClipIndex] = useState(-1);
+  const [videoUrl, setVideoUrl] = useState(null);
+
   // Load data
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("interview_results");
-      if (!raw) {
-        setError("No interview results found. Please complete an interview session first.");
+    async function load() {
+      try {
+        const raw = sessionStorage.getItem("interview_results");
+        if (!raw) {
+          setError("No interview results found. Please complete an interview session first.");
+          setLoading(false);
+          return;
+        }
+        const data = JSON.parse(raw);
+        setResultData(data);
+
+        // Load video from IndexedDB and extract clips
+        try {
+          const blob = await getSessionVideo();
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            setVideoUrl(url);
+
+            const events = data.lookAwayEvents || [];
+            const extracted = events.map((evt) => {
+              const ts = evt.timestamp || 0;
+              const clipStart = Math.max(0, ts - 3);
+              const clipEnd = ts + 3;
+              return {
+                id: evt.id,
+                timestamp: ts,
+                type: evt.type || "Look Away",
+                duration: evt.duration || 0,
+                clipStart,
+                clipEnd,
+                clipDuration: clipEnd - clipStart,
+                clipUrl: url,
+              };
+            });
+            setClips(extracted);
+          }
+        } catch (e) {
+          console.warn("No session video available:", e);
+        }
+
         setLoading(false);
-        return;
+      } catch (err) {
+        console.error("Failed to load results:", err);
+        setError("Failed to load interview results.");
+        setLoading(false);
       }
-      const data = JSON.parse(raw);
-      setResultData(data);
-      setLoading(false);
-    } catch (err) {
-      console.error("Failed to load results:", err);
-      setError("Failed to load interview results.");
-      setLoading(false);
     }
+    load();
+
+    return () => {
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
+    };
   }, []);
 
   const perQuestionData = resultData?.per_question_data || [];
@@ -245,34 +676,154 @@ export default function InterviewResultPage() {
         {/* Tab 1: Distraction */}
         {activeTab === "distraction" && (
           <div>
-            <h3 className="font-bold text-lg mb-4">Distraction Per Question</h3>
+            <h3 className="font-bold text-lg mb-4">Distraction Timeline</h3>
             {perQuestionData.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-8">No distraction data available.</p>
             ) : (
-              <div className="flex flex-col gap-4">
-                {perQuestionData.map((q, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <span className="text-xs font-bold text-slate-400 w-20 shrink-0">
-                      Q {q.question_number || i + 1}
-                    </span>
-                    <div className="flex-1">
-                      <MiniBar
-                        value={q.distract_duration_seconds || 0}
-                        max={Math.max(...perQuestionData.map((d) => d.distract_duration_seconds || 0), 1)}
-                        color="bg-blue-500"
-                      />
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Left: Video Player + Clips */}
+                {clips.length > 0 && (
+                  <div className="lg:w-[420px] shrink-0 flex flex-col gap-4">
+                    {/* Video Player */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-500 uppercase tracking-wide">
+                        {activeClipIndex >= 0
+                          ? `Clip ${activeClipIndex + 1} of ${clips.length}`
+                          : "Select a clip to play"}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setActiveClipIndex((p) => Math.max(-1, p - 1))}
+                          disabled={activeClipIndex <= -1}
+                          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                        <span className="text-[10px] font-bold text-slate-400 px-1">
+                          {activeClipIndex + 1}/{clips.length}
+                        </span>
+                        <button
+                          onClick={() => setActiveClipIndex((p) => Math.min(clips.length - 1, p + 1))}
+                          disabled={activeClipIndex >= clips.length - 1}
+                          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-600 w-12 text-right">
-                      {q.distract_duration_seconds || 0}s
-                    </span>
+
+                    <ClipVideoPlayer
+                      clip={activeClipIndex >= 0 ? clips[activeClipIndex] : null}
+                      onClipEnded={() => {
+                        if (activeClipIndex < clips.length - 1) {
+                          setActiveClipIndex((p) => p + 1);
+                        }
+                      }}
+                    />
+
+                    {/* Clip List */}
+                    <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto">
+                      {clips.map((clip, i) => (
+                        <ClipCard
+                          key={clip.id || i}
+                          clip={clip}
+                          isActive={i === activeClipIndex}
+                          onClick={() => setActiveClipIndex(i)}
+                        />
+                      ))}
+                    </div>
                   </div>
-                ))}
-                <div className="border-t border-slate-200 pt-4 mt-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-bold text-slate-500">Total</span>
-                    <span className="font-black text-slate-700">
-                      {perQuestionData.reduce((s, q) => s + (q.distract_duration_seconds || 0), 0)}s distracted
+                )}
+
+                {/* Right: Distraction Summary + Timeline */}
+                <div className="flex-1 flex flex-col gap-6 min-w-0">
+                  {/* Per-Question Cards */}
+                  <div className="grid grid-cols-1 gap-3">
+                    {perQuestionData.map((q, i) => {
+                      const secs = q.distract_duration_seconds || 0;
+                      const maxDistract = Math.max(...perQuestionData.map((d) => d.distract_duration_seconds || 0), 1);
+                      const barColor =
+                        secs === 0
+                          ? "bg-green-500"
+                          : secs <= 3 ? "bg-blue-500"
+                          : secs <= 8 ? "bg-orange-400"
+                          : "bg-red-500";
+                      return (
+                        <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-slate-600">Q {q.question_number || i + 1}</span>
+                            <span className={`text-xs font-black ${secs === 0 ? "text-green-600" : "text-slate-700"}`}>
+                              {secs === 0 ? "Perfect Focus!" : `${secs}s distracted`}
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${barColor} rounded-full transition-all duration-500`}
+                              style={{ width: `${maxDistract > 0 ? (secs / maxDistract) * 100 : 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Timeline */}
+                  <div className="border-t border-slate-200 pt-4">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider mb-3 block">
+                      Distraction Events Timeline
                     </span>
+                    <div className="flex flex-col">
+                      {perQuestionData.map((q, i) => {
+                        const secs = q.distract_duration_seconds || 0;
+                        return (
+                          <div key={i} className="flex items-start gap-3">
+                            <div className="flex flex-col items-center shrink-0">
+                              <div
+                                className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 ${
+                                  secs === 0 ? "border-green-400 bg-green-100"
+                                  : secs <= 3 ? "border-blue-400 bg-blue-100"
+                                  : secs <= 8 ? "border-orange-400 bg-orange-100"
+                                  : "border-red-400 bg-red-100"
+                                }`}
+                              />
+                              {i < perQuestionData.length - 1 && (
+                                <div className="w-px flex-1 border-l-2 border-dashed border-slate-200 my-1 min-h-8" />
+                              )}
+                            </div>
+                            <div className="pb-5">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-bold text-slate-700">Question {q.question_number || i + 1}</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                  secs === 0 ? "bg-green-50 text-green-600"
+                                  : secs <= 3 ? "bg-blue-50 text-blue-600"
+                                  : secs <= 8 ? "bg-orange-50 text-orange-600"
+                                  : "bg-red-50 text-red-600"
+                                }`}>
+                                  {secs === 0 ? "No Distraction" : `${secs}s`}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 leading-relaxed">
+                                {secs === 0
+                                  ? "You maintained perfect eye contact throughout this question."
+                                  : secs <= 3 ? "Minor distraction — you stayed mostly focused."
+                                  : secs <= 8 ? "Moderate distraction — your focus slipped a few times."
+                                  : "Significant distraction — try to maintain eye contact with the interviewer."}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Total */}
+                  <div className="border-t border-slate-200 pt-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-bold text-slate-500">Total Distracted Time</span>
+                      <span className="font-black text-slate-700">
+                        {perQuestionData.reduce((s, q) => s + (q.distract_duration_seconds || 0), 0)}s
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -283,46 +834,18 @@ export default function InterviewResultPage() {
         {/* Tab 2: WPM */}
         {activeTab === "wpm" && (
           <div>
-            <h3 className="font-bold text-lg mb-4">Speaking Pace Per Question</h3>
+            <h3 className="font-bold text-lg mb-4">Speaking Pace Analysis</h3>
             {perQuestionData.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-8">No WPM data available.</p>
             ) : (
-              <div className="flex flex-col gap-4">
-                {perQuestionData.map((q, i) => {
-                  const wpm = q.wpm || 0;
-                  const maxWpm = Math.max(...perQuestionData.map((d) => d.wpm || 0), 1);
-                  const isGood = wpm >= 100 && wpm <= 150;
-                  return (
-                    <div key={i} className="flex items-center gap-4">
-                      <span className="text-xs font-bold text-slate-400 w-20 shrink-0">
-                        Q {q.question_number || i + 1}
-                      </span>
-                      <div className="flex-1">
-                        <MiniBar
-                          value={wpm}
-                          max={maxWpm}
-                          color={isGood ? "bg-green-500" : wpm > 150 ? "bg-red-500" : "bg-orange-400"}
-                        />
-                      </div>
-                      <span className={`text-xs font-bold w-16 text-right ${isGood ? "text-green-600" : wpm > 150 ? "text-red-500" : "text-orange-500"}`}>
-                        {wpm} wpm
-                      </span>
-                    </div>
-                  );
-                })}
-                {/* Average line */}
-                <div className="border-t border-slate-200 pt-4 mt-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-bold text-slate-500">Average</span>
-                    <span className="font-black text-slate-700">
-                      {perQuestionData.length > 0
-                        ? Math.round(perQuestionData.reduce((s, q) => s + (q.wpm || 0), 0) / perQuestionData.length)
-                        : 0}{" "}
-                      wpm
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <InterviewPaceChart
+                questions={perQuestionData}
+                averageWpm={
+                  perQuestionData.length > 0
+                    ? Math.round(perQuestionData.reduce((s, q) => s + (q.wpm || 0), 0) / perQuestionData.length)
+                    : 0
+                }
+              />
             )}
           </div>
         )}

@@ -35,9 +35,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
-import { useSpeechTracker } from "@/hooks/useSpeechTracker";
 import { useInterviewVideoController } from "@/hooks/useInterviewVideoController";
 import { analyzeSpeech } from "@/utils/speechAnalysis";
+import { saveSessionVideo } from "@/utils/videoStorage";
 
 // ── Equipment Status Bar ───────────────────────────────────
 function EquipmentBar({ internetSpeed, isCameraOn, isMicOn }) {
@@ -374,6 +374,7 @@ export default function InterviewSessionPage() {
     totalDistractedTime,
     loadModel,
     startCamera,
+    startRecording,
     runDetectionLoop,
     stopTracker,
     switchDetectionMode,
@@ -383,9 +384,6 @@ export default function InterviewSessionPage() {
   const [showCalibration, setShowCalibration] = useState(false);
   const [eyeTrackingActive, setEyeTrackingActive] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
-
-  // ── Speech tracker ────────────────────────────────────────
-  const speechTracker = useSpeechTracker();
 
   // ── Per-question data accumulation ────────────────────────
   const perQuestionDataRef = useRef([]);
@@ -525,7 +523,6 @@ export default function InterviewSessionPage() {
       setPhase("user_answer");
       answerStartTimeRef.current = Date.now();
       startPerQuestionRecording();
-      speechTracker.startListening(600);
 
       // 45s yawning timer
       yawnTimerRef.current = setTimeout(() => {
@@ -541,7 +538,7 @@ export default function InterviewSessionPage() {
         }, 200);
       }, 45000);
     },
-    [videoController, startPerQuestionRecording, speechTracker]
+    [videoController, startPerQuestionRecording]
   );
 
   // ── User clicks "Submit Answer" → stop, analyze, next ──────
@@ -554,39 +551,52 @@ export default function InterviewSessionPage() {
       }
 
       // Stop recording
-      const answerDuration =
+      const answerDurationSecs =
         (Date.now() - (answerStartTimeRef.current || Date.now())) / 1000;
       const audioBlob = await stopPerQuestionRecording();
 
-      // Stop speech tracker & get transcript
-      const speechResult = speechTracker.stopListening();
-      const transcript = speechResult.transcript || "";
-      const wpm = speechResult.averageWpm || 0;
-
       // Calculate distraction during this question
-      const distractDuration = totalDistractedTime || 0; // snapshot at this point
+      const distractDuration = totalDistractedTime || 0;
 
       // Play nodding animation
       setPhase("nodding");
       videoController.playNoddingOnce();
 
-      // Send audio for speech analysis (async, don't block)
+      // Send audio for speech analysis — use server-side transcription
       let analysisResult = null;
+      let transcript = "";
       let fillerCount = 0;
+      let wpm = 0;
+
       if (audioBlob && audioBlob.size > 0) {
-        pendingAnalysisRef.current = analyzeSpeech(audioBlob)
-          .then((res) => {
-            analysisResult = res?.data || res?.analysis || res;
-            fillerCount =
-              analysisResult?.analysis?.filler_words?.total_filler_count ||
-              analysisResult?.filler_words?.total_filler_count ||
-              0;
-          })
-          .catch((err) => {
-            console.error("Speech analysis failed:", err);
-          });
-        await pendingAnalysisRef.current;
-        pendingAnalysisRef.current = null;
+        try {
+          const res = await analyzeSpeech(audioBlob);
+          analysisResult = res?.data || res?.analysis || res;
+
+          // Extract server-side transcription (more accurate than browser SpeechRecognition)
+          transcript =
+            analysisResult?.transcription ||
+            analysisResult?.analysis?.transcription ||
+            analysisResult?.transcript ||
+            analysisResult?.analysis?.transcript ||
+            "";
+
+          // Calculate WPM from server transcript: word count / minutes
+          if (transcript && answerDurationSecs > 0) {
+            const wordCount = transcript
+              .split(/\s+/)
+              .filter((w) => w.length > 0).length;
+            const minutes = answerDurationSecs / 60;
+            wpm = minutes > 0 ? Math.round(wordCount / minutes) : 0;
+          }
+
+          fillerCount =
+            analysisResult?.analysis?.filler_words?.total_filler_count ||
+            analysisResult?.filler_words?.total_filler_count ||
+            0;
+        } catch (err) {
+          console.error("Speech analysis failed:", err);
+        }
       }
 
       // Accumulate per-question data
@@ -594,7 +604,7 @@ export default function InterviewSessionPage() {
         question_number: questionIdx + 1,
         question_text: questions[questionIdx]?.question || questions[questionIdx]?.title || "",
         user_answer: transcript,
-        answer_duration_seconds: Math.round(answerDuration),
+        answer_duration_seconds: Math.round(answerDurationSecs),
         filler_words_count: fillerCount,
         distract_duration_seconds: Math.round(distractDuration),
         wpm,
@@ -617,7 +627,6 @@ export default function InterviewSessionPage() {
       questions,
       videoController,
       stopPerQuestionRecording,
-      speechTracker,
       totalDistractedTime,
       goToInterviewer,
     ]
@@ -670,18 +679,32 @@ export default function InterviewSessionPage() {
       JSON.stringify({
         per_question_data: perQuestionDataRef.current.filter(Boolean),
         evaluate_response: evaluateData,
+        lookAwayEvents: lookAwayEvents || [],
       })
     );
 
+    // Stop eye tracker and get recording blobs
+    try {
+      const { videoBlob, audioBlob } = await stopTracker();
+      // Save video to IndexedDB for replay in result page
+      if (videoBlob && videoBlob.size > 0) {
+        await saveSessionVideo(videoBlob);
+      }
+    } catch (err) {
+      console.error("Failed to save session recording:", err);
+    }
+
     // Navigate to result
     router.push("/interview/result");
-  }, [router]);
+  }, [router, stopTracker, lookAwayEvents]);
 
   // ── Calibration complete → start interview ────────────────
   const handleCalibrated = useCallback(() => {
     setShowCalibration(false);
     setEyeTrackingActive(true);
     setSessionRunning(true);
+    // Start recording face cam video
+    startRecording();
     if (facecamRef.current) {
       runDetectionLoop(facecamRef.current, "tracking");
     }
@@ -689,7 +712,7 @@ export default function InterviewSessionPage() {
     if (questions.length > 0) {
       goToInterviewer(0);
     }
-  }, [runDetectionLoop, questions, goToInterviewer]);
+  }, [runDetectionLoop, startRecording, questions, goToInterviewer]);
 
   // ── Cleanup on unmount ────────────────────────────────────
   useEffect(() => {
@@ -700,6 +723,10 @@ export default function InterviewSessionPage() {
       if (micStreamRef.current) {
         micStreamRef.current.getTracks().forEach((t) => t.stop());
       }
+      // Stop face tracker (camera, recording)
+      try {
+        stopTracker();
+      } catch (_) {}
     };
   }, []);
 
@@ -838,7 +865,7 @@ export default function InterviewSessionPage() {
               {phase === "interviewer"
                 ? "Listen carefully to the question…"
                 : phase === "user_answer"
-                  ? `Speaking at ${speechTracker.currentWpm} wpm — ${speechTracker.currentStatus}`
+                  ? "Recording your answer — click Submit when done"
                   : phase === "waiting_to_answer"
                     ? "Click \"Answer\" when you're ready to respond"
                     : phaseLabel}
