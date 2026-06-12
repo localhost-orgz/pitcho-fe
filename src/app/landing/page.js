@@ -179,6 +179,19 @@ const IconLinkedin = (props) => (
     <circle cx="4" cy="4" r="2" />
   </svg>
 );
+const IconChevronDown = (props) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    {...props}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
 const IconInstagram = (props) => (
   <svg
     width="18"
@@ -290,6 +303,14 @@ function Navbar() {
               Resources
             </a>
           </li>
+          <li>
+            <a
+              href="#faq"
+              className="text-sm font-medium text-slate-600 no-underline transition-colors duration-200 hover:text-[#0388ff]"
+            >
+              FAQ
+            </a>
+          </li>
         </ul>
 
         {/* CTA buttons */}
@@ -358,6 +379,12 @@ function Navbar() {
           >
             Resources
           </a>
+          <a
+            href="#faq"
+            className="text-[0.95rem] font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-50 rounded-lg no-underline py-2.5 px-3 transition-colors"
+          >
+            FAQ
+          </a>
           <div className="pt-2 px-3 pb-1 flex flex-col gap-2">
             <a
               href="#"
@@ -419,7 +446,7 @@ function HeroSection() {
 // ── Pain Points Section ─────────────────────────────────────────────────────
 const painPoints = [
   {
-    icon: AlertCircle,
+  icon: AlertCircle,
     colorClass:
       "bg-red-50/50 text-red-500 border-red-100/40 shadow-sm shadow-red-500/5",
     title: "Distractions happen in real life",
@@ -611,11 +638,14 @@ function HowItWorksSection() {
         <br />a better communicator
       </h2>
 
-      <div className="stepsGrid max-w-[1100px] mt-13 mx-auto mb-0 grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7">
+      <div className="stepsGrid max-w-[1100px] mt-13 mx-auto mb-0 grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7 relative">
+        {/* Connecting dashed line for process flow on desktop */}
+        <div className="hidden lg:block absolute top-[166px] left-[12%] right-[12%] h-0.5 border-t-2 border-dashed border-slate-200/80 pointer-events-none z-0" />
+
         {steps.map((s, i) => (
           <div
             key={i}
-            className="stepCard bg-white rounded-[18px] pt-0 px-0 pb-7 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)] overflow-hidden relative transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(3,136,255,0.12)]"
+            className="stepCard bg-white rounded-[18px] pt-0 px-0 pb-7 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)] overflow-hidden relative transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(3,136,255,0.12)] z-10"
           >
             <div className="stepImgContainer w-full h-[130px] overflow-hidden bg-slate-50 relative group">
               <img
@@ -643,6 +673,98 @@ function HowItWorksSection() {
   );
 }
 
+
+// ── FAQ Section ──────────────────────────────────────────────────────────────
+const faqItems = [
+  {
+    q: "What exactly is Pitcho?",
+    a: "Pitcho is an AI-powered communication coach that simulates real-world speaking scenarios — like presentations and interviews — with realistic distractions such as audience noise, phone interruptions, and unexpected events. After each session, you get detailed feedback on your delivery, tone, fluency, and more.",
+  },
+  {
+    q: "How does the AI feedback work?",
+    a: "Our AI analyzes your speech in real time, evaluating factors like pace, filler words, tone variation, eye contact (via your camera), and how well you handle distractions. After the session, you receive a breakdown with actionable tips so you know exactly what to improve.",
+  },
+  {
+    q: "Do I need any special equipment?",
+    a: "Just a device with a camera and microphone — a laptop, tablet, or even your phone works. We recommend using headphones for the best experience, but they're not required.",
+  },
+  {
+    q: "Is Pitcho free to use?",
+    a: "Yes! You can start with a free practice session right away — no credit card required. We also offer premium plans with more scenarios, advanced analytics, and unlimited practice time for those who want to go deeper.",
+  },
+  {
+    q: "Can Pitcho help with interview preparation?",
+    a: "Absolutely. Pitcho has a dedicated Interview mode that simulates common interview questions, follow-ups, and pressure scenarios. You'll practice thinking on your feet and delivering confident answers under realistic conditions.",
+  },
+  {
+    q: "Is my data private and secure?",
+    a: "We take privacy seriously. Your video and audio are processed locally on your device whenever possible, and we never share your practice sessions with third parties. You can delete your data at any time.",
+  },
+  {
+    q: "How is Pitcho different from just practicing in front of a mirror?",
+    a: "A mirror can't interrupt you mid-sentence, analyze your tone and pace, or give you personalized feedback. Pitcho creates the unpredictable, high-pressure environment of real communication — and then tells you exactly how to get better.",
+  },
+];
+
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState(null);
+
+  const toggle = (i) => {
+    setOpenIndex(openIndex === i ? null : i);
+  };
+
+  return (
+    <section className="faqSection bg-white py-20 px-6" id="faq">
+      <div className="faqInner max-w-[740px] mx-auto">
+        <div className="sectionLabelBlue inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#0388ff] uppercase mb-3">
+          FAQ
+        </div>
+        <h2 className="sectionTitle text-[clamp(1.6rem,3vw,2.4rem)] font-extrabold text-[#0f1d35] leading-snug mb-3">
+          Questions you might have
+        </h2>
+        <p className="faqSubtitle text-[0.95rem] text-[#5a7090] leading-[1.7] mb-10">
+          Everything you need to know before you start your first practice session.
+        </p>
+
+        <div className="faqList flex flex-col gap-3">
+          {faqItems.map((item, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div
+                key={i}
+                className="faqItem bg-[#f7f9ff] rounded-[14px] border-[1.5px] border-transparent transition-[border-color,box-shadow] duration-200 hover:border-[#0388ff15] hover:shadow-[0_4px_18px_rgba(3,136,255,0.06)]"
+              >
+                <button
+                  onClick={() => toggle(i)}
+                  className="faqTrigger w-full flex items-center justify-between gap-4 text-left bg-none border-none cursor-pointer py-5 px-6"
+                  aria-expanded={isOpen}
+                >
+                  <span className="faqQuestion text-[0.95rem] font-extrabold text-[#0f1d35] leading-[1.4] pr-2">
+                    {item.q}
+                  </span>
+                  <span
+                    className={`faqIcon shrink-0 text-[#0388ff] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                  >
+                    <IconChevronDown />
+                  </span>
+                </button>
+                <div
+                  className={`faqAnswer overflow-hidden transition-all duration-300 ease-in-out ${
+                    isOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <p className="faqAnswerText text-[0.88rem] text-[#6880a0] leading-[1.7] px-6 pb-5 -mt-0.5">
+                    {item.a}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // ── CTA Banner ──────────────────────────────────────────────────────────────
 function CTABanner() {
@@ -688,9 +810,9 @@ function CTABanner() {
 
 // ── Footer ──────────────────────────────────────────────────────────────────
 const footerLinks = {
-  Product: ["How it Works", "Features", "Pricing", "Changelog"],
-  Resources: ["Blog", "Docs", "Community", "Careers"],
-  Company: ["About", "Press", "Partners", "Contact"],
+  Product: ["Presentation Mode", "Interview Mode", "AI Feedback", "Progress Tracking"],
+  Resources: ["Help Center", "Video Tutorials", "Speaking Tips", "Community"],
+  Company: ["About", "Blog", "Careers", "Contact"],
 };
 
 function Footer() {
@@ -702,15 +824,11 @@ function Footer() {
             href="#"
             className="logo flex items-center gap-2 no-underline shrink-0 mb-1"
           >
-            <div
-              className="logoIcon w-7 h-7 bg-gradient-to-br from-[#0388ff] to-[#005fd3] rounded-lg flex items-center justify-center text-white"
-              style={{ width: 28, height: 28 }}
-            >
-              <IconMic style={{ width: 13, height: 13 }} />
-            </div>
-            <span className="logoText text-[1.15rem] font-bold text-white tracking-[-0.02em]">
-              Pitcho
-            </span>
+            <img
+              src="/logo-text-white.svg"
+              alt="Pitcho"
+              className="h-10 w-auto"
+            />
           </a>
           <p className="footerTagline text-[0.85rem] text-white/50 leading-[1.6] mt-3 mx-0 mb-5 max-w-[240px]">
             Practice speaking. Face distractions. Grow with feedback.
@@ -791,6 +909,7 @@ export default function LandingPage() {
         <PainSection />
         <FeaturesSection />
         <HowItWorksSection />
+        <FAQSection />
         <CTABanner />
       </main>
       <Footer />
