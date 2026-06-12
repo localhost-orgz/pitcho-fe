@@ -155,7 +155,7 @@ export default function StationPage() {
 
         <img
           src="/hero.png"
-          className="absolute -bottom-6 md:-bottom-8 lg:-bottom-10 -right-4 md:-right-8 lg:-right-10 h-52 md:h-60 lg:h-72 w-auto z-50 pointer-events-none"
+          className="hidden lg:block absolute lg:-bottom-10 lg:-right-10 lg:h-72 w-auto z-50 pointer-events-none"
         />
 
         {/* Desktop Shelf SVG Background */}
