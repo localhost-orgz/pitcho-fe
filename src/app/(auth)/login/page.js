@@ -12,7 +12,11 @@ import { Button } from "@/components/UI/button";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({ email: "", password: "", remember: false });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    remember: false,
+  });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [status, setStatus] = useState("idle"); // idle | loading | error | success
@@ -22,7 +26,8 @@ export default function LoginPage() {
   function validateField(name, value) {
     if (name === "email") {
       if (!value.trim()) return "Email is required";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Enter a valid email";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+        return "Enter a valid email";
       return "";
     }
     if (name === "password") {
@@ -84,12 +89,14 @@ export default function LoginPage() {
         return;
       }
 
+      const { token, user } = data.data;
       // Store token for use across the app
-      if (data.token) {
-        localStorage.setItem("auth-token", data.token);
+      if (token) {
+        localStorage.setItem("auth-token", token);
+        document.cookie = `auth-token=${token}; path=/`;
       }
-      if (data.user) {
-        localStorage.setItem("auth-user", JSON.stringify(data.user));
+      if (user) {
+        localStorage.setItem("auth-user", JSON.stringify(user));
       }
 
       setStatus("success");
@@ -252,10 +259,7 @@ export default function LoginPage() {
       {/* Footer link */}
       <p className="mt-6 text-center text-sm text-slate-500">
         Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-bold text-main hover:underline"
-        >
+        <Link href="/signup" className="font-bold text-main hover:underline">
           Sign up
         </Link>
       </p>
