@@ -1,0 +1,451 @@
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "overallScore": 0,
+      "grade": "F",
+      "totalSessions": 0,
+      "totalPracticeMinutes": 0,
+      "firstSessionDate": null
+    },
+    "streak": {
+      "current": 0,
+      "best": 0
+    },
+    "skills": {
+      "focus": {
+        "current": 0,
+        "trend": []
+      },
+      "pace": {
+        "current": 0,
+        "trend": []
+      },
+      "filler": {
+        "current": 0,
+        "trend": []
+      },
+      "efficiency": {
+        "current": 0,
+        "trend": []
+      }
+    },
+    "sessions": [],
+    "badges": [
+      {
+        "id": "15min-speaker",
+        "name": "15-Minute Speaker",
+        "description": "Complete a 15-minute presentation",
+        "icon": "Presentation",
+        "category": "presentation",
+        "level": 3,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 1
+        }
+      },
+      {
+        "id": "1min-speaker",
+        "name": "1-Minute Speaker",
+        "description": "Complete a 1-minute presentation",
+        "icon": "Timer",
+        "category": "presentation",
+        "level": 1,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 1
+        }
+      },
+      {
+        "id": "5min-speaker",
+        "name": "5-Minute Speaker",
+        "description": "Complete a 5-minute presentation",
+        "icon": "Clock",
+        "category": "presentation",
+        "level": 2,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 1
+        }
+      },
+      {
+        "id": "breakthrough",
+        "name": "Breakthrough",
+        "description": "Improve your overall score by 20 points",
+        "icon": "Rocket",
+        "category": "improvement",
+        "level": 2,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 20
+        }
+      },
+      {
+        "id": "case-solver",
+        "name": "Case Solver",
+        "description": "Score above 85 on a situational interview",
+        "icon": "Puzzle",
+        "category": "interview",
+        "level": 5,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": null
+      },
+      {
+        "id": "comeback",
+        "name": "Comeback",
+        "description": "Bounce back from a low score to above 80",
+        "icon": "RefreshCw",
+        "category": "improvement",
+        "level": 3,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 1
+        }
+      },
+      {
+        "id": "communication-expert",
+        "name": "Communication Expert",
+        "description": "Score above 90 on all skills in one session",
+        "icon": "Star",
+        "category": "elite",
+        "level": 4,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": null
+      },
+      {
+        "id": "consistent-rhythm",
+        "name": "Consistent Rhythm",
+        "description": "Score above 90 on pace in 5 sessions",
+        "icon": "Activity",
+        "category": "pace",
+        "level": 2,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 5
+        }
+      },
+      {
+        "id": "crystal-clear",
+        "name": "Crystal Clear",
+        "description": "Keep filler words under 1% of total words",
+        "icon": "Sparkles",
+        "category": "fluency",
+        "level": 3,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 100
+        }
+      },
+      {
+        "id": "distraction-master",
+        "name": "Distraction Master",
+        "description": "Score above 95 on focus in hard distraction mode",
+        "icon": "Brain",
+        "category": "elite",
+        "level": 3,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": null
+      },
+      {
+        "id": "first-interview",
+        "name": "First Interview",
+        "description": "Complete your first interview practice",
+        "icon": "UserCheck",
+        "category": "interview",
+        "level": 1,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 1
+        }
+      },
+      {
+        "id": "first-step",
+        "name": "First Step",
+        "description": "Complete your very first practice session",
+        "icon": "Footprints",
+        "category": "consistency",
+        "level": 1,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 1
+        }
+      },
+      {
+        "id": "fluent-speaker",
+        "name": "Fluent Speaker",
+        "description": "Keep filler words under 3% of total words",
+        "icon": "Mic",
+        "category": "fluency",
+        "level": 2,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 100
+        }
+      },
+      {
+        "id": "focused-speaker",
+        "name": "Focused Speaker",
+        "description": "Keep distracted time under 10% in a session",
+        "icon": "Eye",
+        "category": "focus",
+        "level": 1,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 100
+        }
+      },
+      {
+        "id": "getting-better",
+        "name": "Getting Better",
+        "description": "Improve your overall score by 10 points",
+        "icon": "TrendingUp",
+        "category": "improvement",
+        "level": 1,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 10
+        }
+      },
+      {
+        "id": "hr-ready",
+        "name": "HR Ready",
+        "description": "Score above 85 on a behavioral interview",
+        "icon": "Users",
+        "category": "interview",
+        "level": 4,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": null
+      },
+      {
+        "id": "interview-master",
+        "name": "Interview Master",
+        "description": "Score above 90 on an interview",
+        "icon": "Award",
+        "category": "elite",
+        "level": 2,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": null
+      },
+      {
+        "id": "iron-mind",
+        "name": "Iron Mind",
+        "description": "Keep distracted time under 2% in a session",
+        "icon": "Shield",
+        "category": "focus",
+        "level": 3,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 100
+        }
+      },
+      {
+        "id": "job-seeker",
+        "name": "Job Seeker",
+        "description": "Complete 10 interview practices",
+        "icon": "Briefcase",
+        "category": "interview",
+        "level": 2,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 10
+        }
+      },
+      {
+        "id": "laser-focus",
+        "name": "Laser Focus",
+        "description": "Keep distracted time under 5% in a session",
+        "icon": "Crosshair",
+        "category": "focus",
+        "level": 2,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 100
+        }
+      },
+      {
+        "id": "marathon-presenter",
+        "name": "Marathon Presenter",
+        "description": "Complete 10 fifteen-minute presentations",
+        "icon": "Trophy",
+        "category": "presentation",
+        "level": 4,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 10
+        }
+      },
+      {
+        "id": "on-a-roll",
+        "name": "On a Roll",
+        "description": "Practice 3 consecutive days",
+        "icon": "Flame",
+        "category": "consistency",
+        "level": 2,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 3
+        }
+      },
+      {
+        "id": "perfect-pace",
+        "name": "Perfect Pace",
+        "description": "Maintain ideal pace in your last 3 sessions",
+        "icon": "Gauge",
+        "category": "pace",
+        "level": 1,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 3
+        }
+      },
+      {
+        "id": "presentation-master",
+        "name": "Presentation Master",
+        "description": "Score above 90 on a 15-minute presentation",
+        "icon": "Crown",
+        "category": "elite",
+        "level": 1,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": null
+      },
+      {
+        "id": "smooth-talker",
+        "name": "Smooth Talker",
+        "description": "Keep filler words under 5% of total words",
+        "icon": "MessageCircle",
+        "category": "fluency",
+        "level": 1,
+        "color": "orange",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 100
+        }
+      },
+      {
+        "id": "technical-challenger",
+        "name": "Technical Challenger",
+        "description": "Complete a technical interview",
+        "icon": "Code",
+        "category": "interview",
+        "level": 3,
+        "color": "purple",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": null
+      },
+      {
+        "id": "unshakeable",
+        "name": "Unshakeable",
+        "description": "Stay focused under hard distractions",
+        "icon": "Mountain",
+        "category": "focus",
+        "level": 4,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 100
+        }
+      },
+      {
+        "id": "unstoppable",
+        "name": "Unstoppable",
+        "description": "Practice 30 consecutive days",
+        "icon": "Zap",
+        "category": "consistency",
+        "level": 4,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 30
+        }
+      },
+      {
+        "id": "weekly-warrior",
+        "name": "Weekly Warrior",
+        "description": "Practice 7 consecutive days",
+        "icon": "CalendarCheck",
+        "category": "consistency",
+        "level": 3,
+        "color": "green",
+        "unlocked": false,
+        "unlockedAt": null,
+        "progress": {
+          "current": 0,
+          "target": 7
+        }
+      }
+    ]
+  }
+}

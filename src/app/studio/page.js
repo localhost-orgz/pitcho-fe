@@ -231,23 +231,6 @@ export default function StationPage() {
             </div>
           </div>
 
-          <div className="h-full w-0.5 bg-gray-300 rounded-full"></div>
-
-          <div className="flex-1 flex items-center gap-3">
-            <Image
-              src="/star.png"
-              width={40}
-              height={40}
-              className="w-9 h-9 shrink-0"
-              alt="points"
-            />
-            <div className="flex flex-col">
-              <span className="font-bold text-sm text-slate-800">2,450 XP</span>
-              <span className="text-[11px] text-slate-500 font-bold leading-none">
-                Pitcho Points
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Continue Your Practice (Order 2 on Mobile, Order 1 on Desktop) */}
@@ -338,30 +321,17 @@ export default function StationPage() {
               <span className="text-sm text-slate-500">keep it going!</span>
             </div>
           </div>
-          <div className="w-full bg-indigo-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
-            <Image
-              src="/target.svg"
-              width={100}
-              height={100}
-              className="w-9 h-9"
-              alt="dart"
-            />
-            <div className="flex flex-col">
-              <span className="font-bold">5 Goals Completed</span>
-              <span className="text-sm text-slate-500">this week!</span>
-            </div>
-          </div>
-          <div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+<div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
             <Image
               src="/trophy.svg"
               width={100}
               height={100}
               className="w-9 h-9"
-              alt="trophy"
+              alt="badge"
             />
             <div className="flex flex-col">
-              <span className="font-bold">8 Achievements</span>
-              <span className="text-sm text-slate-500">unlocked!</span>
+              <span className="font-bold">12 Badges</span>
+              <span className="text-sm text-slate-500">owned now!</span>
             </div>
           </div>
         </div>

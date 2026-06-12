@@ -49,7 +49,8 @@ const SidebarItem = ({ label, href, icon: Icon, active }) => {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const isPracticeActive = pathname.startsWith("/interview") || pathname.startsWith("/presentation");
+  const isPracticeActive =
+    pathname.startsWith("/interview") || pathname.startsWith("/presentation");
   const [practiceOpen, setPracticeOpen] = useState(isPracticeActive);
   const [prevPathname, setPrevPathname] = useState(pathname);
 
@@ -72,8 +73,6 @@ export default function Sidebar() {
     }
     return pathname === href || pathname.startsWith(href);
   };
-
-
 
   return (
     <div className="hidden md:flex flex-col justify-between w-20 lg:w-64 h-screen fixed left-0 top-0 p-4 border-r border-slate-100 bg-white text-slate-800 z-10 select-none">
@@ -213,19 +212,19 @@ export default function Sidebar() {
               <span className="text-sm font-extrabold text-slate-850 leading-tight">
                 Faza Mumtaz
               </span>
-              <span className="text-xs font-bold text-slate-400">Level 12</span>
+              {/* <span className="text-xs font-bold text-slate-400">Level 12</span> */}
             </div>
           </div>
 
           {/* XP Progress Bar (Only visible when expanded) */}
-          <div className="hidden lg:flex flex-col mt-1">
+          {/* <div className="hidden lg:flex flex-col mt-1">
             <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
               <div className="bg-[#0066ff] h-full rounded-full w-[68%]" />
             </div>
             <span className="text-[10px] font-bold text-slate-400 mt-1.5 text-right leading-none">
               820 / 1200 XP
             </span>
-          </div>
+          </div> */}
         </div>
 
         {/* Log Out button */}

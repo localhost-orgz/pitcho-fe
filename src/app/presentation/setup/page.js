@@ -120,7 +120,7 @@ export default function PresentationSetupPage() {
           const arr = new Uint8Array(buffer);
           const decoder = new TextDecoder("ascii");
           const text = decoder.decode(arr);
-          
+
           let maxPages = 0;
           const countRegex = /\/Count\s*(\d+)/g;
           let match;
@@ -130,19 +130,19 @@ export default function PresentationSetupPage() {
               maxPages = val;
             }
           }
-          
+
           if (maxPages > 0) {
             resolve(maxPages);
             return;
           }
-          
+
           const pageRegex = /\/Type\s*\/Page\b/g;
           const pageMatches = text.match(pageRegex);
           if (pageMatches) {
             resolve(pageMatches.length);
             return;
           }
-          
+
           resolve(1);
         } catch (err) {
           console.error("Error parsing PDF pages:", err);
@@ -156,55 +156,65 @@ export default function PresentationSetupPage() {
 
   const handleFile = async (file) => {
     if (!file) return;
-    
+
     // 1. Validate file type (PDF only, no PPT/PPTX etc.)
-    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isPDF =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
     if (!isPDF) {
-      alert("Only PDF files are allowed. PPT or other file formats cannot be uploaded.");
+      alert(
+        "Only PDF files are allowed. PPT or other file formats cannot be uploaded.",
+      );
       return;
     }
-    
+
     // 2. Validate file size (max 4MB)
     const maxSizeBytes = 4 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
-      alert("The uploaded file exceeds the 4MB limit. Please upload a file below 4MB.");
+      alert(
+        "The uploaded file exceeds the 4MB limit. Please upload a file below 4MB.",
+      );
       return;
     }
-    
+
     setRawFile(file);
     setUploadError("");
     setCueCardStatus("loading");
-    
+
     // 3. Extract page count and calculate size in MB
     const pages = await extractPdfPageCount(file);
     const sizeInMB = (file.size / (1024 * 1024)).toFixed(2) + " MB";
-    
+
     setUploadedFile({
       name: file.name,
       pages: pages,
       size: sizeInMB,
     });
-    
+
     // 4. Hit API
     try {
       const formData = new FormData();
       formData.append("file", file);
-      
-      const res = await fetch("https://pitcho-be.vercel.app/api/presentation/upload", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3NmFiNDI1NS1mZGUwLTRiNWEtOWM0Zi1iMjRkMTRmNDA2ZjkiLCJlbWFpbCI6ImZhemFtdW10YXpyYW1hZGhhbkBnbWFpbC5jb20iLCJpYXQiOjE3ODEyNTA0MDEsImV4cCI6MTc4MTg1NTIwMX0.SkI5ausTOZaooyrk2MfL2g4q3ODvSyQambsG5guAI0M"
+
+      const res = await fetch(
+        "https://pitcho-be.vercel.app/api/presentation/upload",
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3NmFiNDI1NS1mZGUwLTRiNWEtOWM0Zi1iMjRkMTRmNDA2ZjkiLCJlbWFpbCI6ImZhemFtdW10YXpyYW1hZGhhbkBnbWFpbC5jb20iLCJpYXQiOjE3ODEyNTA0MDEsImV4cCI6MTc4MTg1NTIwMX0.SkI5ausTOZaooyrk2MfL2g4q3ODvSyQambsG5guAI0M",
+          },
+          body: formData,
         },
-        body: formData,
-      });
-      
+      );
+
       if (!res.ok) {
         throw new Error(`Failed to upload: ${res.statusText}`);
       }
-      
+
       const data = await res.json();
       console.log("Upload response data:", data);
-      
+
       let slidesData = null;
       if (data) {
         if (Array.isArray(data.data)) {
@@ -223,12 +233,17 @@ export default function PresentationSetupPage() {
 
       if (slidesData) {
         // Change the cue card with the response data
-        const slidesArray = Array.isArray(slidesData) ? slidesData : [slidesData];
+        const slidesArray = Array.isArray(slidesData)
+          ? slidesData
+          : [slidesData];
         setCueCards(slidesArray);
         setActiveSlideIndex(0); // Reset index on new upload
         setCueCardStatus("ready");
       } else {
-        console.error("Missing expected slides data in response. Response payload:", data);
+        console.error(
+          "Missing expected slides data in response. Response payload:",
+          data,
+        );
         throw new Error("Invalid response structure from server");
       }
     } catch (error) {
@@ -264,7 +279,7 @@ export default function PresentationSetupPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       handleFile(file);
@@ -273,7 +288,9 @@ export default function PresentationSetupPage() {
 
   const handleStartPresentation = () => {
     if (cameraStatus !== "ready" || micStatus !== "ready") {
-      alert("Please verify and allow access to both your camera and microphone before starting the simulation session.");
+      alert(
+        "Please verify and allow access to both your camera and microphone before starting the simulation session.",
+      );
       return;
     }
     if (cueCardStatus === "loading") {
@@ -281,7 +298,10 @@ export default function PresentationSetupPage() {
     }
 
     // Save all configurations to localStorage
-    localStorage.setItem("pitcho_presentation_file", JSON.stringify(uploadedFile));
+    localStorage.setItem(
+      "pitcho_presentation_file",
+      JSON.stringify(uploadedFile),
+    );
     localStorage.setItem("pitcho_selected_distraction", selectedDistraction);
     localStorage.setItem("pitcho_selected_audience", selectedAudience);
     localStorage.setItem("pitcho_selected_duration", selectedDuration);
@@ -357,8 +377,8 @@ export default function PresentationSetupPage() {
       borderClass: "border-yellow-400",
     },
     {
-      key: "hard",
-      label: "Hard",
+      key: "High",
+      label: "High",
       desc: "Lots distractions",
       icon: Angry,
       iconClass: "text-red-500",
@@ -426,7 +446,7 @@ export default function PresentationSetupPage() {
                   <Download size={15} />
                   Upload file
                 </button>
-                <span 
+                <span
                   onClick={handleUploadClick}
                   className="font-bold text-main text-sm cursor-pointer"
                 >
@@ -443,8 +463,8 @@ export default function PresentationSetupPage() {
                 onDrop={handleDrop}
                 onClick={handleUploadClick}
                 className={`w-full p-6 mt-5 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${
-                  dragActive 
-                    ? "border-main bg-main/10" 
+                  dragActive
+                    ? "border-main bg-main/10"
                     : "border-slate-300 hover:border-main hover:bg-main/5"
                 }`}
               >
@@ -544,7 +564,8 @@ export default function PresentationSetupPage() {
                 <ScrollText className="text-yellow-500" size={20} />
               </div>
               <span className="font-bold text-sm">Cue Card Preview</span>
-            </div>            {cueCardStatus === "empty" && (
+            </div>{" "}
+            {cueCardStatus === "empty" && (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
                 <FileText size={32} className="text-amber-400" />
                 <span className="text-sm text-amber-700 font-medium text-center">
@@ -552,7 +573,6 @@ export default function PresentationSetupPage() {
                 </span>
               </div>
             )}
-
             {cueCardStatus === "loading" && (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
                 <Loader2 size={32} className="text-amber-500 animate-spin" />
@@ -568,94 +588,126 @@ export default function PresentationSetupPage() {
                 </div>
               </div>
             )}
+            {cueCardStatus === "ready" &&
+              cueCards.length > 0 &&
+              (() => {
+                const activeSlide = cueCards[activeSlideIndex] || {};
+                const isSlideObject =
+                  typeof activeSlide === "object" && activeSlide !== null;
 
-            {cueCardStatus === "ready" && cueCards.length > 0 && (() => {
-              const activeSlide = cueCards[activeSlideIndex] || {};
-              const isSlideObject = typeof activeSlide === "object" && activeSlide !== null;
-              
-              const title = isSlideObject ? (activeSlide.title || `Slide ${activeSlideIndex + 1}`) : activeSlide;
-              const talkingPoints = isSlideObject ? (activeSlide.talking_points || []) : [];
-              const transitionSentence = isSlideObject ? activeSlide.transition_sentence : "";
+                const title = isSlideObject
+                  ? activeSlide.title || `Slide ${activeSlideIndex + 1}`
+                  : activeSlide;
+                const talkingPoints = isSlideObject
+                  ? activeSlide.talking_points || []
+                  : [];
+                const transitionSentence = isSlideObject
+                  ? activeSlide.transition_sentence
+                  : "";
 
-              return (
-                <div className="flex flex-col gap-4 mt-2">
-                  {/* Carousel Header Controls */}
-                  <div className="flex items-center justify-between border-b border-amber-200 pb-3">
-                    <span className="text-xs font-bold text-amber-800">
-                      Slide {activeSlideIndex + 1} of {cueCards.length}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setActiveSlideIndex(prev => Math.max(0, prev - 1))}
-                        disabled={activeSlideIndex === 0}
-                        className="p-1 rounded-md border border-amber-300 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-100/50"
-                        title="Previous Slide"
-                      >
-                        <ChevronLeft size={16} className="text-amber-800" />
-                      </button>
-                      <button
-                        onClick={() => setActiveSlideIndex(prev => Math.min(cueCards.length - 1, prev + 1))}
-                        disabled={activeSlideIndex === cueCards.length - 1}
-                        className="p-1 rounded-md border border-amber-300 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-100/50"
-                        title="Next Slide"
-                      >
-                        <ChevronRight size={16} className="text-amber-800" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 1. Slide Title */}
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">Slide Title</span>
-                    <h5 className="text-sm font-bold text-slate-800 leading-snug bg-white/60 p-2.5 rounded-lg border border-amber-200/40">
-                      {title}
-                    </h5>
-                  </div>
-
-                  {/* 2. Talking Points (Speaking Notes) */}
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">Key Speaking Guide</span>
-                    <div className="flex flex-col gap-2 bg-white/40 p-3 rounded-lg border border-amber-200/40 min-h-[90px]">
-                      {talkingPoints.length > 0 ? (
-                        talkingPoints.map((point, index) => (
-                          <div key={index} className="flex items-start gap-2.5">
-                            <span className="text-amber-500 font-bold shrink-0 mt-0.5">•</span>
-                            <span className="text-xs text-slate-700 font-medium leading-relaxed">
-                              {point}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">No specific talking points generated.</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 3. Transition Sentence */}
-                  {transitionSentence && (
-                    <div className="flex flex-col gap-1 mt-1">
-                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">Smooth Bridge/Transition</span>
-                      <div className="text-xs text-amber-900 font-medium italic leading-relaxed bg-amber-100/60 p-3 rounded-lg border border-amber-200/60 flex items-start gap-2">
-                        <span className="text-amber-500 shrink-0 mt-0.5">🔗</span>
-                        <span>"{transitionSentence}"</span>
+                return (
+                  <div className="flex flex-col gap-4 mt-2">
+                    {/* Carousel Header Controls */}
+                    <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                      <span className="text-xs font-bold text-amber-800">
+                        Slide {activeSlideIndex + 1} of {cueCards.length}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            setActiveSlideIndex((prev) => Math.max(0, prev - 1))
+                          }
+                          disabled={activeSlideIndex === 0}
+                          className="p-1 rounded-md border border-amber-300 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-100/50"
+                          title="Previous Slide"
+                        >
+                          <ChevronLeft size={16} className="text-amber-800" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setActiveSlideIndex((prev) =>
+                              Math.min(cueCards.length - 1, prev + 1),
+                            )
+                          }
+                          disabled={activeSlideIndex === cueCards.length - 1}
+                          className="p-1 rounded-md border border-amber-300 bg-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-100/50"
+                          title="Next Slide"
+                        >
+                          <ChevronRight size={16} className="text-amber-800" />
+                        </button>
                       </div>
                     </div>
-                  )}
 
-                  {/* Tips banner */}
-                  <div className="mt-1 flex items-center gap-2 rounded-lg bg-amber-100/30 px-3 py-2 border border-amber-200/30">
-                    <span className="text-amber-500 text-sm">💡</span>
-                    <span className="text-[11px] text-amber-800 font-medium leading-normal">
-                      Practice explaining this slide using the points. Use the transition sentence before changing slides!
-                    </span>
+                    {/* 1. Slide Title */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">
+                        Slide Title
+                      </span>
+                      <h5 className="text-sm font-bold text-slate-800 leading-snug bg-white/60 p-2.5 rounded-lg border border-amber-200/40">
+                        {title}
+                      </h5>
+                    </div>
+
+                    {/* 2. Talking Points (Speaking Notes) */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">
+                        Key Speaking Guide
+                      </span>
+                      <div className="flex flex-col gap-2 bg-white/40 p-3 rounded-lg border border-amber-200/40 min-h-[90px]">
+                        {talkingPoints.length > 0 ? (
+                          talkingPoints.map((point, index) => (
+                            <div
+                              key={index}
+                              className="flex items-start gap-2.5"
+                            >
+                              <span className="text-amber-500 font-bold shrink-0 mt-0.5">
+                                •
+                              </span>
+                              <span className="text-xs text-slate-700 font-medium leading-relaxed">
+                                {point}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">
+                            No specific talking points generated.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 3. Transition Sentence */}
+                    {transitionSentence && (
+                      <div className="flex flex-col gap-1 mt-1">
+                        <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700/80">
+                          Smooth Bridge/Transition
+                        </span>
+                        <div className="text-xs text-amber-900 font-medium italic leading-relaxed bg-amber-100/60 p-3 rounded-lg border border-amber-200/60 flex items-start gap-2">
+                          <span className="text-amber-500 shrink-0 mt-0.5">
+                            🔗
+                          </span>
+                          <span>"{transitionSentence}"</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tips banner */}
+                    <div className="mt-1 flex items-center gap-2 rounded-lg bg-amber-100/30 px-3 py-2 border border-amber-200/30">
+                      <span className="text-amber-500 text-sm">💡</span>
+                      <span className="text-[11px] text-amber-800 font-medium leading-normal">
+                        Practice explaining this slide using the points. Use the
+                        transition sentence before changing slides!
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })()}
-
+                );
+              })()}
             {cueCardStatus === "error" && (
               <div className="flex flex-col items-center justify-center py-6 gap-3 text-center">
-                <AlertTriangle size={32} className="text-red-500 animate-pulse" />
+                <AlertTriangle
+                  size={32}
+                  className="text-red-500 animate-pulse"
+                />
                 <span className="text-sm text-red-700 font-medium">
                   {uploadError || "Failed to generate speaking notes."}
                 </span>
@@ -693,9 +745,13 @@ export default function PresentationSetupPage() {
             <div className="flex items-center gap-1">
               <h6 className="text-sm font-bold">Distractions Intensity</h6>
               <div className="relative group flex items-center cursor-pointer">
-                <CircleQuestionMark className="text-slate-400 hover:text-slate-600 transition-colors" size={15} />
+                <CircleQuestionMark
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                  size={15}
+                />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-slate-900 text-white text-[11px] font-bold rounded-lg p-2.5 shadow-xl leading-normal text-center z-50">
-                  Adjust the frequency and volume of audience sounds, movements, and notifications during your practice.
+                  Adjust the frequency and volume of audience sounds, movements,
+                  and notifications during your practice.
                   <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900" />
                 </div>
               </div>
@@ -734,9 +790,13 @@ export default function PresentationSetupPage() {
             <div className="flex items-center gap-1">
               <h6 className="text-sm font-bold">Audience Type</h6>
               <div className="relative group flex items-center cursor-pointer">
-                <CircleQuestionMark className="text-slate-400 hover:text-slate-600 transition-colors" size={15} />
+                <CircleQuestionMark
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                  size={15}
+                />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-slate-900 text-white text-[11px] font-bold rounded-lg p-2.5 shadow-xl leading-normal text-center z-50">
-                  Select the virtual environment setting and size of the audience for your presentation simulation.
+                  Select the virtual environment setting and size of the
+                  audience for your presentation simulation.
                   <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900" />
                 </div>
               </div>
@@ -886,9 +946,13 @@ export default function PresentationSetupPage() {
             <div className="flex items-center gap-1">
               <h6 className="text-sm font-bold">Session Length</h6>
               <div className="relative group flex items-center cursor-pointer">
-                <CircleQuestionMark className="text-slate-400 hover:text-slate-600 transition-colors" size={15} />
+                <CircleQuestionMark
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                  size={15}
+                />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-slate-900 text-white text-[11px] font-bold rounded-lg p-2.5 shadow-xl leading-normal text-center z-50">
-                  Choose the total practice duration for your presentation. The system timer will lock to this value.
+                  Choose the total practice duration for your presentation. The
+                  system timer will lock to this value.
                   <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900" />
                 </div>
               </div>
@@ -986,11 +1050,17 @@ export default function PresentationSetupPage() {
           </div>
         </div>
         <div className="flex flex-col justify-center items-center">
-          <button 
-            disabled={cameraStatus !== "ready" || micStatus !== "ready" || cueCardStatus === "loading"}
+          <button
+            disabled={
+              cameraStatus !== "ready" ||
+              micStatus !== "ready" ||
+              cueCardStatus === "loading"
+            }
             onClick={handleStartPresentation}
             className={`flex gap-2 items-center rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors ${
-              cameraStatus === "ready" && micStatus === "ready" && cueCardStatus !== "loading"
+              cameraStatus === "ready" &&
+              micStatus === "ready" &&
+              cueCardStatus !== "loading"
                 ? "bg-main hover:bg-main/90 cursor-pointer"
                 : "bg-slate-300 cursor-not-allowed opacity-75"
             }`}

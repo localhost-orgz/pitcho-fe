@@ -3,231 +3,497 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Flame,
-  TrendingUp,
   Mic,
   Trophy,
-  Info,
   Calendar,
   ChevronDown,
-  Lock,
-  Eye,
-  Timer,
-  AudioLines,
-  Award,
-  Plus,
-  Minus
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ConsistencyHeatmap from "@/components/UI/ConsistencyHeatmap";
+import StreakRing from "@/components/Progress/StreakRing";
+import SessionHistoryList from "@/components/Progress/SessionHistoryList";
+import BadgeGrid from "@/components/Progress/BadgeGrid";
+import { BADGE_DEFINITIONS } from "@/lib/badgeDefinitions";
 
-// ── Dummy Data for Months ────────────────────────────────────
-const MONTHS_DATA = [
-  {
-    name: "May 2025",
-    monthIndex: 4,
-    year: 2025,
-    streak: 15,
-    bestStreak: 21,
-    sessionsCompleted: 24,
-    improvement: 18,
-    badgesEarned: 7,
-    radarUser: { eyeContact: 78, speakingPace: 72, fillerWords: 85 },
-    radarAvg: { eyeContact: 60, speakingPace: 65, fillerWords: 68 },
-    timeline: {
-      eyeContact: [62, 65, 71, 75, 78],
-      fillerWords: [55, 60, 68, 72, 85], // control percentage (higher is fewer filler words)
-      wpm: [142, 138, 133, 130, 128] // approaching target wpm
-    },
-    sessions: {
-      1: 1, 2: 0, 3: 2, 4: 0, 5: 1, 6: 1, 7: 0,
-      8: 3, 9: 1, 10: 2, 11: 0, 12: 1, 13: 0, 14: 2,
-      15: 3, 16: 2, 17: 1, 18: 3, 19: 2, 20: 0, 21: 1,
-      22: 0, 23: 1, 24: 0, 25: 2, 26: 0, 27: 1, 28: 3,
-      29: 2, 30: 0, 31: 1
+// ── Mock session generation ──────────────────────────────────
+// Generates realistic session objects spanning ~3 months
+// Adapted from progress-v2/mockData.js
+// Uses a seeded PRNG so server and client render identical data.
+
+function createRng(seed) {
+  let s = seed | 0;
+  return function () {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const TOPICS = [
+  "Product Launch Pitch",
+  "Q1 Financial Review",
+  "Team Standup Update",
+  "UX Redesign Proposal",
+  "Job Interview: Frontend Lead",
+  "Sales Deck Walkthrough",
+  "Investor Pitch Practice",
+  "Conference Talk: AI in Education",
+  "Job Interview: Product Manager",
+  "Client Onboarding Presentation",
+  "Monthly Metrics Review",
+  "Hackathon Demo Pitch",
+  "Job Interview: Engineering Manager",
+  "Board Meeting Update",
+  "Job Interview: Startup CTO Role",
+  "Marketing Campaign Pitch",
+  "Internal Tool Demo",
+  "All-Hands Company Update",
+  "Job Interview: Senior Developer",
+  "Workshop: Public Speaking 101",
+];
+
+const FILLER_OPTIONS = [
+  "um",
+  "uh",
+  "like",
+  "you know",
+  "I mean",
+  "sort of",
+  "kind of",
+  "actually",
+  "basically",
+  "literally",
+];
+
+function generateSessions(rng) {
+  const sessions = [];
+  // Sessions across May, April, March 2025 (roughly one every ~3 days)
+  const dates = [
+    { y: 2025, m: 5, d: 1 },
+    { y: 2025, m: 5, d: 3 },
+    { y: 2025, m: 5, d: 6 },
+    { y: 2025, m: 5, d: 9 },
+    { y: 2025, m: 5, d: 12 },
+    { y: 2025, m: 5, d: 15 },
+    { y: 2025, m: 5, d: 18 },
+    { y: 2025, m: 5, d: 20 },
+    { y: 2025, m: 4, d: 1 },
+    { y: 2025, m: 4, d: 4 },
+    { y: 2025, m: 4, d: 7 },
+    { y: 2025, m: 4, d: 10 },
+    { y: 2025, m: 4, d: 13 },
+    { y: 2025, m: 4, d: 16 },
+    { y: 2025, m: 4, d: 19 },
+    { y: 2025, m: 4, d: 22 },
+    { y: 2025, m: 4, d: 25 },
+    { y: 2025, m: 3, d: 2 },
+    { y: 2025, m: 3, d: 5 },
+    { y: 2025, m: 3, d: 8 },
+    { y: 2025, m: 3, d: 11 },
+    { y: 2025, m: 3, d: 14 },
+    { y: 2025, m: 3, d: 17 },
+    { y: 2025, m: 3, d: 20 },
+  ];
+
+  dates.forEach(({ y, m, d }, idx) => {
+    const mode = idx % 5 === 0 ? "interview" : "presentation";
+    const isPresentation = mode === "presentation";
+
+    // Scores generally improve over time
+    const progress = idx / (dates.length - 1); // 0 to 1
+    const base = 55 + Math.round(progress * 35);
+    const noise = Math.round((rng() - 0.5) * 16);
+    const overallScore = Math.min(100, Math.max(40, base + noise));
+
+    const scores = {
+      focus: Math.min(
+        100,
+        Math.max(
+          25,
+          50 +
+            Math.round(progress * 42) +
+            Math.round((rng() - 0.5) * 14),
+        ),
+      ),
+      pace: Math.min(
+        100,
+        Math.max(
+          30,
+          55 +
+            Math.round(progress * 25) +
+            Math.round((rng() - 0.5) * 12),
+        ),
+      ),
+      filler: Math.min(
+        100,
+        Math.max(
+          20,
+          40 +
+            Math.round(progress * 40) +
+            Math.round((rng() - 0.5) * 18),
+        ),
+      ),
+      efficiency: Math.min(
+        100,
+        Math.max(
+          25,
+          48 +
+            Math.round(progress * 35) +
+            Math.round((rng() - 0.5) * 14),
+        ),
+      ),
+    };
+
+    const duration = isPresentation
+      ? [180, 300, 600, 300, 420][idx % 5]
+      : [600, 900, 720, 480, 540][idx % 5];
+    const wordCount = Math.round(
+      duration * (isPresentation ? 2.2 : 1.8) + (rng() - 0.5) * 100,
+    );
+
+    // Filler words
+    const fillerRate = Math.max(0, ((100 - scores.filler) / 100) * 0.12);
+    const fillerCount = Math.round(wordCount * fillerRate);
+    const fillerWords = [];
+    for (let i = 0; i < Math.min(fillerCount, 15); i++) {
+      fillerWords.push({
+        word: FILLER_OPTIONS[i % FILLER_OPTIONS.length],
+        timestamp: Math.round(rng() * duration),
+      });
     }
-  },
-  {
-    name: "April 2025",
-    monthIndex: 3,
-    year: 2025,
-    streak: 10,
-    bestStreak: 18,
-    sessionsCompleted: 18,
-    improvement: 12,
-    badgesEarned: 5,
-    radarUser: { eyeContact: 70, speakingPace: 68, fillerWords: 75 },
-    radarAvg: { eyeContact: 58, speakingPace: 63, fillerWords: 66 },
-    timeline: {
-      eyeContact: [55, 58, 62, 68, 70],
-      fillerWords: [50, 52, 60, 65, 75],
-      wpm: [150, 145, 140, 138, 135]
-    },
-    sessions: {
-      1: 0, 2: 1, 3: 0, 4: 2, 5: 0, 6: 1, 7: 1,
-      8: 0, 9: 2, 10: 0, 11: 3, 12: 1, 13: 0, 14: 1,
-      15: 0, 16: 2, 17: 0, 18: 1, 19: 2, 20: 0, 21: 0,
-      22: 3, 23: 1, 24: 0, 25: 1, 26: 0, 27: 2, 28: 0,
-      29: 1, 30: 2
+
+    // Look-away events
+    const lookAwayCount = Math.max(
+      0,
+      Math.round(((100 - scores.focus) / 100) * 6) +
+        Math.round((rng() - 0.5) * 2),
+    );
+    const lookAwayEvents = [];
+    for (let i = 0; i < lookAwayCount; i++) {
+      lookAwayEvents.push({
+        timestamp: Math.round(rng() * duration),
+        type: rng() > 0.5 ? "head" : "eye",
+        duration: parseFloat((rng() * 3 + 0.5).toFixed(1)),
+      });
     }
-  },
-  {
-    name: "March 2025",
-    monthIndex: 2,
-    year: 2025,
-    streak: 6,
-    bestStreak: 12,
-    sessionsCompleted: 14,
-    improvement: 8,
-    badgesEarned: 4,
-    radarUser: { eyeContact: 64, speakingPace: 60, fillerWords: 68 },
-    radarAvg: { eyeContact: 57, speakingPace: 62, fillerWords: 65 },
-    timeline: {
-      eyeContact: [50, 52, 55, 60, 64],
-      fillerWords: [42, 48, 55, 60, 68],
-      wpm: [160, 155, 150, 146, 142]
-    },
-    sessions: {
-      1: 1, 2: 0, 3: 0, 4: 1, 5: 0, 6: 2, 7: 0,
-      8: 1, 9: 0, 10: 0, 11: 2, 12: 0, 13: 1, 14: 1,
-      15: 0, 16: 0, 17: 2, 18: 0, 19: 1, 20: 0, 21: 3,
-      22: 0, 23: 0, 24: 1, 25: 0, 26: 2, 27: 0, 28: 1,
-      29: 0, 30: 1, 31: 0
+
+    const dateObj = new Date(y, m - 1, d);
+    const formattedDate = dateObj.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    sessions.push({
+      id: `sess_${String(idx).padStart(3, "0")}`,
+      date: dateObj.toISOString(),
+      formattedDate,
+      mode,
+      overallScore,
+      scores,
+      duration,
+      wordCount,
+      averageWpm: Math.round(110 + rng() * 60),
+      fillerWords,
+      lookAwayEvents,
+      totalDistractedTime: lookAwayEvents.reduce(
+        (sum, e) => sum + e.duration,
+        0,
+      ),
+      transcript: isPresentation
+        ? "Thank you all for joining today. I want to walk you through our latest product metrics and share some exciting updates... The key takeaway here is that we've seen a 40% increase in user engagement since the last quarter. Looking at the data, we can identify three main drivers of this growth."
+        : "I believe my experience aligns well with this role. In my previous position, I led a team of five engineers through a complete platform migration... One of the challenges we faced was managing stakeholder expectations while maintaining sprint velocity.",
+      topic: TOPICS[idx % TOPICS.length],
+    });
+  });
+
+  // Sort newest first
+  sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return sessions;
+}
+
+const ALL_SESSIONS = generateSessions(createRng(42));
+
+// ── Month definitions for the dropdown ────────────────────────
+const MONTHS = [
+  { name: "May 2025", monthIndex: 4, year: 2025 },
+  { name: "April 2025", monthIndex: 3, year: 2025 },
+  { name: "March 2025", monthIndex: 2, year: 2025 },
+];
+
+// ── Build badge display data from definitions ─────────────────
+function buildBadgeDisplayData(definitions, unlockedMap, progressMap) {
+  return definitions.map((def) => ({
+    id: def.id,
+    name: def.name,
+    description: def.description,
+    icon: def.icon,
+    category: def.category,
+    level: def.level,
+    color: def.color,
+    unlocked: !!unlockedMap[def.id],
+    unlockedDate: unlockedMap[def.id] || null,
+    progress: progressMap[def.id] || null,
+    criteria: def.description,
+  }));
+}
+
+// ── Compute 7-day weekly history for StreakRing ───────────────
+function computeWeeklyHistory(sessions) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const practicedToday = sessions.some((s) => {
+    const sd = new Date(s.date);
+    sd.setHours(0, 0, 0, 0);
+    return sd.getTime() === today.getTime();
+  });
+
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
+    const isToday = i === 0;
+    last7Days.push({
+      day: d.toLocaleDateString("en-US", { weekday: "short" }),
+      status: isToday
+        ? practicedToday
+          ? "today-done"
+          : "today-pending"
+        : hasSession
+          ? "done"
+          : "missed",
+    });
+  }
+
+  return { practicedToday, weeklyHistory: last7Days };
+}
+
+// ── Compute current streak from sessions ──────────────────────
+function computeStreak(sessions) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Build set of dates that have sessions
+  const sessionDates = new Set(
+    sessions.map((s) => {
+      const d = new Date(s.date);
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString().slice(0, 10);
+    }),
+  );
+
+  // Count consecutive days going backwards from today
+  let current = 0;
+  const check = new Date(today);
+  while (sessionDates.has(check.toISOString().slice(0, 10))) {
+    current++;
+    check.setDate(check.getDate() - 1);
+  }
+
+  // Count best streak (longest consecutive run in the data)
+  let best = 0;
+  let run = 0;
+  const sortedDates = Array.from(sessionDates).sort();
+  for (let i = 0; i < sortedDates.length; i++) {
+    if (i === 0) {
+      run = 1;
+    } else {
+      const prev = new Date(sortedDates[i - 1]);
+      const curr = new Date(sortedDates[i]);
+      const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+      if (diff === 1) {
+        run++;
+      } else {
+        run = 1;
+      }
+    }
+    best = Math.max(best, run);
+  }
+
+  // If no session today, the streak might have ended
+  // For mock data, if today has a session, streak is current; otherwise maybe 0
+  const hasToday = sessionDates.has(today.toISOString().slice(0, 10));
+  if (!hasToday && current === 0) {
+    // Check if yesterday had one — if so, streak is still alive
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (sessionDates.has(yesterday.toISOString().slice(0, 10))) {
+      // Count from yesterday backwards
+      let cnt = 0;
+      const c = new Date(yesterday);
+      while (sessionDates.has(c.toISOString().slice(0, 10))) {
+        cnt++;
+        c.setDate(c.getDate() - 1);
+      }
+      current = cnt;
     }
   }
-];
 
-// ── Badges List ──────────────────────────────────────────────
-const BADGES = [
-  { id: "smooth", label: "Smooth Speaker", desc: "Speak with minimal filler words", icon: Mic, color: "text-purple-500 bg-purple-50 border-purple-200", unlocked: true },
-  { id: "eye", label: "Eye Contact Pro", desc: "Maintain 80%+ eye contact", icon: Eye, color: "text-emerald-500 bg-emerald-50 border-emerald-200", unlocked: true },
-  { id: "focus", label: "Focus Keeper", desc: "Complete drills under distraction", icon: Flame, color: "text-amber-500 bg-amber-50 border-amber-200", unlocked: true },
-  { id: "learner", label: "Consistent Learner", desc: "Practice 5 days in a row", icon: Calendar, color: "text-sky-500 bg-sky-50 border-sky-200", unlocked: true },
-  { id: "clear", label: "Clear Communicator", desc: "Deliver optimal speaking pace", icon: AudioLines, color: "text-indigo-500 bg-indigo-50 border-indigo-200", unlocked: true },
-  { id: "survivor", label: "Distraction Survivor", desc: "Survive sirens and visual blinks", icon: AlertTrianglePlaceholder, color: "text-slate-400 bg-slate-50 border-slate-200", unlocked: false },
-  { id: "master", label: "High Pressure Master", desc: "Speak perfectly with high noise level", icon: ShieldPlaceholder, color: "text-slate-400 bg-slate-50 border-slate-200", unlocked: false },
-  { id: "story", label: "Storyteller", desc: "Use storytelling elements in practice", icon: BookOpenPlaceholder, color: "text-slate-400 bg-slate-50 border-slate-200", unlocked: false },
-  { id: "confident", label: "Confident Speaker", desc: "Reach 90%+ confidence level", icon: SmilePlaceholder, color: "text-slate-400 bg-slate-50 border-slate-200", unlocked: false },
-  { id: "ace", label: "Presentation Ace", desc: "Complete 50 total presentation sessions", icon: Trophy, color: "text-slate-400 bg-slate-50 border-slate-200", unlocked: false }
-];
-
-// Placeholder components for custom icons since we want to avoid extra packages
-function AlertTrianglePlaceholder({ className }) {
-  return <Award className={className} />;
-}
-function ShieldPlaceholder({ className }) {
-  return <Award className={className} />;
-}
-function BookOpenPlaceholder({ className }) {
-  return <Award className={className} />;
-}
-function SmilePlaceholder({ className }) {
-  return <Award className={className} />;
+  return {
+    current: Math.max(current, hasToday ? 1 : 0),
+    best: Math.max(best, current),
+  };
 }
 
+// ── Main Page Component ───────────────────────────────────────
 export default function ProgressPage() {
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
-  const [activeMetric, setActiveMetric] = useState("eyeContact");
-  const [showAllBadges, setShowAllBadges] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
-  // Load bg color like other dashboard pages
+  // ── Badge data from API ───────────────────────────────────────
+  const [badgesLoading, setBadgesLoading] = useState(true);
+  const [badgesError, setBadgesError] = useState(null);
+  const [fetchedBadgeStates, setFetchedBadgeStates] = useState(null);
+
+  useEffect(() => {
+    async function fetchBadges() {
+      try {
+        setBadgesLoading(true);
+        setBadgesError(null);
+        const res = await fetch("/api/badges/my-badges");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Failed to fetch badges (${res.status})`);
+        }
+        const data = await res.json();
+        setFetchedBadgeStates(data.badges || []);
+      } catch (err) {
+        setBadgesError(err.message || "Failed to load badges");
+      } finally {
+        setBadgesLoading(false);
+      }
+    }
+    fetchBadges();
+  }, []);
+
+  // Background color
   useEffect(() => {
     const originalBg = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = "#f3f7fd";
+    document.body.style.backgroundColor = "#ffffff";
     return () => {
       document.body.style.backgroundColor = originalBg;
     };
   }, []);
 
-  const activeData = MONTHS_DATA[selectedMonthIndex];
+  // Reset page when month changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonthIndex]);
 
-  // ── Build full-year daily duration data for GitHub‑style heatmap ──
-  // Static mock data only has session counts, so assume 10 min (600 s) each.
+  const activeMonth = MONTHS[selectedMonthIndex];
+
+  // ── Filter sessions by selected month ───────────────────────
+  const filteredSessions = useMemo(() => {
+    return ALL_SESSIONS.filter((s) => {
+      const d = new Date(s.date);
+      return (
+        d.getMonth() === activeMonth.monthIndex &&
+        d.getFullYear() === activeMonth.year
+      );
+    });
+  }, [activeMonth]);
+
+  // ── Paginated sessions (10 per page) ────────────────────────
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredSessions.length / PAGE_SIZE),
+  );
+
+  const paginatedSessions = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredSessions.slice(start, start + PAGE_SIZE);
+  }, [filteredSessions, currentPage]);
+
+  // ── Average scores for filtered sessions ────────────────────
+  const averageScores = useMemo(() => {
+    if (filteredSessions.length === 0) {
+      return { focus: 0, pace: 0, filler: 0, efficiency: 0 };
+    }
+    const sum = { focus: 0, pace: 0, filler: 0, efficiency: 0 };
+    filteredSessions.forEach((s) => {
+      sum.focus += s.scores.focus;
+      sum.pace += s.scores.pace;
+      sum.filler += s.scores.filler;
+      sum.efficiency += s.scores.efficiency;
+    });
+    return {
+      focus: Math.round(sum.focus / filteredSessions.length),
+      pace: Math.round(sum.pace / filteredSessions.length),
+      filler: Math.round(sum.filler / filteredSessions.length),
+      efficiency: Math.round(sum.efficiency / filteredSessions.length),
+    };
+  }, [filteredSessions]);
+
+  // ── Improvement percentage (first vs last session in month) ──
+  const improvement = useMemo(() => {
+    if (filteredSessions.length < 2) return 0;
+    const sorted = [...filteredSessions].sort(
+      (a, b) => new Date(a.date) - new Date(b.date),
+    );
+    const first = sorted[0].overallScore;
+    const last = sorted[sorted.length - 1].overallScore;
+    return first > 0 ? Math.round(((last - first) / first) * 100) : 0;
+  }, [filteredSessions]);
+
+  // ── Streak data (all-time, client-only to avoid hydration mismatch) ──
+  const [streakData, setStreakData] = useState({
+    current: 0,
+    best: 0,
+    practicedToday: false,
+    weeklyHistory: [],
+  });
+
+  useEffect(() => {
+    const { practicedToday, weeklyHistory } =
+      computeWeeklyHistory(ALL_SESSIONS);
+    const { current, best } = computeStreak(ALL_SESSIONS);
+    setStreakData({ current, best, practicedToday, weeklyHistory });
+  }, []);
+
+  // ── Badge display data ──────────────────────────────────────
+  const badgeDisplayData = useMemo(() => {
+    if (!fetchedBadgeStates) return [];
+    const unlockedMap = {};
+    const progressMap = {};
+    fetchedBadgeStates.forEach((b) => {
+      if (b.unlocked) {
+        unlockedMap[b.id] = b.unlockedDate || true;
+      }
+      if (b.progress) {
+        progressMap[b.id] = b.progress;
+      }
+    });
+    return buildBadgeDisplayData(BADGE_DEFINITIONS, unlockedMap, progressMap);
+  }, [fetchedBadgeStates]);
+
+  const unlockedBadgeCount = useMemo(
+    () => badgeDisplayData.filter((b) => b.unlocked).length,
+    [badgeDisplayData],
+  );
+
+  // ── Full-year daily duration data for heatmap ───────────────
   const fullYearDailyData = useMemo(() => {
     const map = {};
-    MONTHS_DATA.forEach((month) => {
-      Object.entries(month.sessions).forEach(([dayNum, count]) => {
-        const dateStr = `${month.year}-${String(month.monthIndex + 1).padStart(2, "0")}-${String(Number(dayNum)).padStart(2, "0")}`;
-        map[dateStr] = count * 600;
-      });
+    ALL_SESSIONS.forEach((s) => {
+      const d = new Date(s.date);
+      if (d.getFullYear() === 2025) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const dateStr = `${y}-${m}-${day}`;
+        map[dateStr] = (map[dateStr] || 0) + s.duration;
+      }
     });
     return map;
   }, []);
 
-  // ── Coordinates Helper for Triangle Radar Chart ────────────────
-  // The center is (150, 160)
-  // Axis 0 (Eye Contact): Up (-90 deg)
-  // Axis 1 (Speaking Pace): Down-Right (30 deg)
-  // Axis 2 (Filler Words): Down-Left (150 deg)
-  const getRadarPoint = (value, axisIndex, maxVal = 100, radius = 110) => {
-    const cx = 150;
-    const cy = 135;
-    const angleDegrees = axisIndex === 0 ? -90 : axisIndex === 1 ? 30 : 150;
-    const angleRad = (angleDegrees * Math.PI) / 180;
-    const distance = (value / maxVal) * radius;
-    const x = cx + distance * Math.cos(angleRad);
-    const y = cy + distance * Math.sin(angleRad);
-    return { x, y };
-  };
-
-  const userPoint0 = getRadarPoint(activeData.radarUser.eyeContact, 0);
-  const userPoint1 = getRadarPoint(activeData.radarUser.speakingPace, 1);
-  const userPoint2 = getRadarPoint(activeData.radarUser.fillerWords, 2);
-
-  const avgPoint0 = getRadarPoint(activeData.radarAvg.eyeContact, 0);
-  const avgPoint1 = getRadarPoint(activeData.radarAvg.speakingPace, 1);
-  const avgPoint2 = getRadarPoint(activeData.radarAvg.fillerWords, 2);
-
-  // Background Grid Triangles
-  const gridTriangles = [25, 50, 75, 100].map((v) => {
-    const p0 = getRadarPoint(v, 0);
-    const p1 = getRadarPoint(v, 1);
-    const p2 = getRadarPoint(v, 2);
-    return `M ${p0.x} ${p0.y} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`;
-  });
-
-  // ── Line Chart Math ──────────────────────────────────────────
-  const lineChartWidth = 500;
-  const lineChartHeight = 220;
-  const linePoints = activeData.timeline[activeMetric];
-  
-  // Calculate coordinates for line points
-  const points = linePoints.map((val, idx) => {
-    const x = (idx / (linePoints.length - 1)) * (lineChartWidth - 60) + 30;
-    
-    // For WPM, we scale between 110 and 170. For percentages, between 40 and 100.
-    const minVal = activeMetric === "wpm" ? 110 : 40;
-    const maxVal = activeMetric === "wpm" ? 170 : 100;
-    const range = maxVal - minVal;
-    
-    // Draw WPM downwards if WPM is higher? No, standard line chart is higher value = higher coordinate (less y offset)
-    const y = lineChartHeight - ((val - minVal) / range) * (lineChartHeight - 60) - 30;
-    return { x, y, val };
-  });
-
-  const linePath = points.reduce((acc, pt, idx) => {
-    return acc + `${idx === 0 ? "M" : "L"} ${pt.x.toFixed(2)} ${pt.y.toFixed(2)}`;
-  }, "");
-
-  const areaPath = linePath + ` L ${points[points.length - 1].x} ${lineChartHeight - 30} L ${points[0].x} ${lineChartHeight - 30} Z`;
-
-  // Get labels for line chart X-axis based on selected month
-  const getXAxisLabels = () => {
-    if (activeData.name.includes("May")) {
-      return ["May 1", "May 8", "May 15", "May 22", "May 29"];
-    } else if (activeData.name.includes("April")) {
-      return ["Apr 1", "Apr 8", "Apr 15", "Apr 22", "Apr 29"];
-    } else {
-      return ["Mar 1", "Mar 8", "Mar 15", "Mar 22", "Mar 29"];
-    }
-  };
-
-  const xLabels = getXAxisLabels();
-
-  // Streak Circular Progress calculation
-  const streakRadius = 45;
-  const streakCircumference = 2 * Math.PI * streakRadius;
-  const streakPercent = Math.min((activeData.streak / activeData.bestStreak) * 100, 100);
-  const streakOffset = streakCircumference - (streakPercent / 100) * streakCircumference;
+  const heatmapYear = 2025;
 
   return (
     <div className="w-full min-h-screen pb-12">
@@ -238,7 +504,8 @@ export default function ProgressPage() {
             Your Progress
           </h1>
           <p className="text-slate-500 text-sm font-medium">
-            Track your speaking journey and see how you're improving over time.
+            Track your speaking journey and see how you&apos;re improving over
+            time.
           </p>
         </div>
 
@@ -249,13 +516,13 @@ export default function ProgressPage() {
             className="flex items-center gap-2 bg-white border-bold px-4 py-2.5 hover:bg-slate-50 active:translate-y-[2px] transition-all duration-100 cursor-pointer font-extrabold text-slate-700 text-sm"
           >
             <Calendar size={16} className="text-slate-400" />
-            <span>{activeData.name}</span>
+            <span>{activeMonth.name}</span>
             <ChevronDown size={14} className="text-slate-400" />
           </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white border-bold shadow-lg z-20 overflow-hidden">
-              {MONTHS_DATA.map((month, idx) => (
+              {MONTHS.map((month, idx) => (
                 <button
                   key={idx}
                   onClick={() => {
@@ -276,37 +543,8 @@ export default function ProgressPage() {
         </div>
       </div>
 
-      {/* ─── Profile & Statistics Banner ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5">
-        {/* Level card */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-indigo-50 via-purple-50 to-indigo-100/50 rounded-2xl border-bold border-indigo-200 px-5 py-6 flex items-center gap-5 relative overflow-hidden group">
-          {/* Decorative shapes */}
-          <div className="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl" />
-          <div className="absolute -left-8 -bottom-8 w-24 h-24 bg-purple-500/5 rounded-full blur-xl" />
-          
-          {/* Level Hexagon Badge */}
-          <div className="relative shrink-0 flex items-center justify-center w-16 h-18 bg-indigo-600 text-white font-extrabold rounded-lg shadow-md before:content-[''] before:absolute before:inset-0 before:bg-indigo-500 before:rotate-45 before:rounded-lg before:-z-10 after:content-[''] after:absolute after:inset-0 after:bg-indigo-700 after:-rotate-45 after:rounded-lg after:-z-20">
-            <div className="text-center z-10">
-              <span className="text-[10px] uppercase font-bold text-indigo-200 block tracking-wider leading-none mb-0.5">Lvl</span>
-              <span className="text-2xl font-black leading-none block">12</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1 z-10">
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-lg font-black text-slate-800">
-                Focused Communicator
-              </h2>
-              <Info size={14} className="text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
-            </div>
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-              You're in the <span className="text-indigo-600 font-black">top 18%</span> of all speakers! Keep up the momentum.
-            </p>
-          </div>
-        </div>
-
-        {/* Stats widgets */}
-        <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* ─── Row 1: Stats Widgets ─── */}
+      <div className="grid grid-cols-3 gap-4 mb-5">
           {/* Day Streak */}
           <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
             <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
@@ -314,25 +552,10 @@ export default function ProgressPage() {
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-lg font-black text-slate-800 leading-none">
-                {activeData.streak}
+                {streakData.current}
               </span>
               <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
                 Day Streak
-              </span>
-            </div>
-          </div>
-
-          {/* Improvement */}
-          <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 hover:shadow-sm transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-              <TrendingUp size={20} className="text-emerald-500" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-lg font-black text-emerald-600 leading-none">
-                +{activeData.improvement}%
-              </span>
-              <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
-                Improvement
               </span>
             </div>
           </div>
@@ -344,7 +567,7 @@ export default function ProgressPage() {
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-lg font-black text-slate-800 leading-none">
-                {activeData.sessionsCompleted}
+                {filteredSessions.length}
               </span>
               <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
                 Sessions
@@ -359,265 +582,20 @@ export default function ProgressPage() {
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-lg font-black text-slate-800 leading-none">
-                {activeData.badgesEarned}
+                {unlockedBadgeCount}
               </span>
               <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
                 Badges
               </span>
             </div>
           </div>
-        </div>
       </div>
 
-      {/* ─── Row 2: Radar Chart + Line Chart ─── */}
+      {/* ─── Row 2: Consistency Heatmap + StreakRing ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5">
-        {/* Speaking Skills Radar Chart */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border-bold px-5 py-5 flex flex-col items-center">
-          <div className="w-full flex items-center justify-between mb-4">
-            <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
-              Speaking Skills Overview
-              <Info size={14} className="text-slate-400 cursor-help" />
-            </h3>
-          </div>
-
-          {/* Custom SVG Radar Chart */}
-          <div className="relative w-[300px] h-[260px] flex items-center justify-center">
-            <svg width={300} height={260} className="overflow-visible">
-              {/* Concentric grid lines */}
-              {gridTriangles.map((dPath, i) => (
-                <path
-                  key={i}
-                  d={dPath}
-                  fill="none"
-                  stroke="#e2e8f0"
-                  strokeWidth={1}
-                />
-              ))}
-
-              {/* Axis lines */}
-              {[0, 1, 2].map((idx) => {
-                const end = getRadarPoint(100, idx);
-                return (
-                  <line
-                    key={idx}
-                    x1={150}
-                    y1={135}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke="#e2e8f0"
-                    strokeWidth={1}
-                  />
-                );
-              })}
-
-              {/* "Average User" Polygon */}
-              <path
-                d={`M ${avgPoint0.x} ${avgPoint0.y} L ${avgPoint1.x} ${avgPoint1.y} L ${avgPoint2.x} ${avgPoint2.y} Z`}
-                fill="none"
-                stroke="#cbd5e1"
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
-              />
-
-              {/* "You" Polygon */}
-              <path
-                d={`M ${userPoint0.x} ${userPoint0.y} L ${userPoint1.x} ${userPoint1.y} L ${userPoint2.x} ${userPoint2.y} Z`}
-                fill="rgba(3, 136, 255, 0.12)"
-                stroke="#0388ff"
-                strokeWidth={2.5}
-              />
-
-              {/* Data points for User */}
-              <circle cx={userPoint0.x} cy={userPoint0.y} r={4} fill="#0388ff" stroke="white" strokeWidth={1} />
-              <circle cx={userPoint1.x} cy={userPoint1.y} r={4} fill="#0388ff" stroke="white" strokeWidth={1} />
-              <circle cx={userPoint2.x} cy={userPoint2.y} r={4} fill="#0388ff" stroke="white" strokeWidth={1} />
-
-              {/* Labels on Tips */}
-              {/* 1. Eye Contact (Top) */}
-              <text
-                x={150}
-                y={10}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={800}
-                fill="#475569"
-              >
-                Eye Contact ({activeData.radarUser.eyeContact}%)
-              </text>
-              {/* 2. Speaking Pace (Bottom Right) */}
-              <text
-                x={getRadarPoint(100, 1).x + 8}
-                y={getRadarPoint(100, 1).y + 12}
-                textAnchor="start"
-                fontSize={11}
-                fontWeight={800}
-                fill="#475569"
-              >
-                Speaking Pace ({activeData.radarUser.speakingPace}%)
-              </text>
-              {/* 3. Filler Words (Bottom Left) */}
-              <text
-                x={getRadarPoint(100, 2).x - 8}
-                y={getRadarPoint(100, 2).y + 12}
-                textAnchor="end"
-                fontSize={11}
-                fontWeight={800}
-                fill="#475569"
-              >
-                Filler Words ({activeData.radarUser.fillerWords}%)
-              </text>
-            </svg>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center gap-5 mt-2 text-xs font-bold text-slate-500">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 bg-main inline-block" /> You
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 border-t-2 border-dashed border-slate-300 inline-block" /> Average User
-            </span>
-          </div>
-        </div>
-
-        {/* Improvement Timeline Line Chart */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border-bold px-5 py-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
-              Improvement Timeline
-              <Info size={14} className="text-slate-400 cursor-help" />
-            </h3>
-            
-            {/* Chart toggle buttons */}
-            <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1 border border-slate-200">
-              <button
-                onClick={() => setActiveMetric("eyeContact")}
-                className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors cursor-pointer ${
-                  activeMetric === "eyeContact"
-                    ? "bg-white text-main shadow-xs"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                Eye Contact
-              </button>
-              <button
-                onClick={() => setActiveMetric("fillerWords")}
-                className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors cursor-pointer ${
-                  activeMetric === "fillerWords"
-                    ? "bg-white text-main shadow-xs"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                Filler Words
-              </button>
-              <button
-                onClick={() => setActiveMetric("wpm")}
-                className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors cursor-pointer ${
-                  activeMetric === "wpm"
-                    ? "bg-white text-main shadow-xs"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                WPM
-              </button>
-            </div>
-          </div>
-
-          {/* Dynamic SVG Line Chart */}
-          <div className="flex-1 w-full h-[220px] relative select-none">
-            <svg width="100%" height={220} viewBox={`0 0 ${lineChartWidth} ${lineChartHeight}`} preserveAspectRatio="none" className="overflow-visible">
-              <defs>
-                <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0388ff" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#0388ff" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-
-              {/* Grid Lines */}
-              {[0, 1, 2, 3, 4].map((gridIdx) => {
-                const y = 30 + gridIdx * 40;
-                return (
-                  <line
-                    key={gridIdx}
-                    x1={30}
-                    y1={y}
-                    x2={lineChartWidth - 30}
-                    y2={y}
-                    stroke="#f1f5f9"
-                    strokeWidth={1}
-                  />
-                );
-              })}
-
-              {/* Gradient Area Fill */}
-              <path d={areaPath} fill="url(#lineGrad)" />
-
-              {/* Line Path */}
-              <path
-                d={linePath}
-                fill="none"
-                stroke="#0388ff"
-                strokeWidth={3}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              {/* Data points */}
-              {points.map((pt, idx) => (
-                <g key={idx} className="group">
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={6}
-                    fill="#0388ff"
-                    stroke="white"
-                    strokeWidth={2}
-                    className="cursor-pointer hover:r-7 transition-all"
-                  />
-                  {/* Floating Score Tag above point */}
-                  <text
-                    x={pt.x}
-                    y={pt.y - 12}
-                    textAnchor="middle"
-                    fontSize={11}
-                    fontWeight={900}
-                    fill="#0388ff"
-                  >
-                    {pt.val}{activeMetric !== "wpm" && "%"}
-                  </text>
-                </g>
-              ))}
-
-              {/* X Axis Labels */}
-              {points.map((pt, idx) => (
-                <text
-                  key={idx}
-                  x={pt.x}
-                  y={lineChartHeight - 10}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fontWeight={800}
-                  fill="#94a3b8"
-                >
-                  {xLabels[idx]}
-                </text>
-              ))}
-            </svg>
-          </div>
-
-          {/* Subtitle */}
-          <div className="flex items-center gap-1.5 mt-3 text-xs font-bold text-emerald-600">
-            <TrendingUp size={15} />
-            <span>16% improvement over the last 4 weeks</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Row 3: Consistency Heatmap + Streak Circle ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5">
-        {/* Consistency contribution heatmap */}
+        {/* Heatmap */}
         <div className="lg:col-span-8 bg-white rounded-2xl border-bold px-5 py-5">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex flex-col gap-0.5">
               <h3 className="font-extrabold text-slate-800 text-sm">
                 Consistency
@@ -626,7 +604,6 @@ export default function ProgressPage() {
                 Keep it up! Consistency is the key to improvement.
               </p>
             </div>
-
             {/* Legend — GitHub green palette */}
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
               <span>Less</span>
@@ -638,125 +615,96 @@ export default function ProgressPage() {
               <span>More</span>
             </div>
           </div>
-
-          {/* Reusable Heatmap Grid */}
-          <div className="w-full mt-4">
-            <ConsistencyHeatmap
-              year={activeData.year}
-              dailyData={fullYearDailyData}
-            />
-          </div>
+          <ConsistencyHeatmap
+            year={heatmapYear}
+            dailyData={fullYearDailyData}
+          />
         </div>
 
-        {/* Streak widget */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border-bold px-5 py-5 flex flex-col items-center justify-center text-center">
-          <h3 className="font-extrabold text-slate-800 text-sm mb-4 self-start">
-            Streak
-          </h3>
-
-          <div className="relative w-28 h-28 flex items-center justify-center select-none mb-3">
-            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 110 110">
-              <circle
-                cx={55}
-                cy={55}
-                r={streakRadius}
-                className="stroke-slate-100 fill-none dark:stroke-slate-850"
-                strokeWidth={8}
-              />
-              <circle
-                cx={55}
-                cy={55}
-                r={streakRadius}
-                className="fill-none transition-all duration-500 ease-out"
-                strokeWidth={8}
-                stroke="url(#streakGrad)"
-                strokeDasharray={streakCircumference}
-                strokeDashoffset={streakOffset}
-                strokeLinecap="round"
-              />
-              <defs>
-                <linearGradient id="streakGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#f97316" />
-                  <stop offset="100%" stopColor="#f59e0b" />
-                </linearGradient>
-              </defs>
-            </svg>
-
-            {/* Inner Content */}
-            <div className="flex flex-col items-center z-10">
-              <Flame size={28} className="text-orange-500 fill-orange-500 animate-bounce duration-1000" />
-              <span className="text-2xl font-black text-slate-800 leading-none mt-1">
-                {activeData.streak}
-              </span>
-              <span className="text-[9px] text-slate-400 font-extrabold tracking-wide uppercase mt-0.5">
-                Day Streak
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 text-amber-500 font-extrabold text-xs">
-            <Trophy size={14} className="fill-amber-50" />
-            <span>Best Streak: {activeData.bestStreak} days</span>
-          </div>
+        {/* StreakRing */}
+        <div className="lg:col-span-4 bg-white rounded-2xl border-bold px-5 py-5">
+          <StreakRing
+            current={streakData.current}
+            best={streakData.best}
+            practicedToday={streakData.practicedToday}
+            weeklyHistory={streakData.weeklyHistory}
+          />
         </div>
       </div>
 
-      {/* ─── Row 4: Badges Collection ─── */}
-      <div className="bg-white rounded-2xl border-bold px-5 py-5">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex flex-col gap-0.5">
-            <h3 className="font-extrabold text-slate-800 text-sm">
-              Badges Collection
-            </h3>
-            <p className="text-xs text-slate-400 font-semibold">
-              {activeData.badgesEarned} / 28 Badges Earned
+      {/* ─── Row 3: Badges + Session History (stacked) ─── */}
+      <div className="flex flex-col gap-5">
+        {/* Badge Grid — full width */}
+        {badgesError ? (
+          <div className="rounded-[20px] bg-white border-bold py-10 flex flex-col items-center gap-3">
+            <p className="text-sm font-bold text-slate-400">
+              {badgesError}
             </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-xs font-extrabold text-main hover:underline cursor-pointer bg-transparent border-0"
+            >
+              Try again
+            </button>
           </div>
-          <button
-            onClick={() => setShowAllBadges(!showAllBadges)}
-            className="flex items-center gap-1 text-main text-xs font-black hover:underline cursor-pointer border-0 bg-transparent outline-none"
-          >
-            <span>{showAllBadges ? "Collapse View" : "View All"}</span>
-            {showAllBadges ? <Minus size={14} /> : <Plus size={14} />}
-          </button>
-        </div>
+        ) : (
+          <BadgeGrid badges={badgeDisplayData} loading={badgesLoading} maxCols={6} />
+        )}
 
-        {/* Badges Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          {BADGES.slice(0, showAllBadges ? BADGES.length : 5).map((badge, idx) => {
-            const Icon = badge.icon;
-            return (
-              <div
-                key={idx}
-                className={`flex flex-col items-center text-center p-4 border-2 rounded-2xl transition-all select-none hover:shadow-xs ${
-                  badge.unlocked
-                    ? "bg-white border-slate-200 text-slate-700"
-                    : "bg-slate-50/50 border-slate-100 text-slate-400 opacity-60"
-                }`}
+        {/* Session History — full width with pagination */}
+        <div className="flex flex-col gap-4">
+          <SessionHistoryList
+            sessions={paginatedSessions}
+            averageScores={averageScores}
+          />
+
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-2 bg-white border-bold rounded-lg text-xs font-extrabold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
-                {/* Badge Icon Outer Frame */}
-                <div
-                  className={`w-14 h-14 rounded-full border-2 flex items-center justify-center relative shadow-xs mb-3 ${
-                    badge.unlocked ? badge.color : "bg-slate-100 border-slate-200"
-                  }`}
-                >
-                  <Icon size={24} className={badge.unlocked ? "" : "text-slate-300"} />
-                  {!badge.unlocked && (
-                    <div className="absolute -bottom-1 -right-1 bg-white border border-slate-200 p-1 rounded-full shadow-xs">
-                      <Lock size={10} className="text-slate-400" />
-                    </div>
-                  )}
-                </div>
+                <ChevronLeft size={14} />
+                Prev
+              </button>
 
-                <span className={`text-xs font-extrabold leading-tight ${badge.unlocked ? "text-slate-800" : "text-slate-400"}`}>
-                  {badge.label}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium leading-tight mt-1 line-clamp-2">
-                  {badge.desc}
-                </span>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-lg text-xs font-extrabold transition-all cursor-pointer border-2 ${
+                        page === currentPage
+                          ? "bg-main text-white border-main shadow-sm"
+                          : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ),
+                )}
               </div>
-            );
-          })}
+
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-3 py-2 bg-white border-bold rounded-lg text-xs font-extrabold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              >
+                Next
+                <ChevronRight size={14} />
+              </button>
+
+              <span className="text-[10px] font-bold text-slate-400 ml-2">
+                {filteredSessions.length} sessions · page {currentPage} of{" "}
+                {totalPages}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

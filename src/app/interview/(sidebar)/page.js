@@ -26,6 +26,7 @@ import {
   Sparkles,
   Download,
   Loader2,
+  Trophy,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -33,7 +34,7 @@ export default function InterviewSetupPage() {
   // Set beautiful body background on mount
   useEffect(() => {
     const originalBg = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = "#f3f7fd";
+    document.body.style.backgroundColor = "#ffffff";
     return () => {
       document.body.style.backgroundColor = originalBg;
     };
@@ -789,99 +790,33 @@ export default function InterviewSetupPage() {
         </div>
       </div>
 
-      {/* Bottom Main Button Row Banner */}
-      <div className="w-full mt-6 bg-[#EDF3FF] border-bold p-5 flex flex-col md:flex-row items-center justify-between gap-5">
-        <div className="flex items-center gap-4 text-left">
-          {/* Cute Inline SVG Robot Mascot */}
-          <div className="shrink-0 scale-90 md:scale-100">
-            <svg
-              width="68"
-              height="68"
-              viewBox="0 0 68 68"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* Antenna */}
-              <circle cx="34" cy="9" r="4" fill="#0388ff" />
-              <line
-                x1="34"
-                y1="13"
-                x2="34"
-                y2="20"
-                stroke="#0388ff"
-                strokeWidth="3"
-              />
-
-              {/* Ears */}
-              <rect x="7" y="29" width="6" height="14" rx="3" fill="#fabf24" />
-              <rect x="55" y="29" width="6" height="14" rx="3" fill="#fabf24" />
-
-              {/* Head Body */}
-              <rect
-                x="11"
-                y="19"
-                width="46"
-                height="34"
-                rx="10"
-                fill="#0388ff"
-              />
-
-              {/* Screen Face */}
-              <rect
-                x="17"
-                y="24"
-                width="34"
-                height="24"
-                rx="6"
-                fill="#1e293b"
-              />
-
-              {/* Eyes */}
-              <circle cx="27" cy="34" r="4" fill="#60a5fa" />
-              <circle cx="27" cy="34" r="1.5" fill="white" />
-              <circle cx="41" cy="34" r="4" fill="#60a5fa" />
-              <circle cx="41" cy="34" r="1.5" fill="white" />
-
-              {/* Cheeks */}
-              <circle cx="22" cy="40" r="2" fill="#ef4444" opacity="0.6" />
-              <circle cx="46" cy="40" r="2" fill="#ef4444" opacity="0.6" />
-
-              {/* Happy Mouth */}
-              <path
-                d="M31 41 Q34 44 37 41"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
+      <div className="w-full border-bold p-5 flex items-center mt-6 bg-main/3 justify-between">
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-main/20 rounded-full">
+            <Trophy className="text-main" size={25} strokeWidth={2.5} />
           </div>
-
           <div className="flex flex-col">
-            <span className="font-extrabold text-slate-800 text-sm md:text-base">
-              You're all set! 🥳
-            </span>
-            <span className="text-xs text-slate-500 font-bold leading-normal mt-0.5">
-              We'll start the interview with a warm welcome and explain the
-              guidelines.
+            <span className="font-bold">Ready to start your session?</span>
+            <span className="text-sm">
+              Once you begin, the interview will start and the timer will begin
             </span>
           </div>
         </div>
-
-        <div className="flex flex-col items-center md:items-end gap-1.5 shrink-0">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleStartInterview}
-              disabled={isSubmitting}
-              className="h-11 bg-[#58cc02] hover:bg-[#58a700] text-white font-extrabold text-xs px-5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_4px_0_#58a700] active:translate-y-[4px] active:shadow-[0_0_0_#58a700] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:active:shadow-[0_4px_0_#58a700]"
-            >
-              <Play size={15} fill="white" />
-              <span>
-                {isSubmitting ? "Generating..." : "Start Interview"}
-              </span>
-            </button>
-          </div>
-          <span className="text-[10px] text-slate-400 font-bold">
-            You can't pause or restart once begun.
+        <div className="flex flex-col justify-center items-center">
+          <button
+            disabled={cameraStatus !== "ready" || micStatus !== "ready" || isSubmitting}
+            onClick={handleStartInterview}
+            className={`flex gap-2 items-center rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors ${
+              cameraStatus === "ready" && micStatus === "ready" && !isSubmitting
+                ? "bg-main hover:bg-main/90 cursor-pointer"
+                : "bg-slate-300 cursor-not-allowed opacity-75"
+            }`}
+          >
+            <Play size={17} />
+            {isSubmitting ? "Generating..." : "Start Interview"}
+          </button>
+          <span className="text-xs text-slate-500 mt-1">
+            You can't pause or restart once begin
           </span>
         </div>
       </div>

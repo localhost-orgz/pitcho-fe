@@ -144,14 +144,10 @@ export default function BadgeIcon({
       className={`
         ${sz.card} ${sz.padding} ${sz.radius} ${sz.gap}
         flex flex-col items-center
-        bg-white
+        bg-white border-bold
         transition-all duration-300
-        ${showHover ? "hover:-translate-y-1 hover:shadow-lg cursor-pointer" : ""}
+        ${showHover ? "hover:-translate-y-1 cursor-pointer" : ""}
       `}
-      style={{
-        boxShadow:
-          "0 4px 16px rgba(160, 192, 96, 0.15), 0 1px 4px rgba(0, 0, 0, 0.04)",
-      }}
     >
       {/* 3D Hexagon */}
       <HexagonBadge

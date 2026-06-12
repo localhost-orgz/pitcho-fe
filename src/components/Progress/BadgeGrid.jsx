@@ -112,7 +112,14 @@ function BadgeDetailModal({ badge, onClose }) {
 }
 
 // ── Skeleton loader ────────────────────────────────────────────
-function BadgeGridSkeleton() {
+const GRID_COLS = {
+  4: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4",
+  5: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+  6: "grid-cols-2 sm:grid-cols-4 lg:grid-cols-6",
+};
+
+function BadgeGridSkeleton({ maxCols = 4 }) {
+  const cols = GRID_COLS[maxCols] || GRID_COLS[4];
   return (
     <div className="animate-pulse">
       <div className="flex items-center justify-between mb-4">
@@ -121,7 +128,7 @@ function BadgeGridSkeleton() {
           <div className="h-3 w-36 bg-slate-100 rounded" />
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className={`grid gap-4 ${cols}`}>
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
@@ -181,8 +188,9 @@ function BadgeGridEmpty() {
  * @param {Array}  badges  - Badge display objects (from buildBadgeDisplayData)
  * @param {boolean} loading - Show skeleton state
  * @param {boolean} compact - Fewer columns, tighter layout
+ * @param {number}  maxCols - Max columns on large screens (4, 5, or 6; default 4)
  */
-export default function BadgeGrid({ badges = [], loading = false, compact = false }) {
+export default function BadgeGrid({ badges = [], loading = false, compact = false, maxCols = 4 }) {
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
 
@@ -216,7 +224,7 @@ export default function BadgeGrid({ badges = [], loading = false, compact = fals
   const totalCount = displayBadges.length;
 
   // ── Loading ─────────────────────────────────────────────────
-  if (loading) return <BadgeGridSkeleton />;
+  if (loading) return <BadgeGridSkeleton maxCols={maxCols} />;
 
   // ── Empty ───────────────────────────────────────────────────
   if (badges.length === 0) return <BadgeGridEmpty />;
@@ -270,7 +278,7 @@ export default function BadgeGrid({ badges = [], loading = false, compact = fals
         className={`grid gap-4 ${
           compact
             ? "grid-cols-2"
-            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+            : GRID_COLS[maxCols] || GRID_COLS[4]
         }`}
       >
         {displayBadges.map((badge) => (
