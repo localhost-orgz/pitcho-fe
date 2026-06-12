@@ -338,6 +338,11 @@ export default function ProgressPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
+  // ── Session history from API ──────────────────────────────────
+  const [totalSessions, setTotalSessions] = useState(null);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState(null);
+
   // ── Badge data from API ───────────────────────────────────────
   const [badgesLoading, setBadgesLoading] = useState(true);
   const [badgesError, setBadgesError] = useState(null);
@@ -364,6 +369,31 @@ export default function ProgressPage() {
       }
     }
     fetchBadges();
+  }, []);
+
+  useEffect(() => {
+    async function fetchSessions() {
+      try {
+        setSessionsLoading(true);
+        setSessionsError(null);
+        const res = await fetch("/api/history");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(
+            err.error || `Failed to fetch sessions (${res.status})`,
+          );
+        }
+        const data = await res.json();
+        // Handle both array and { data: [...] } envelope
+        const sessions = Array.isArray(data) ? data : data.data ?? [];
+        setTotalSessions(sessions.length);
+      } catch (err) {
+        setSessionsError(err.message || "Failed to load sessions");
+      } finally {
+        setSessionsLoading(false);
+      }
+    }
+    fetchSessions();
   }, []);
 
   // Background color
@@ -552,10 +582,14 @@ export default function ProgressPage() {
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-lg font-black text-slate-800 leading-none">
-              {filteredSessions.length}
+              {totalSessions !== null && !sessionsError
+                ? totalSessions
+                : filteredSessions.length}
             </span>
             <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
-              Sessions
+              {totalSessions !== null && !sessionsError
+                ? "Total Sessions"
+                : "Sessions"}
             </span>
           </div>
         </div>
