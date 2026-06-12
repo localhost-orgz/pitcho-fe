@@ -653,6 +653,26 @@ export default function InterviewSessionPage() {
 
     let evaluateData = null;
 
+    // Retrieve the documentId saved during setup
+    let documentId = sessionStorage.getItem("interview_document_id");
+    if (!documentId) {
+      try {
+        const rawQuestions = sessionStorage.getItem("interview_questions");
+        if (rawQuestions) {
+          const parsed = JSON.parse(rawQuestions);
+          documentId =
+            parsed?.meta?.document_id ||
+            parsed?.meta?.documentId ||
+            parsed?.document_id ||
+            parsed?.documentId ||
+            parsed?.data?.document_id ||
+            parsed?.data?.documentId;
+        }
+      } catch (err) {
+        console.warn("Failed to retrieve documentId from interview_questions:", err);
+      }
+    }
+
     try {
       const res = await fetch(
         "https://pitcho-be.vercel.app/api/interview/evaluate",
@@ -661,7 +681,11 @@ export default function InterviewSessionPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ sessions }),
+          body: JSON.stringify({
+            sessions,
+            documentId: documentId || undefined,
+            document_id: documentId || undefined,
+          }),
         }
       );
       if (res.ok) {
@@ -680,6 +704,8 @@ export default function InterviewSessionPage() {
         per_question_data: perQuestionDataRef.current.filter(Boolean),
         evaluate_response: evaluateData,
         lookAwayEvents: lookAwayEvents || [],
+        documentId: documentId || null,
+        document_id: documentId || null,
       })
     );
 

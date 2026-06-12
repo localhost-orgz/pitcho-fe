@@ -218,7 +218,14 @@ export default function PresentationSetupPage() {
 
       // Capture documentId from upload response
       const uploadedDocumentId =
-        data.id || data.documentId || data.data?.id || data.data?.documentId;
+        data.id ||
+        data.documentId ||
+        data.document_id ||
+        data.data?.id ||
+        data.data?.documentId ||
+        data.data?.document_id ||
+        data.meta?.document_id ||
+        data.meta?.documentId;
       if (uploadedDocumentId) {
         setUploadedFile((prev) => ({ ...(prev || {}), documentId: uploadedDocumentId }));
       }
@@ -355,6 +362,20 @@ export default function PresentationSetupPage() {
       }
 
       const data = await res.json();
+
+      const uploadedDocumentId =
+        data.id ||
+        data.documentId ||
+        data.document_id ||
+        data.data?.id ||
+        data.data?.documentId ||
+        data.data?.document_id ||
+        data.meta?.document_id ||
+        data.meta?.documentId;
+
+      if (uploadedDocumentId) {
+        setUploadedFile((prev) => ({ ...(prev || {}), documentId: uploadedDocumentId }));
+      }
 
       let slidesData = null;
       if (data) {

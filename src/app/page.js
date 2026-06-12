@@ -1,975 +1,792 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { AlertCircle, HeartPulse, MessageSquare, Target } from "lucide-react";
+import Image from "next/image";
 
-export default function Home() {
-  // Manual trigger states
-  const [isBlinking, setIsBlinking] = useState(false);
-  const [isWaving, setIsWaving] = useState(false);
-  const [isCoughing, setIsCoughing] = useState(false);
-  const [isSneezing, setIsSneezing] = useState(false);
-  const [isYawning, setIsYawning] = useState(false);
-  const [isNodding, setIsNodding] = useState(false);
-  const [isCheckingWatch, setIsCheckingWatch] = useState(false);
-  const [isRollingEyes, setIsRollingEyes] = useState(false);
+// ── Icons (inline SVG helpers) ──────────────────────────────────────────────
+const IconStar = (props) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+  </svg>
+);
+const IconCheck = (props) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    {...props}
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+const IconArrowRight = (props) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+const IconUsers = (props) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+const IconActivity = (props) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
+const IconAward = (props) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <circle cx="12" cy="8" r="6" />
+    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+  </svg>
+);
+const IconTarget = (props) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+const IconBrain = (props) => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.14" />
+    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.14" />
+  </svg>
+);
+const IconTrendingUp = (props) => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </svg>
+);
+const IconMic = (props) => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="23" />
+    <line x1="8" y1="23" x2="16" y2="23" />
+  </svg>
+);
+const IconZap = (props) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    {...props}
+  >
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+const IconTwitter = (props) => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z" />
+  </svg>
+);
+const IconLinkedin = (props) => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect x="2" y="9" width="4" height="12" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+const IconChevronDown = (props) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    {...props}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+const IconInstagram = (props) => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    {...props}
+  >
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
 
-  // Automatic loop states (toggles)
-  const [autoBlink, setAutoBlink] = useState(false);
-  const [autoWave, setAutoWave] = useState(false);
-  const [autoCough, setAutoCough] = useState(false);
-  const [autoSneeze, setAutoSneeze] = useState(false);
-  const [autoYawn, setAutoYawn] = useState(false);
-  const [autoNod, setAutoNod] = useState(false);
-  const [autoWatch, setAutoWatch] = useState(false);
-  const [autoRollEyes, setAutoRollEyes] = useState(false);
-
-  // Gaze tracking position state
-  const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
-
-  // Trigger handlers
-  const triggerBlink = () => {
-    if (!autoBlink && !isBlinking) {
-      setIsBlinking(true);
-    }
-  };
-
-  const triggerWave = () => {
-    if (!autoWave && !isWaving) {
-      setIsWaving(true);
-    }
-  };
-
-  const triggerCough = () => {
-    if (!autoCough && !isCoughing) {
-      setIsCoughing(true);
-    }
-  };
-
-  const triggerSneeze = () => {
-    if (!autoSneeze && !isSneezing) {
-      setIsSneezing(true);
-    }
-  };
-
-  const triggerYawn = () => {
-    if (!autoYawn && !isYawning) {
-      setIsYawning(true);
-    }
-  };
-
-  const triggerNod = () => {
-    if (!autoNod && !isNodding) {
-      setIsNodding(true);
-    }
-  };
-
-  const triggerWatch = () => {
-    if (!autoWatch && !isCheckingWatch) {
-      setIsCheckingWatch(true);
-    }
-  };
-
-  const triggerRollEyes = () => {
-    if (!autoRollEyes && !isRollingEyes) {
-      setIsRollingEyes(true);
-    }
-  };
-
-  // Gaze tracking logic
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      // Reset gaze tracking to center if any active head/body animations are playing
-      if (
-        isCheckingWatch || autoWatch ||
-        isCoughing || autoCough ||
-        isSneezing || autoSneeze ||
-        isYawning || autoYawn ||
-        isNodding || autoNod ||
-        isRollingEyes || autoRollEyes
-      ) {
-        setEyeOffset({ x: 0, y: 0 });
-        return;
-      }
-
-      // Calculate vector relative to the screen center
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
-
-      const angle = Math.atan2(dy, dx);
-      // Cap maximum gaze displacement at 6px
-      const distance = Math.min(6, Math.sqrt(dx * dx + dy * dy) / 40);
-
-      setEyeOffset({
-        x: Math.cos(angle) * distance,
-        y: Math.sin(angle) * distance,
-      });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [
-    isCheckingWatch, autoWatch,
-    isCoughing, autoCough,
-    isSneezing, autoSneeze,
-    isYawning, autoYawn,
-    isNodding, autoNod,
-    isRollingEyes, autoRollEyes
-  ]);
-
-  // Determine active SVG animation classes
-  let eyeClass = "eye";
-  if (autoBlink) {
-    eyeClass += " loop-blink";
-  } else if (autoRollEyes) {
-    eyeClass += " loop-roll-eyes";
-  } else if (isBlinking) {
-    eyeClass += " animate-blink";
-  } else if (isRollingEyes) {
-    eyeClass += " animate-roll-eyes";
-  }
-
-  let armClass = "left-arm";
-  if (autoWave) {
-    armClass += " loop-wave";
-  } else if (autoWatch) {
-    armClass += " loop-watch-arm";
-  } else if (isWaving) {
-    armClass += " animate-wave";
-  } else if (isCheckingWatch) {
-    armClass += " animate-watch-arm";
-  }
-
-  let headClass = "head";
-  if (autoCough) {
-    headClass += " loop-cough";
-  } else if (autoSneeze) {
-    headClass += " loop-sneeze";
-  } else if (autoYawn) {
-    headClass += " loop-yawn";
-  } else if (autoNod) {
-    headClass += " loop-nod";
-  } else if (autoWatch) {
-    headClass += " loop-watch-head";
-  } else if (isCoughing) {
-    headClass += " animate-cough";
-  } else if (isSneezing) {
-    headClass += " animate-sneeze";
-  } else if (isYawning) {
-    headClass += " animate-yawn";
-  } else if (isNodding) {
-    headClass += " animate-nod";
-  } else if (isCheckingWatch) {
-    headClass += " animate-watch-head";
-  }
-
+// ── Navbar ──────────────────────────────────────────────────────────────────
+function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 text-white font-sans selection:bg-indigo-500/30 selection:text-white">
-      {/* Container Card */}
-      <div className="w-full max-w-5xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col lg:flex-row items-center gap-8">
-        
-        {/* Left Side: Character SVG Viewport */}
-        <div className="w-full lg:w-3/5 relative flex items-center justify-center bg-slate-950/50 rounded-2xl p-4 border border-slate-850 shadow-inner overflow-hidden aspect-video lg:aspect-auto lg:h-[450px]">
-          <svg
-            width="667"
-            height="507"
-            viewBox="0 0 667 507"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full max-w-[500px] lg:max-w-full max-h-[400px] object-contain transition-all"
+    <nav className="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-slate-100/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+      <div className="navInner max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between gap-4">
+        {/* Logo */}
+        <Image
+          src={"/logo-text-transparent.svg"}
+          height={100}
+          width={100}
+          alt="logo"
+        />
+
+        {/* Nav links */}
+        <ul className="navLinks hidden md:flex list-none gap-8 m-0 p-0 justify-center">
+          <li>
+            <a
+              href="#how-it-works"
+              className="text-sm font-medium text-slate-600 no-underline"
+            >
+              Cara Kerja
+            </a>
+          </li>
+          <li>
+            <a
+              href="#features"
+              className="text-sm font-medium text-slate-600 no-underline"
+            >
+              Fitur
+            </a>
+          </li>
+          <li>
+            <a
+              href="#faq"
+              className="text-sm font-medium text-slate-600 no-underline"
+            >
+              FAQ
+            </a>
+          </li>
+        </ul>
+
+        {/* CTA buttons */}
+        <div className="navCta hidden md:flex items-center gap-4 shrink-0">
+          <a
+            href="#"
+            className="inline-flex items-center text-sm font-medium text-slate-600 no-underline"
           >
-            <style>{`
-              /* --- Base Animations: Keyframes --- */
-              
-              /* Infinite Loop Blink (5s rhythm) */
-              @keyframes keyframes-blink-loop {
-                0%, 90%, 94%, 98%, 100% { transform: scaleY(1); }
-                92%, 96% { transform: scaleY(0.1); }
-              }
-              /* Manual Single Blink */
-              @keyframes keyframes-blink-single {
-                0%, 100% { transform: scaleY(1); }
-                30%, 70% { transform: scaleY(0.1); }
-              }
-              
-              /* Infinite Loop Wave (4s rhythm) */
-              @keyframes keyframes-wave-loop {
-                0%, 70%, 100% { transform: rotate(0deg); }
-                75%, 85%, 95% { transform: rotate(-12deg); }
-                80%, 90% { transform: rotate(-3deg); }
-              }
-              /* Manual Single Wave */
-              @keyframes keyframes-wave-single {
-                0%, 100% { transform: rotate(0deg); }
-                25%, 75% { transform: rotate(-12deg); }
-                50% { transform: rotate(-3deg); }
-              }
-              
-              /* Infinite Loop Cough (6s rhythm) */
-              @keyframes keyframes-cough-loop {
-                0%, 74%, 86%, 100% { transform: translate(0, 0) rotate(0deg); }
-                76%, 80% { transform: translate(-3px, 12px) rotate(-3deg); }
-                78%, 82% { transform: translate(-1px, 4px) rotate(-1deg); }
-              }
-              /* Manual Single Cough */
-              @keyframes keyframes-cough-single {
-                0%, 100% { transform: translate(0, 0) rotate(0deg); }
-                25%, 65% { transform: translate(-3px, 12px) rotate(-3deg); }
-                45%, 85% { transform: translate(-1px, 4px) rotate(-1deg); }
-              }
-              
-              /* Infinite Loop Sneeze (7s rhythm) */
-              @keyframes keyframes-sneeze-loop {
-                0%, 80%, 100% { transform: translate(0, 0) rotate(0deg); }
-                88% { transform: translate(2px, -10px) rotate(5deg); }
-                90% { transform: translate(-6px, 25px) rotate(-8deg); }
-                93% { transform: translate(-1px, 6px) rotate(-2deg); }
-              }
-              /* Manual Single Sneeze */
-              @keyframes keyframes-sneeze-single {
-                0% { transform: translate(0, 0) rotate(0deg); }
-                40% { transform: translate(2px, -10px) rotate(5deg); }
-                50% { transform: translate(-6px, 25px) rotate(-8deg); }
-                65% { transform: translate(-1px, 6px) rotate(-2deg); }
-                100% { transform: translate(0, 0) rotate(0deg); }
-              }
-              
-              /* Mouth Sneeze (infinite loop) - hidden during sneeze */
-              @keyframes keyframes-sneeze-mouth-loop {
-                0%, 80%, 100% { transform: scale(1); opacity: 1; }
-                84%, 96% { transform: scale(0); opacity: 0; }
-              }
-              /* Mouth Sneeze (single action) - hidden during sneeze */
-              @keyframes keyframes-sneeze-mouth-single {
-                0%, 100% { transform: scale(1); opacity: 1; }
-                20%, 80% { transform: scale(0); opacity: 0; }
-              }
-              
-              /* Infinite Loop Yawn (9s rhythm) */
-              @keyframes keyframes-yawn-loop {
-                0%, 70%, 100% { transform: translate(0, 0) rotate(0deg); }
-                79%, 91% { transform: translate(0, -15px) rotate(4deg); }
-              }
-              /* Manual Single Yawn */
-              @keyframes keyframes-yawn-single {
-                0% { transform: translate(0, 0) rotate(0deg); }
-                30%, 70% { transform: translate(0, -15px) rotate(4deg); }
-                100% { transform: translate(0, 0) rotate(0deg); }
-              }
-              
-              /* Eye Squeeze during Cough (infinite loop) */
-              @keyframes keyframes-squeeze-loop {
-                0%, 74%, 86%, 100% { transform: scaleY(1); }
-                76%, 78%, 80%, 82% { transform: scaleY(0.1); }
-              }
-              /* Eye Squeeze during Cough (single action) */
-              @keyframes keyframes-squeeze-single {
-                0%, 100% { transform: scaleY(1); }
-                25%, 45%, 65%, 85% { transform: scaleY(0.1); }
-              }
-              
-              /* Eye Squeeze during Sneeze (infinite loop) */
-              @keyframes keyframes-squeeze-sneeze-loop {
-                0%, 25%, 29%, 33%, 80%, 100% { transform: scaleY(1); }
-                27%, 31%, 84%, 93% { transform: scaleY(0.1); }
-                96% { transform: scaleY(0.5); }
-              }
-              /* Eye Squeeze during Sneeze (single action) */
-              @keyframes keyframes-squeeze-sneeze-single {
-                0% { transform: scaleY(1); }
-                20%, 65% { transform: scaleY(0.1); }
-                80% { transform: scaleY(0.5); }
-                100% { transform: scaleY(1); }
-              }
-              
-              /* Eye Squeeze during Yawn (infinite loop) */
-              @keyframes keyframes-squeeze-yawn-loop {
-                0%, 25%, 29%, 33%, 70%, 100% { transform: scaleY(1); }
-                27%, 31% { transform: scaleY(0.1); }
-                76%, 93% { transform: scaleY(0.1); }
-              }
-              /* Eye Squeeze during Yawn (single action) */
-              @keyframes keyframes-squeeze-yawn-single {
-                0%, 100% { transform: scaleY(1); }
-                25%, 75% { transform: scaleY(0.1); }
-              }
-
-              /* Mouth Yawn Scale (infinite loop) */
-              @keyframes keyframes-yawn-mouth-loop {
-                0%, 70%, 100% { transform: scale(1); opacity: 1; }
-                79%, 91% { transform: scale(0); opacity: 0; }
-              }
-              /* Mouth Yawn Scale (single action) */
-              @keyframes keyframes-yawn-mouth-single {
-                0%, 100% { transform: scale(1); opacity: 1; }
-                30%, 70% { transform: scale(0); opacity: 0; }
-              }
-
-              /* Infinite Loop Nod v2 (5s rhythm, expressive deeper nod) */
-              @keyframes keyframes-nod-loop {
-                0%, 70%, 100% { transform: translate(0, 0) rotate(0deg); }
-                75% { transform: translate(0, 14px) rotate(4deg); }
-                82% { transform: translate(0, 2px) rotate(0.5deg); }
-                90% { transform: translate(0, 14px) rotate(4deg); }
-                96% { transform: translate(0, 0) rotate(0deg); }
-              }
-
-              /* Manual Single Nod v2 */
-              @keyframes keyframes-nod-single {
-                0%, 100% { transform: translate(0, 0) rotate(0deg); }
-                25% { transform: translate(0, 14px) rotate(4deg); }
-                50% { transform: translate(0, 2px) rotate(0.5deg); }
-                75% { transform: translate(0, 14px) rotate(4deg); }
-              }
-
-              /* Nod Eye Squint (loop) */
-              @keyframes keyframes-nod-eye-loop {
-                0%, 70%, 100% { transform: scaleY(1); }
-                75%, 90% { transform: scaleY(0.25); }
-                82% { transform: scaleY(0.7); }
-              }
-
-              /* Nod Eye Squint (single) */
-              @keyframes keyframes-nod-eye-single {
-                0%, 100% { transform: scaleY(1); }
-                25%, 75% { transform: scaleY(0.25); }
-                50% { transform: scaleY(0.7); }
-              }
-
-              /* Nod Mouth Smile (loop) */
-              @keyframes keyframes-nod-mouth-loop {
-                0%, 70%, 100% { transform: scale(1); }
-                75%, 90% { transform: scale(1.6, 5); }
-                82% { transform: scale(1.2, 2.5); }
-              }
-
-              /* Nod Mouth Smile (single) */
-              @keyframes keyframes-nod-mouth-single {
-                0%, 100% { transform: scale(1); }
-                25%, 75% { transform: scale(1.6, 5); }
-                50% { transform: scale(1.2, 2.5); }
-              }
-
-              /* Check Watch Arm (loop, 10s rhythm) */
-              @keyframes keyframes-watch-arm-loop {
-                0%, 75%, 100% { transform: rotate(0deg) translate(0, 0); }
-                80%, 95% { transform: rotate(-55deg) translate(-10px, -20px); }
-              }
-
-              /* Check Watch Arm (single, 3.5s duration) */
-              @keyframes keyframes-watch-arm-single {
-                0%, 100% { transform: rotate(0deg) translate(0, 0); }
-                15%, 85% { transform: rotate(-55deg) translate(-10px, -20px); }
-              }
-
-              /* Check Watch Head (loop, 10s rhythm) */
-              @keyframes keyframes-watch-head-loop {
-                0%, 75%, 100% { transform: translate(0, 0) rotate(0deg); }
-                80%, 95% { transform: translate(25px, 20px) rotate(12deg); }
-              }
-
-              /* Check Watch Head (single, 3.5s duration) */
-              @keyframes keyframes-watch-head-single {
-                0%, 100% { transform: translate(0, 0) rotate(0deg); }
-                15%, 85% { transform: translate(25px, 20px) rotate(12deg); }
-              }
-
-              /* Check Watch Eyes (loop, 10s rhythm) */
-              @keyframes keyframes-watch-eyes-loop {
-                0%, 75%, 100% { transform: translate(0, 0); }
-                80%, 95% { transform: translate(6px, 5px); }
-              }
-
-              /* Check Watch Eyes (single, 3.5s duration) */
-              @keyframes keyframes-watch-eyes-single {
-                0%, 100% { transform: translate(0, 0); }
-                15%, 85% { transform: translate(6px, 5px); }
-              }
-
-              /* Roll Eyes (loop, 6s rhythm) */
-              @keyframes keyframes-roll-eyes-loop {
-                0%, 80%, 100% { transform: translate(0, 0); }
-                84% { transform: translate(0, -6px); }
-                88% { transform: translate(5px, -3px); }
-                92% { transform: translate(0, 5px); }
-                96% { transform: translate(-5px, -3px); }
-              }
-
-              /* Roll Eyes (single, 1.2s duration) */
-              @keyframes keyframes-roll-eyes-single {
-                0%, 100% { transform: translate(0, 0); }
-                20% { transform: translate(0, -6px); }
-                40% { transform: translate(5px, -3px); }
-                60% { transform: translate(0, 5px); }
-                80% { transform: translate(-5px, -3px); }
-              }
-
-              /* --- Dynamic Class Selectors --- */
-              
-              /* Loops */
-              .loop-blink {
-                animation: keyframes-blink-loop 5s infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-roll-eyes {
-                animation: keyframes-roll-eyes-loop 6s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-wave {
-                animation: keyframes-wave-loop 4s ease-in-out infinite;
-                transform-origin: 527px 283px;
-              }
-              .loop-cough {
-                animation: keyframes-cough-loop 6s ease-in-out infinite;
-                transform-origin: 330px 260px;
-              }
-              .loop-cough .eye {
-                animation: keyframes-squeeze-loop 6s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-sneeze {
-                animation: keyframes-sneeze-loop 7s ease-in-out infinite;
-                transform-origin: 330px 260px;
-              }
-              .loop-sneeze .eye {
-                animation: keyframes-squeeze-sneeze-loop 7s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-sneeze .mouth {
-                animation: keyframes-sneeze-mouth-loop 7s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-yawn {
-                animation: keyframes-yawn-loop 9s ease-in-out infinite;
-                transform-origin: 330px 260px;
-              }
-              .loop-yawn .eye {
-                animation: keyframes-squeeze-yawn-loop 9s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-yawn .mouth {
-                animation: keyframes-yawn-mouth-loop 9s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-nod {
-                animation: keyframes-nod-loop 5s ease-in-out infinite;
-                transform-origin: 330px 260px;
-              }
-              .loop-nod .eye {
-                animation: keyframes-nod-eye-loop 5s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-nod .mouth {
-                animation: keyframes-nod-mouth-loop 5s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .loop-watch-arm {
-                animation: keyframes-watch-arm-loop 10s ease-in-out infinite;
-                transform-origin: 527px 283px;
-              }
-              .loop-watch-head {
-                animation: keyframes-watch-head-loop 10s ease-in-out infinite;
-                transform-origin: 330px 260px;
-              }
-              .loop-watch-head .eye {
-                animation: keyframes-watch-eyes-loop 10s ease-in-out infinite;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-
-              /* Manual Triggers */
-              .animate-blink {
-                animation: keyframes-blink-single 0.3s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-wave {
-                animation: keyframes-wave-single 1s ease-in-out;
-                transform-origin: 527px 283px;
-              }
-              .animate-cough {
-                animation: keyframes-cough-single 1.2s ease-in-out;
-                transform-origin: 330px 260px;
-              }
-              .animate-cough .eye {
-                animation: keyframes-squeeze-single 1.2s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-sneeze {
-                animation: keyframes-sneeze-single 1.5s ease-in-out;
-                transform-origin: 330px 260px;
-              }
-              .animate-sneeze .eye {
-                animation: keyframes-squeeze-sneeze-single 1.5s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-sneeze .mouth {
-                animation: keyframes-sneeze-mouth-single 1.5s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-yawn {
-                animation: keyframes-yawn-single 3s ease-in-out;
-                transform-origin: 330px 260px;
-              }
-              .animate-yawn .eye {
-                animation: keyframes-squeeze-yawn-single 3s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-yawn .mouth {
-                animation: keyframes-yawn-mouth-single 3s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-nod {
-                animation: keyframes-nod-single 1.2s ease-in-out;
-                transform-origin: 330px 260px;
-              }
-              .animate-nod .eye {
-                animation: keyframes-nod-eye-single 1.2s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-nod .mouth {
-                animation: keyframes-nod-mouth-single 1.2s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-watch-arm {
-                animation: keyframes-watch-arm-single 3.5s ease-in-out;
-                transform-origin: 527px 283px;
-              }
-              .animate-watch-head {
-                animation: keyframes-watch-head-single 3.5s ease-in-out;
-                transform-origin: 330px 260px;
-              }
-              .animate-watch-head .eye {
-                animation: keyframes-watch-eyes-single 3.5s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-              .animate-roll-eyes {
-                animation: keyframes-roll-eyes-single 1.2s ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-              }
-            `}</style>
-
-            {/* Torso/Shoulders */}
-            <path
-              d="M243.078 302.24V481.24C272.078 500.074 348.778 526.44 423.578 481.24V302.24L527.078 303.605C546.278 289.497 535.078 270.616 527.078 262.939L411.578 254.74C401.087 255.42 387.48 256.169 372.578 256.801C337.378 296.85 305.245 274.352 293.578 258.096C276.682 257.719 262.448 256.71 254.078 254.74L136.578 264.24C127.495 270.824 116.678 286.44 135.078 302.24H243.078Z"
-              fill="#34CACA"
-            />
-            {/* Right Arm/Hand (Viewer Left) */}
-            <path
-              d="M12.5779 273.24C0.577822 274.74 -9.42215 304.74 15.0779 304.74L135.078 302.24C116.678 286.44 127.495 270.824 136.578 264.24L12.5779 273.24Z"
-              fill="#F3D3BD"
-            />
-            {/* Neck Shadow */}
-            <path
-              d="M372.578 256.801C346.997 257.888 317.598 258.632 293.578 258.096C305.245 274.352 337.378 296.85 372.578 256.801Z"
-              fill="#F8CE9F"
-            />
-            {/* Left Arm/Hand (Viewer Right) */}
-            <path
-              className={armClass}
-              d="M651.078 305.24C666.578 307.74 676.578 279.74 651.078 271.74L527.078 262.939C535.078 270.616 546.278 289.497 527.078 303.605L651.078 305.24Z"
-              fill="#F3D3BD"
-              onAnimationEnd={handleWaveEnd}
-            />
-            {/* Head Group (Face, Hair, Eyes, Mouth) */}
-            <g className={headClass} onAnimationEnd={handleHeadAnimationEnd}>
-              {/* Face Skin */}
-              <path
-                d="M284.078 260.74C231.278 259.94 209.078 220.073 204.578 200.24C152.178 30.6401 354.744 51.2401 462.578 82.7401C468.244 102.907 476.178 154.54 462.578 199.74C448.978 244.94 406.244 259.24 386.578 260.74C374.411 261.073 336.878 261.54 284.078 260.74Z"
-                fill="#FADCB7"
-              />
-              {/* Hair */}
-              <path
-                d="M218.078 198.24L220.578 136.74C235.778 131.54 242.911 116.907 244.578 110.24C308.578 135.44 394.578 120.74 429.578 110.24C429.578 124.64 442.244 133.24 448.578 135.74C446.744 163.74 447.078 215.34 463.078 197.74C479.078 180.14 484.078 120.074 484.578 92.2402C504.578 76.2402 511.078 56.2402 513.078 44.7402C515.078 33.2402 510.078 11.2402 508.078 17.7402C506.078 24.2402 472.078 45.2402 482.578 32.7402C493.078 20.2402 475.078 -9.25976 473.578 3.74024C472.378 14.1402 449.411 30.0735 438.078 36.7401C440.244 22.5734 441.478 -1.95992 429.078 13.2401C413.578 32.2401 394.578 40.7402 357.578 29.7399C301.978 14.5399 273.411 30.7401 266.078 40.7402C229.278 21.9402 200.078 61.5735 190.078 83.7402C185.744 90.9068 178.178 112.14 182.578 139.74C188.078 174.24 191.078 175.24 201.578 198.24C209.978 216.64 216.078 205.907 218.078 198.24Z"
-                fill="#333333"
-                stroke="black"
-                stroke-opacity="0.24"
-              />
-              {/* Left Eye Wrapper for Gaze Tracking */}
-              <g style={{
-                transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
-                transition: 'transform 0.15s ease-out',
-                transformBox: 'fill-box',
-                transformOrigin: 'center'
-              }}>
-                <circle
-                  className={eyeClass}
-                  cx="283.578"
-                  cy="166.24"
-                  r="11.5"
-                  fill="black"
-                  onAnimationEnd={handleBlinkEnd}
-                />
-              </g>
-              {/* Right Eye Wrapper for Gaze Tracking */}
-              <g style={{
-                transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
-                transition: 'transform 0.15s ease-out',
-                transformBox: 'fill-box',
-                transformOrigin: 'center'
-              }}>
-                <circle
-                  className={eyeClass}
-                  cx="381.578"
-                  cy="166.24"
-                  r="11.5"
-                  fill="black"
-                />
-              </g>
-              {/* Resting/Animating Mouth */}
-              <ellipse
-                className="mouth"
-                cx="332.5"
-                cy="215"
-                rx="8"
-                ry="1"
-                fill="#333333"
-              />
-            </g>
-          </svg>
+            Masuk
+          </a>
+          <a
+            href="#"
+            className="inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline"
+          >
+            Mulai Gratis <IconArrowRight />
+          </a>
         </div>
 
-        {/* Right Side: Control Panel Center */}
-        <div className="w-full lg:w-2/5 flex flex-col gap-6">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-indigo-400 via-emerald-400 via-amber-400 via-rose-400 to-cyan-400 bg-clip-text text-transparent uppercase">
-              Interactive Avatar
-            </h1>
-            <p className="text-sm text-slate-400 mt-1 font-medium leading-relaxed">
-              Trigger actions manually on command, or toggle them to run continuously in the background.
-            </p>
+        {/* Mobile hamburger */}
+        <button
+          className="hamburger flex md:hidden flex-col justify-center items-center w-8 h-8 relative bg-none border-none cursor-pointer p-1"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+        >
+          <span
+            className={`block w-5 h-0.5 bg-slate-700 rounded-sm transition-all duration-300 absolute ${mobileOpen ? "rotate-45" : "-translate-y-1.5"}`}
+          />
+          <span
+            className={`block w-5 h-0.5 bg-slate-700 rounded-sm transition-all duration-300 absolute ${mobileOpen ? "opacity-0" : ""}`}
+          />
+          <span
+            className={`block w-5 h-0.5 bg-slate-700 rounded-sm transition-all duration-300 absolute ${mobileOpen ? "-rotate-45" : "translate-y-1.5"}`}
+          />
+        </button>
+      </div>
+
+      {mobileOpen && (
+        <div className="mobileMenu md:hidden flex flex-col gap-1 border-t border-slate-100 py-3 px-4 bg-white/95 backdrop-blur-md absolute top-full left-0 right-0 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+          <a
+            href="#how-it-works"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
+          >
+            Cara Kerja
+          </a>
+          <a
+            href="#features"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
+          >
+            Fitur
+          </a>
+          <a
+            href="#faq"
+            className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
+          >
+            FAQ
+          </a>
+          <div className="pt-2 px-3 pb-1 flex flex-col gap-2">
+            <a
+              href="#"
+              className="inline-flex items-center justify-center text-sm font-medium text-slate-700 rounded-lg py-2.5"
+            >
+              Masuk
+            </a>
+            <a
+              href="#"
+              className="inline-flex items-center justify-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline"
+            >
+              Mulai Gratis <IconArrowRight />
+            </a>
           </div>
+        </div>
+      )}
+    </nav>
+  );
+}
 
-          <div className="h-px bg-slate-800" />
+// ── Hero Section ────────────────────────────────────────────────────────────
+function HeroSection() {
+  return (
+    <section className="hero max-w-[800px] mx-auto pt-16 px-5 pb-12 md:pt-24 md:px-6 md:pb-20 flex flex-col items-center text-center">
+      <div className="flex flex-col items-center">
+        <h1 className="heroTitle text-[clamp(2.2rem,5vw,3.6rem)] font-black leading-[1.15] text-[#0f1d35] mt-0 mx-0 mb-6 tracking-[-0.02em]">
+          Latihan ngomong.
+          <br />
+          Lawan gangguan.
+          <br />
+          <span className="heroAccent text-[#fabf24]">Makin jago</span> lewat
+          feedback.
+        </h1>
 
-          {/* Section 1: Manual Action Buttons */}
-          <div className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Manual Trigger Actions
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3">
-              {/* Blink Action */}
-              <button
-                onClick={triggerBlink}
-                disabled={autoBlink || isBlinking}
-                className="group relative w-full px-4 py-3 bg-indigo-600/10 hover:bg-indigo-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-indigo-500/20 disabled:border-slate-800 text-indigo-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoBlink ? "Auto" : isBlinking ? "Blinking..." : "Blink"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-indigo-400 group-hover:scale-125 transition-transform" />
-              </button>
+        <p className="heroDesc text-[1.05rem] text-[#5a7090] leading-[1.7] mb-8 max-w-[620px] mx-auto">
+          Pitcho bantu kamu asah skill ngomong lewat simulasi yang kerasa nyata,
+          plus feedback dari AI yang beneran bikin kamu makin luwes.
+        </p>
 
-              {/* Wave Action */}
-              <button
-                onClick={triggerWave}
-                disabled={autoWave || isWaving}
-                className="group relative w-full px-4 py-3 bg-emerald-600/10 hover:bg-emerald-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-emerald-500/20 disabled:border-slate-800 text-emerald-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoWave ? "Auto" : isWaving ? "Waving..." : "Wave"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-emerald-400 group-hover:scale-125 transition-transform" />
-              </button>
-
-              {/* Cough Action */}
-              <button
-                onClick={triggerCough}
-                disabled={autoCough || isCoughing}
-                className="group relative w-full px-4 py-3 bg-amber-600/10 hover:bg-amber-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-amber-500/20 disabled:border-slate-800 text-amber-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoCough ? "Auto" : isCoughing ? "Coughing..." : "Cough"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-amber-400 group-hover:scale-125 transition-transform" />
-              </button>
-
-              {/* Sneeze Action */}
-              <button
-                onClick={triggerSneeze}
-                disabled={autoSneeze || isSneezing}
-                className="group relative w-full px-4 py-3 bg-rose-600/10 hover:bg-rose-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-rose-500/20 disabled:border-slate-800 text-rose-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoSneeze ? "Auto" : isSneezing ? "Sneezing..." : "Sneeze"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-rose-400 group-hover:scale-125 transition-transform" />
-              </button>
-
-              {/* Yawn Action */}
-              <button
-                onClick={triggerYawn}
-                disabled={autoYawn || isYawning}
-                className="group relative w-full px-4 py-3 bg-cyan-600/10 hover:bg-cyan-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-cyan-500/20 disabled:border-slate-800 text-cyan-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoYawn ? "Auto" : isYawning ? "Yawning..." : "Yawn"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-cyan-400 group-hover:scale-125 transition-transform" />
-              </button>
-
-              {/* Nod Action */}
-              <button
-                onClick={triggerNod}
-                disabled={autoNod || isNodding}
-                className="group relative w-full px-4 py-3 bg-violet-600/10 hover:bg-violet-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-violet-500/20 disabled:border-slate-800 text-violet-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoNod ? "Auto" : isNodding ? "Nodding..." : "Nod"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-violet-400 group-hover:scale-125 transition-transform" />
-              </button>
-
-              {/* Check Watch Action */}
-              <button
-                onClick={triggerWatch}
-                disabled={autoWatch || isCheckingWatch}
-                className="group relative w-full px-4 py-3 bg-orange-600/10 hover:bg-orange-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-orange-500/20 disabled:border-slate-800 text-orange-350 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoWatch ? "Auto" : isCheckingWatch ? "Checking..." : "Check Watch"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-orange-400 group-hover:scale-125 transition-transform" />
-              </button>
-
-              {/* Roll Eyes Action */}
-              <button
-                onClick={triggerRollEyes}
-                disabled={autoRollEyes || isRollingEyes}
-                className="group relative w-full px-4 py-3 bg-indigo-600/10 hover:bg-indigo-600/20 active:scale-[0.98] disabled:bg-slate-850 disabled:text-slate-600 disabled:scale-100 border border-indigo-500/20 disabled:border-slate-800 text-indigo-300 font-bold rounded-2xl flex items-center justify-between transition-all duration-100 cursor-pointer"
-              >
-                <span className="text-sm">
-                  {autoRollEyes ? "Auto" : isRollingEyes ? "Rolling..." : "Roll Eyes"}
-                </span>
-                <span className="h-2 w-2 rounded-full bg-indigo-400 group-hover:scale-125 transition-transform" />
-              </button>
-            </div>
-          </div>
-
-          <div className="h-px bg-slate-850" />
-
-          {/* Section 2: Continuous Toggle Switches */}
-          <div className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Continuous Loop Settings (Toggles)
-            </h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
-              {/* Auto Blink Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Eye Blink</span>
-                  <span className="text-[10px] text-slate-500">Blinks naturally every 5s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoBlink}
-                    onChange={(e) => {
-                      setAutoBlink(e.target.checked);
-                      if (e.target.checked) setIsBlinking(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
-              </div>
-
-              {/* Auto Wave Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Hand Wave</span>
-                  <span className="text-[10px] text-slate-500">Waves hand friendly every 4s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoWave}
-                    onChange={(e) => {
-                      setAutoWave(e.target.checked);
-                      if (e.target.checked) setIsWaving(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                </label>
-              </div>
-
-              {/* Auto Cough Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Coughing</span>
-                  <span className="text-[10px] text-slate-500">Coughs organically every 6s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoCough}
-                    onChange={(e) => {
-                      setAutoCough(e.target.checked);
-                      if (e.target.checked) setIsCoughing(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                </label>
-              </div>
-
-              {/* Auto Sneeze Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Sneezing</span>
-                  <span className="text-[10px] text-slate-500">Sneezes organically every 7s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoSneeze}
-                    onChange={(e) => {
-                      setAutoSneeze(e.target.checked);
-                      if (e.target.checked) setIsSneezing(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
-                </label>
-              </div>
-
-              {/* Auto Yawn Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Yawning</span>
-                  <span className="text-[10px] text-slate-500">Yawns organically every 9s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoYawn}
-                    onChange={(e) => {
-                      setAutoYawn(e.target.checked);
-                      if (e.target.checked) setIsYawning(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
-                </label>
-              </div>
-
-              {/* Auto Nod Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Nodding</span>
-                  <span className="text-[10px] text-slate-500">Nods understandingly every 5s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoNod}
-                    onChange={(e) => {
-                      setAutoNod(e.target.checked);
-                      if (e.target.checked) setIsNodding(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
-                </label>
-              </div>
-
-              {/* Auto Watch Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Watch Check</span>
-                  <span className="text-[10px] text-slate-500">Checks watch naturally every 10s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoWatch}
-                    onChange={(e) => {
-                      setAutoWatch(e.target.checked);
-                      if (e.target.checked) setIsCheckingWatch(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                </label>
-              </div>
-
-              {/* Auto Roll Eyes Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-950/30 rounded-2xl border border-slate-850">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-slate-200">Auto Roll Eyes</span>
-                  <span className="text-[10px] text-slate-500">Rolls eyes naturally every 6s</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoRollEyes}
-                    onChange={(e) => {
-                      setAutoRollEyes(e.target.checked);
-                      if (e.target.checked) setIsRollingEyes(false);
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
-              </div>
-            </div>
-          </div>
-
+        <div className="heroBtns flex gap-3.5 flex-wrap mb-10 justify-center">
+          <a
+            href="#"
+            className="btnHeroPrimary inline-flex items-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-3.5 px-7 rounded-xl no-underline shadow-[0_4px_20px_rgba(3,136,255,0.3)]"
+          >
+            Coba Latihan Gratis <IconArrowRight />
+          </a>
+          <a
+            href="#how-it-works"
+            className="btnHeroSecondary inline-flex items-center gap-2 text-[#0f1d35] font-bold text-base py-[13px] px-6 rounded-xl border-2 border-[#d5dff5] bg-white no-underline"
+          >
+            Lihat Demo
+          </a>
         </div>
       </div>
+    </section>
+  );
+}
+
+// ── Pain Points Section ─────────────────────────────────────────────────────
+const painPoints = [
+  {
+    icon: AlertCircle,
+    colorClass:
+      "bg-red-50/50 text-red-500 border-red-100/40 shadow-sm shadow-red-500/5",
+    title: "Gangguan di mana-mana",
+    desc: "Ruangan rame, orang motong ngomong, ada yang main HP. Kamu nggak bisa ngontrol itu semua. Tapi kamu bisa siap-siap.",
+  },
+  {
+    icon: HeartPulse,
+    colorClass:
+      "bg-amber-50/50 text-amber-500 border-amber-100/40 shadow-sm shadow-amber-500/5",
+    title: "Gugup tiba-tiba",
+    desc: "Udah kuasai materi, udah latihan berkali-kali. Giliran tampil di depan orang, eh malah blank dan lupa semuanya.",
+  },
+  {
+    icon: MessageSquare,
+    colorClass:
+      "bg-indigo-50/50 text-indigo-500 border-indigo-100/40 shadow-sm shadow-indigo-500/5",
+    title: "Nggak ada yang ngasih tahu",
+    desc: "Kebanyakan kita nggak sadar apa yang salah pas ngomong. Nggak ada yang ngingetin, nggak ada yang ngebenerin.",
+  },
+  {
+    icon: Target,
+    colorClass:
+      "bg-emerald-50/50 text-emerald-500 border-emerald-100/40 shadow-sm shadow-emerald-500/5",
+    title: "Latihan itu kuncinya",
+    desc: "Latihan yang pas dan terstruktur bisa bikin presentasi sesulit apa pun jadi ajang buat ningkatin pede.",
+  },
+];
+
+function PainSection() {
+  return (
+    <section className="painSection bg-[#f7f9ff] py-18 px-6 text-center">
+      <div className="sectionLabel inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#fabf24] uppercase mb-3">
+        INI PENTING
+      </div>
+      <h2 className="painTitle text-[clamp(1.5rem,3vw,2.2rem)] font-extrabold text-[#0f1d35] leading-[1.3] mb-13">
+        Kebanyakan orang tahu mau ngomong apa.
+        <br />
+        Tapi gugup pas momennya{" "}
+        <em className="italic text-[#0388ff]">beneran</em> penting.
+      </h2>
+      <div className="painGrid grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7 max-w-[1100px] mx-auto">
+        {painPoints.map((p, i) => (
+          <div
+            key={i}
+            className="painCard bg-white rounded-[18px] py-7 px-5.5 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)]"
+          >
+            <div
+              className={`w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center border ${p.colorClass}`}
+            >
+              <p.icon size={28} strokeWidth={1.8} />
+            </div>
+            <h3 className="painCardTitle text-[0.95rem] font-extrabold text-[#0f1d35] mb-2">
+              {p.title}
+            </h3>
+            <p className="painCardDesc text-[0.82rem] text-[#6880a0] leading-[1.6]">
+              {p.desc}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Feature Highlight Section ───────────────────────────────────────────────
+const featureHighlights = [
+  {
+    icon: <IconBrain />,
+    title: "Gangguan Realistis",
+    desc: "Ada suara berisik, HP bunyi, orang batuk. Pokoknya hal-hal yang bikin kamu ke-distract di dunia nyata, tapi di sini aman buat latihan.",
+  },
+  {
+    icon: <IconZap />,
+    title: "Feedback dari AI",
+    desc: "Begitu sesi selesai, langsung dikasih tahu: cara ngomongmu gimana, nadanya pas apa nggak, lancar apa terbata, gesturmu oke apa enggak.",
+  },
+  {
+    icon: <IconActivity />,
+    title: "Pantau Progress",
+    desc: "Liat sendiri gimana skillmu naik dari waktu ke waktu. Ada data lengkap dan saran yang nyambung sama kebutuhan kamu.",
+  },
+  {
+    icon: <IconTrendingUp />,
+    title: "Pede Beneran",
+    desc: "Latihan di skenario yang makin lama makin susah. Liat sendiri skill ngomongmu naik level demi level.",
+  },
+];
+
+function FeaturesSection() {
+  return (
+    <section className="featuresSection bg-white py-20 px-6" id="features">
+      <div className="featuresInner max-w-[1100px] mx-auto flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+        <div className="featuresLeft flex-1 min-w-0">
+          <div className="sectionLabelBlue inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#0388ff] uppercase mb-3">
+            YANG BIKIN BEDA
+          </div>
+          <h2 className="featuresTitle text-[clamp(1.6rem,3vw,2.4rem)] font-black text-[#0f1d35] leading-tight mb-4.5 tracking-[-0.02em]">
+            Simulasi yang kerasa nyata.
+            <br />
+            Feedback yang personal.
+            <br />
+            <span className="heroAccent text-[#fabf24]">
+              Hasil yang keliatan.
+            </span>
+          </h2>
+          <p className="featuresDesc text-[0.95rem] text-[#5a7090] leading-[1.7] mb-7 max-w-full lg:max-w-[380px]">
+            Kami gabungin skenario dunia nyata sama tools yang bikin kamu terus
+            improve. Semuanya didukung AI yang ngerti banget gimana caranya
+            komunikasi yang oke.
+          </p>
+          <a
+            href="#"
+            className="btnPrimary inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-bold text-[0.88rem] py-2.5 px-5 rounded-[10px] no-underline shadow-[0_4px_12px_rgba(3,136,255,0.28)] whitespace-nowrap"
+            style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}
+          >
+            Lihat Fitur Lengkap <IconArrowRight />
+          </a>
+        </div>
+
+        <div className="featuresRight flex-1 min-w-0 flex flex-col gap-4.5 w-full">
+          {featureHighlights.map((f, i) => (
+            <div
+              key={i}
+              className="featureCard flex items-start gap-4 bg-[#f7f9ff] rounded-[14px] py-4.5 px-5 border-[1.5px] border-transparent"
+            >
+              <div className="featureCardIcon w-11 h-11 bg-gradient-to-br from-[#0388ff] to-[#005fd3] rounded-xl flex items-center justify-center text-white shrink-0">
+                {f.icon}
+              </div>
+              <div>
+                <h4 className="featureCardTitle text-[0.95rem] font-extrabold text-[#0f1d35] mb-1">
+                  {f.title}
+                </h4>
+                <p className="featureCardDesc text-[0.83rem] text-[#6880a0] leading-[1.5]">
+                  {f.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── How It Works Section ────────────────────────────────────────────────────
+const steps = [
+  {
+    num: "1",
+    title: "Pilih Mode",
+    desc: "Mau latihan presentasi atau wawancara? Pilih aja sesuai kebutuhan kamu.",
+    color: "#0388ff",
+    imgSrc: "/step1.png",
+  },
+  {
+    num: "2",
+    title: "Atur Sesi",
+    desc: "Setting kamera, tentuin seberapa intens dan susah skenarionya.",
+    color: "#fabf24",
+    imgSrc: "/step2.png",
+  },
+  {
+    num: "3",
+    title: "Mulai Simulasi",
+    desc: "Ngobrol, bikin kesalahan sampe ngulang-ngulang, hadapi gangguan — semua terjadi langsung.",
+    color: "#0388ff",
+    imgSrc: "/step3.png",
+  },
+  {
+    num: "4",
+    title: "Evaluasi & Asah Lagi",
+    desc: "Terima feedback dari AI dan tips yang bisa langsung kamu praktekkin.",
+    color: "#fabf24",
+    imgSrc: "/step1.png",
+  },
+];
+
+function HowItWorksSection() {
+  return (
+    <section
+      className="howSection bg-[#f7f9ff] py-20 px-6 text-center"
+      id="how-it-works"
+    >
+      <div className="sectionLabelBlue inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#0388ff] uppercase mb-3">
+        CARA KERJA
+      </div>
+      <h2 className="sectionTitle text-[clamp(1.6rem,3vw,2.4rem)] font-extrabold text-[#0f1d35] leading-snug mb-4 text-center">
+        Langkah gampang biar makin
+        <br />
+        jago ngomong
+      </h2>
+
+      <div className="stepsGrid max-w-[1100px] mt-13 mx-auto mb-0 grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7">
+        {steps.map((s, i) => (
+          <div
+            key={i}
+            className="stepCard bg-white rounded-[18px] pt-0 px-0 pb-7 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)] overflow-hidden"
+          >
+            <div className="stepImgContainer w-full h-[130px] overflow-hidden bg-slate-50">
+              <img
+                src={s.imgSrc}
+                alt={`Langkah ${s.num}: ${s.title}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div
+              className="stepNum w-9 h-9 rounded-full text-white text-base font-black flex items-center justify-center mt-[18px] mx-auto mb-3"
+              style={{ background: s.color }}
+            >
+              {s.num}
+            </div>
+            <h3 className="stepTitle text-[0.95rem] font-extrabold text-[#0f1d35] mb-2 px-4">
+              {s.title}
+            </h3>
+            <p className="stepDesc text-[0.82rem] text-[#6880a0] leading-[1.55] px-4">
+              {s.desc}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── FAQ Section ──────────────────────────────────────────────────────────────
+const faqItems = [
+  {
+    q: "Apa sih Pitcho itu?",
+    a: "Pitcho itu semacam pelatih ngomong pribadi yang pakai AI. Kamu bakal simulasi ngomong di depan audiens — bisa presentasi, bisa wawancara — lengkap sama gangguannya: suara bising, notifikasi HP, kejadian nggak terduga. Abis sesi, kamu langsung dikasih tahu apa yang udah oke dan apa yang masih perlu diasah.",
+  },
+  {
+    q: "Gimana AI-nya ngasih feedback?",
+    a: "AI kami ngecek ucapanmu langsung pas kamu lagi ngomong. Yang dicek: kecepatan ngomong, kata-kata filler (kayak 'anu', 'eee'), naik-turun nada, kontak mata lewat kamera, sampai gimana kamu ngadepin gangguan. Begitu kelar, kamu dapet laporan lengkap plus tips yang tinggal dipraktikkin.",
+  },
+  {
+    q: "Perlu alat khusus nggak?",
+    a: "Nggak perlu yang aneh-aneh. Cukup laptop atau HP yang ada kamera sama mik-nya. Kalo pakai headphone sih lebih enak, tapi ya nggak wajib juga.",
+  },
+  {
+    q: "Gratis atau bayar?",
+    a: "Langsung coba aja dulu, gratis kok. Nggak perlu masukin kartu kredit atau yang ribet-ribet. Nanti kalo udah cocok dan pengen akses lebih banyak, ada paket premium dengan skenario tambahan, analitik lebih detail, dan latihan sepuasnya.",
+  },
+  {
+    q: "Bisa buat latihan wawancara kerja?",
+    a: "Bisa banget. Ada mode Wawancara khusus yang nyimulasikan pertanyaan-pertanyaan umum, follow-up, dan situasi yang bikin deg-degan. Kamu bakal dilatih mikir cepat dan jawab dengan pede di kondisi yang semirip mungkin sama aslinya.",
+  },
+  {
+    q: "Data aku aman nggak?",
+    a: "Tenang, aman. Sebisa mungkin video dan suaramu diproses langsung di perangkatmu sendiri, nggak diunggah ke mana-mana. Kami nggak pernah ngeshare sesi latihanmu ke siapa pun. Kalo kamu mau hapus semua data, tinggal hapus aja kapan aja.",
+  },
+  {
+    q: "Bedanya sama latihan depan kaca?",
+    a: "Cermin nggak bakal motong kamu pas lagi ngomong, nggak bisa nilai nada dan kecepatanmu, apalagi ngasih masukan yang jelas. Pitcho bikin suasana yang nggak tertebak dan penuh tekanan — mirip kayak komunikasi beneran — terus ngasih tahu kamu mesti improve di bagian mana.",
+  },
+];
+
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState(null);
+
+  const toggle = (i) => {
+    setOpenIndex(openIndex === i ? null : i);
+  };
+
+  return (
+    <section className="faqSection bg-white py-20 px-6" id="faq">
+      <div className="faqInner max-w-[740px] mx-auto">
+        <div className="sectionLabelBlue inline-block text-[0.72rem] font-bold tracking-[0.12em] text-[#0388ff] uppercase mb-3">
+          FAQ
+        </div>
+        <h2 className="sectionTitle text-[clamp(1.6rem,3vw,2.4rem)] font-extrabold text-[#0f1d35] leading-snug mb-3">
+          Yang sering ditanyain
+        </h2>
+        <p className="faqSubtitle text-[0.95rem] text-[#5a7090] leading-[1.7] mb-10">
+          Hal-hal yang biasanya muncul sebelum mulai latihan pertama.
+        </p>
+
+        <div className="faqList flex flex-col gap-3">
+          {faqItems.map((item, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div
+                key={i}
+                className="faqItem bg-[#f7f9ff] rounded-[14px] border-[1.5px] border-transparent"
+              >
+                <button
+                  onClick={() => toggle(i)}
+                  className="faqTrigger w-full flex items-center justify-between gap-4 text-left bg-none border-none cursor-pointer py-5 px-6"
+                  aria-expanded={isOpen}
+                >
+                  <span className="faqQuestion text-[0.95rem] font-extrabold text-[#0f1d35] leading-[1.4] pr-2">
+                    {item.q}
+                  </span>
+                  <span
+                    className={`faqIcon shrink-0 text-[#0388ff] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                  >
+                    <IconChevronDown />
+                  </span>
+                </button>
+                <div
+                  className={`faqAnswer overflow-hidden transition-all duration-300 ease-in-out ${
+                    isOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <p className="faqAnswerText text-[0.88rem] text-[#6880a0] leading-[1.7] px-6 pb-5 -mt-0.5">
+                    {item.a}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Footer ──────────────────────────────────────────────────────────────────
+const footerLinks = {
+  Produk: [
+    "Mode Presentasi",
+    "Mode Wawancara",
+    "Feedback AI",
+    "Pantau Kemajuan",
+  ],
+  Bantuan: [
+    "Pusat Bantuan",
+    "Video Tutorial",
+    "Tips Public Speaking",
+    "Komunitas",
+  ],
+  Perusahaan: ["Tentang Kami", "Blog", "Karir", "Hubungi Kami"],
+};
+
+function Footer() {
+  return (
+    <footer className="footer bg-[#0f1d35] pt-14 px-6 pb-6">
+      <div className="footerInner max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-8 lg:gap-10 pb-12 border-b border-white/8">
+        <div className="footerBrand">
+          <a
+            href="#"
+            className="logo flex items-center gap-2 no-underline shrink-0 mb-1"
+          >
+            <img
+              src="/logo-text-white.svg"
+              alt="Pitcho"
+              className="h-10 w-auto"
+            />
+          </a>
+          <p className="footerTagline text-[0.85rem] text-white/50 leading-[1.6] mt-3 mx-0 mb-5 max-w-[240px]">
+            Latihan ngomong. Lawan gangguan. Makin jago lewat feedback.
+          </p>
+          <div className="socialLinks flex gap-3">
+            <a
+              href="#"
+              aria-label="Twitter"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
+            >
+              <IconTwitter />
+            </a>
+            <a
+              href="#"
+              aria-label="Instagram"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
+            >
+              <IconInstagram />
+            </a>
+            <a
+              href="#"
+              aria-label="LinkedIn"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
+            >
+              <IconLinkedin />
+            </a>
+          </div>
+        </div>
+
+        {Object.entries(footerLinks).map(([section, links]) => (
+          <div key={section} className="footerCol">
+            <h4 className="footerColTitle text-[0.82rem] font-bold text-white/50 uppercase tracking-[0.1em] mb-4">
+              {section}
+            </h4>
+            <ul className="footerColLinks list-none p-0 m-0 flex flex-col gap-2.5">
+              {links.map((l) => (
+                <li key={l}>
+                  <a href="#" className="text-sm text-white/65 no-underline">
+                    {l}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="footerBottom max-w-[1100px] mt-6 mx-auto mb-0 flex flex-col md:flex-row items-center justify-between flex-wrap gap-3 text-[0.8rem] text-white/35 text-center">
+        <span>© 2026 Pitcho. Hak cipta dilindungi.</span>
+        <div className="footerBottomLinks flex gap-6">
+          <a href="#" className="text-white/35 no-underline">
+            Kebijakan Privasi
+          </a>
+          <a href="#" className="text-white/35 no-underline">
+            Syarat & Ketentuan
+          </a>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────
+export default function LandingPage() {
+  return (
+    <div className="page font-sans text-[#1a2d50] bg-white overflow-x-hidden">
+      <Navbar />
+      <main>
+        <HeroSection />
+        <PainSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <FAQSection />
+      </main>
+      <Footer />
     </div>
   );
-
-  // Animation end reset callback handlers
-  function handleBlinkEnd(e) {
-    if (e.animationName === "keyframes-blink-single") {
-      setIsBlinking(false);
-    } else if (e.animationName === "keyframes-roll-eyes-single") {
-      setIsRollingEyes(false);
-    }
-  }
-
-  function handleWaveEnd(e) {
-    if (e.animationName === "keyframes-wave-single") {
-      setIsWaving(false);
-    } else if (e.animationName === "keyframes-watch-arm-single") {
-      setIsCheckingWatch(false);
-    }
-  }
-
-  // Combined head animation end handler
-  function handleHeadAnimationEnd(e) {
-    if (e.animationName === "keyframes-cough-single") {
-      setIsCoughing(false);
-    } else if (e.animationName === "keyframes-sneeze-single") {
-      setIsSneezing(false);
-    } else if (e.animationName === "keyframes-yawn-single") {
-      setIsYawning(false);
-    } else if (e.animationName === "keyframes-nod-single") {
-      setIsNodding(false);
-    } else if (e.animationName === "keyframes-watch-head-single") {
-      setIsCheckingWatch(false);
-    }
-  }
 }

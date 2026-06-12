@@ -982,7 +982,7 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
                     onClick={() =>
                       setSelectedSegment(isSelected ? null : i)
                     }
-                    className={`w-10 md:w-14 rounded-t-md transition-all duration-500 cursor-pointer relative focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-600 ${
+                    className={`w-8 xs:w-10 md:w-14 rounded-t-md transition-all duration-500 cursor-pointer relative focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-600 ${
                       getBarColor(seg.wpm)
                     } ${
                       isSelected
@@ -1032,22 +1032,22 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
               <X size={14} />
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <div className="text-center">
-              <span className="block text-lg font-black text-slate-800">
+              <span className="block text-base sm:text-lg font-black text-slate-800">
                 {segments[selectedSegment].wpm}
               </span>
               <span className="text-[9px] font-bold text-slate-400">WPM</span>
             </div>
             <div className="text-center">
-              <span className="block text-lg font-black text-slate-800">
+              <span className="block text-base sm:text-lg font-black text-slate-800">
                 {segments[selectedSegment].wordCount || 0}
               </span>
               <span className="text-[9px] font-bold text-slate-400">Words</span>
             </div>
             <div className="text-center">
               <span
-                className={`block text-lg font-black ${
+                className={`block text-base sm:text-lg font-black ${
                   segments[selectedSegment].wpm > 150
                     ? "text-red-500"
                     : segments[selectedSegment].wpm >= 130
@@ -1068,8 +1068,8 @@ function PaceChart({ segments, averageWpm, sessionDuration }) {
       )}
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-4 flex-wrap">
-        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
+      <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+        <span className="flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[9px] font-bold text-slate-400">
           <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block" /> Too
           Slow (&lt;100)
         </span>
@@ -1326,10 +1326,10 @@ export default function PresentationResultPage() {
   return (
     <div className="w-full min-h-screen">
       {/* ── Page header ──────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Post-Session Analysis</h1>
-          <p className="text-sm text-slate-400 font-semibold mt-1 flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold">Post-Session Analysis</h1>
+          <p className="text-xs sm:text-sm text-slate-400 font-semibold mt-1 flex items-center gap-2 flex-wrap">
             <span>Presentation Practice</span>
             {hasSession && (
               <>
@@ -1353,22 +1353,24 @@ export default function PresentationResultPage() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-3 shrink-0">
-          <Button>
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          <Button className="text-xs sm:text-sm">
             <Download size={15} />
-            Download Report
+            <span className="hidden sm:inline">Download Report</span>
+            <span className="sm:hidden">Download</span>
           </Button>
-          <Button variant={"primary"}>
+          <Button variant={"primary"} className="text-xs sm:text-sm">
             <RotateCcw size={15} />
-            Practice Again
+            <span className="hidden sm:inline">Practice Again</span>
+            <span className="sm:hidden">Retry</span>
           </Button>
         </div>
       </div>
 
       {/* ── Row 1: Score + Metric cards ──────────────────────── */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row gap-4 mb-6">
         {/* Overall score card */}
-        <div className="bg-white rounded-2xl border-bold px-5 py-5 flex items-center gap-5 shrink-0 w-lg">
+        <div className="bg-white rounded-2xl border-bold px-5 py-5 flex flex-col sm:flex-row items-center sm:items-center gap-5 shrink-0 w-full lg:w-[380px] text-center sm:text-left">
           <ScoreRing score={overallScore} />
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -1384,7 +1386,7 @@ export default function PresentationResultPage() {
         </div>
 
         {/* Metric top cards grid */}
-        <div className="flex-1 grid grid-cols-3 gap-3">
+        <div className="flex-1 grid grid-cols-1 xs:grid-cols-3 gap-3">
           {dynamicMetrics.map((m) => (
             <MetricCard key={m.id} metric={m} />
           ))}
@@ -1412,10 +1414,10 @@ export default function PresentationResultPage() {
       )}
 
       {/* ── Tab Navigation ────────────────────────────────────── */}
-      <div className="flex border-b-2 border-slate-200 gap-1 mb-6">
+      <div className="flex border-b-2 border-slate-200 gap-1 mb-6 overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab("eye")}
-          className={`pb-3 px-6 text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer ${
+          className={`pb-3 px-4 sm:px-6 text-xs sm:text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "eye"
               ? "border-main text-main"
               : "border-transparent text-slate-400 hover:text-slate-650"
@@ -1425,7 +1427,7 @@ export default function PresentationResultPage() {
         </button>
         <button
           onClick={() => setActiveTab("tempo")}
-          className={`pb-3 px-6 text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer ${
+          className={`pb-3 px-4 sm:px-6 text-xs sm:text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "tempo"
               ? "border-main text-main"
               : "border-transparent text-slate-400 hover:text-slate-650"
@@ -1435,7 +1437,7 @@ export default function PresentationResultPage() {
         </button>
         <button
           onClick={() => setActiveTab("filler")}
-          className={`pb-3 px-6 text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer ${
+          className={`pb-3 px-4 sm:px-6 text-xs sm:text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "filler"
               ? "border-main text-main"
               : "border-transparent text-slate-400 hover:text-slate-650"
@@ -1445,22 +1447,22 @@ export default function PresentationResultPage() {
         </button>
         <button
           onClick={() => setActiveTab("wordiness")}
-          className={`pb-3 px-6 text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer ${
+          className={`pb-3 px-4 sm:px-6 text-xs sm:text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "wordiness"
               ? "border-main text-main"
               : "border-transparent text-slate-400 hover:text-slate-650"
           }`}
         >
-          Wordiness (Pemborosan Kata)
+          Wordiness
         </button>
       </div>
 
       {/* ── Tab Contents ──────────────────────────────────────── */}
       {/* ── Tab 1: Eye Tracking ── */}
       {activeTab === "eye" && (
-        <div className="grid grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left: Custom Media Player */}
-          <div className="col-span-8 bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
+          <div className="lg:col-span-8 bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="font-black text-slate-800 text-sm">
                 Focus & Eye Tracking Replay
@@ -1501,26 +1503,28 @@ export default function PresentationResultPage() {
 
                 {/* Clip navigation */}
                 {clips.length > 1 && (
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <button
                       onClick={() => setActiveClipIndex(activeClipIndex - 1)}
                       disabled={activeClipIndex <= 0}
-                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 text-[10px] sm:text-xs font-bold rounded-lg border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <ChevronLeft size={12} />
-                      Previous Clip
+                      <span className="hidden sm:inline">Previous Clip</span>
+                      <span className="sm:hidden">Prev</span>
                     </button>
 
-                    <span className="text-[10px] font-bold text-slate-400 tabular-nums">
+                    <span className="text-[10px] font-bold text-slate-400 tabular-nums shrink-0">
                       {activeClipIndex + 1} / {clips.length}
                     </span>
 
                     <button
                       onClick={() => setActiveClipIndex(activeClipIndex + 1)}
                       disabled={activeClipIndex >= clips.length - 1}
-                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 text-[10px] sm:text-xs font-bold rounded-lg border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      Next Clip
+                      <span className="hidden sm:inline">Next Clip</span>
+                      <span className="sm:hidden">Next</span>
                       <ChevronRight size={12} />
                     </button>
                   </div>
@@ -1530,10 +1534,10 @@ export default function PresentationResultPage() {
           </div>
 
           {/* Right: Eye Focus Events / Highlights */}
-          <div className="col-span-4 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <div className="bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-black text-slate-800 text-sm">
+                <h3 className="font-black text-slate-800 text-xs sm:text-sm">
                   Eye Focus Events
                 </h3>
                 {hasSession && (
@@ -1550,7 +1554,7 @@ export default function PresentationResultPage() {
                   <span className="text-[10px] text-slate-300 text-center">Distraction events from your session will appear here</span>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2.5 max-h-[480px] overflow-y-auto">
+                <div className="flex flex-col gap-2.5 max-h-[320px] lg:max-h-[480px] overflow-y-auto">
                   {clips.map((clip, i) => (
                     <ClipCard
                       key={clip.id}
@@ -1566,9 +1570,9 @@ export default function PresentationResultPage() {
 
             {/* Summary stats */}
             {hasSession && (
-              <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-3">
-                <h3 className="font-black text-slate-800 text-sm">Session Summary</h3>
-                <div className="flex flex-col gap-2 text-xs">
+              <div className="bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-3">
+                <h3 className="font-black text-slate-800 text-xs sm:text-sm">Session Summary</h3>
+                <div className="flex flex-col gap-2 text-[11px] sm:text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Duration</span>
                     <span className="font-bold text-slate-700">{formatTime(sessionData.sessionDuration)}</span>
@@ -1590,9 +1594,9 @@ export default function PresentationResultPage() {
 
       {/* ── Tab 2: Pace & Tempo ── */}
       {activeTab === "tempo" && (
-        <div className="grid grid-cols-12 gap-4 animate-fade-in">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 animate-fade-in">
           {/* Main Tempo View */}
-          <div className="col-span-8 bg-white rounded-2xl border-bold p-5 flex flex-col gap-5">
+          <div className="lg:col-span-8 bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-5">
             <div>
               <h2 className="font-black text-slate-800 text-sm">
                 Speaking Pace over Time
@@ -1612,9 +1616,9 @@ export default function PresentationResultPage() {
           </div>
 
           {/* Right sidebar pace summary */}
-          <div className="col-span-4 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl border-bold p-5 flex flex-col gap-4">
-              <h3 className="font-black text-slate-800 text-sm">
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <div className="bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-4">
+              <h3 className="font-black text-slate-800 text-xs sm:text-sm">
                 Speaking Pace Segments
               </h3>
               <div className="flex flex-col gap-3">
@@ -1770,8 +1774,8 @@ export default function PresentationResultPage() {
                     key={i}
                     className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-3"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                      <div className="flex flex-col xs:flex-row gap-3 sm:gap-4">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                             Wordy Phrase

@@ -332,6 +332,22 @@ export default function InterviewSetupPage() {
       sessionStorage.setItem("interview_configured", "true");
       sessionStorage.setItem("interview_questions", JSON.stringify(data));
 
+      // Capture and save documentId for posting later
+      const documentId =
+        data.id ||
+        data.documentId ||
+        data.document_id ||
+        data.data?.id ||
+        data.data?.documentId ||
+        data.data?.document_id ||
+        data.meta?.document_id ||
+        data.meta?.documentId ||
+        libraryDocId;
+
+      if (documentId) {
+        sessionStorage.setItem("interview_document_id", documentId);
+      }
+
       router.push("/interview/session");
     } catch (error) {
       console.error("Error starting interview:", error);

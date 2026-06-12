@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertCircle, HeartPulse, MessageSquare, Target } from "lucide-react";
+import Image from "next/image";
 
 // ── Icons (inline SVG helpers) ──────────────────────────────────────────────
 const IconStar = (props) => (
@@ -212,27 +213,28 @@ const IconInstagram = (props) => (
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <nav className="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-slate-100/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+    <nav className="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-slate-100/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]" aria-label="Navigasi utama">
       <div className="navInner max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <a
           href="#"
-          className="logo flex items-center gap-2 no-underline shrink-0"
+          aria-label="Pitcho — kembali ke beranda"
+          className="logo shrink-0"
         >
-          <div className="logoIcon w-9 h-9 bg-gradient-to-br from-[#0388ff] to-[#005fd3] rounded-lg flex items-center justify-center text-white shadow-sm">
-            <IconMic />
-          </div>
-          <span className="logoText text-[1.2rem] font-bold text-slate-900 tracking-tight">
-            Pitcho
-          </span>
+          <Image
+            src="/logo-text-transparent.svg"
+            height={100}
+            width={100}
+            alt="Logo Pitcho"
+          />
         </a>
 
         {/* Nav links */}
-        <ul className="navLinks hidden md:flex list-none gap-8 m-0 p-0 justify-center">
+        <ul className="navLinks hidden md:flex list-none gap-8 m-0 p-0 justify-center" role="list">
           <li>
             <a
               href="#how-it-works"
-              className="text-sm font-medium text-slate-600 no-underline"
+              className="text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
             >
               Cara Kerja
             </a>
@@ -240,7 +242,7 @@ function Navbar() {
           <li>
             <a
               href="#features"
-              className="text-sm font-medium text-slate-600 no-underline"
+              className="text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
             >
               Fitur
             </a>
@@ -248,7 +250,7 @@ function Navbar() {
           <li>
             <a
               href="#faq"
-              className="text-sm font-medium text-slate-600 no-underline"
+              className="text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
             >
               FAQ
             </a>
@@ -259,13 +261,13 @@ function Navbar() {
         <div className="navCta hidden md:flex items-center gap-4 shrink-0">
           <a
             href="#"
-            className="inline-flex items-center text-sm font-medium text-slate-600 no-underline"
+            className="inline-flex items-center text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
           >
             Masuk
           </a>
           <a
             href="#"
-            className="inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline"
+            className="inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
           >
             Mulai Gratis <IconArrowRight />
           </a>
@@ -273,9 +275,11 @@ function Navbar() {
 
         {/* Mobile hamburger */}
         <button
-          className="hamburger flex md:hidden flex-col justify-center items-center w-8 h-8 relative bg-none border-none cursor-pointer p-1"
+          className="hamburger flex md:hidden flex-col justify-center items-center w-8 h-8 relative bg-none border-none cursor-pointer p-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
           onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
+          aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-menu"
         >
           <span
             className={`block w-5 h-0.5 bg-slate-700 rounded-sm transition-all duration-300 absolute ${mobileOpen ? "rotate-45" : "-translate-y-1.5"}`}
@@ -290,7 +294,12 @@ function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="mobileMenu md:hidden flex flex-col gap-1 border-t border-slate-100 py-3 px-4 bg-white/95 backdrop-blur-md absolute top-full left-0 right-0 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+        <div
+          id="mobile-menu"
+          role="navigation"
+          aria-label="Menu mobile"
+          className="mobileMenu md:hidden flex flex-col gap-1 border-t border-slate-100 py-3 px-4 bg-white/95 backdrop-blur-md absolute top-full left-0 right-0 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200"
+        >
           <a
             href="#how-it-works"
             className="text-[0.95rem] font-medium text-slate-700 rounded-lg no-underline py-2.5 px-3"
@@ -312,13 +321,13 @@ function Navbar() {
           <div className="pt-2 px-3 pb-1 flex flex-col gap-2">
             <a
               href="#"
-              className="inline-flex items-center justify-center text-sm font-medium text-slate-700 rounded-lg py-2.5"
+              className="inline-flex items-center justify-center text-sm font-medium text-slate-700 rounded-lg py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
             >
               Masuk
             </a>
             <a
               href="#"
-              className="inline-flex items-center justify-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline"
+              className="inline-flex items-center justify-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
             >
               Mulai Gratis <IconArrowRight />
             </a>
@@ -339,7 +348,8 @@ function HeroSection() {
           <br />
           Lawan gangguan.
           <br />
-          <span className="heroAccent text-[#fabf24]">Makin jago</span> lewat feedback.
+          <span className="heroAccent text-[#fabf24]">Makin jago</span> lewat
+          feedback.
         </h1>
 
         <p className="heroDesc text-[1.05rem] text-[#5a7090] leading-[1.7] mb-8 max-w-[620px] mx-auto">
@@ -350,13 +360,13 @@ function HeroSection() {
         <div className="heroBtns flex gap-3.5 flex-wrap mb-10 justify-center">
           <a
             href="#"
-            className="btnHeroPrimary inline-flex items-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-3.5 px-7 rounded-xl no-underline shadow-[0_4px_20px_rgba(3,136,255,0.3)]"
+            className="btnHeroPrimary inline-flex items-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-3.5 px-7 rounded-xl no-underline shadow-[0_4px_20px_rgba(3,136,255,0.3)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
           >
             Coba Latihan Gratis <IconArrowRight />
           </a>
           <a
             href="#how-it-works"
-            className="btnHeroSecondary inline-flex items-center gap-2 text-[#0f1d35] font-bold text-base py-[13px] px-6 rounded-xl border-2 border-[#d5dff5] bg-white no-underline"
+            className="btnHeroSecondary inline-flex items-center gap-2 text-[#0f1d35] font-bold text-base py-[13px] px-6 rounded-xl border-2 border-[#d5dff5] bg-white no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
           >
             Lihat Demo
           </a>
@@ -408,8 +418,7 @@ function PainSection() {
         Kebanyakan orang tahu mau ngomong apa.
         <br />
         Tapi gugup pas momennya{" "}
-        <em className="italic text-[#0388ff]">beneran</em>{" "}
-        penting.
+        <em className="italic text-[#0388ff]">beneran</em> penting.
       </h2>
       <div className="painGrid grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7 max-w-[1100px] mx-auto">
         {painPoints.map((p, i) => (
@@ -472,7 +481,9 @@ function FeaturesSection() {
             <br />
             Feedback yang personal.
             <br />
-            <span className="heroAccent text-[#fabf24]">Hasil yang keliatan.</span>
+            <span className="heroAccent text-[#fabf24]">
+              Hasil yang keliatan.
+            </span>
           </h2>
           <p className="featuresDesc text-[0.95rem] text-[#5a7090] leading-[1.7] mb-7 max-w-full lg:max-w-[380px]">
             Kami gabungin skenario dunia nyata sama tools yang bikin kamu terus
@@ -481,7 +492,7 @@ function FeaturesSection() {
           </p>
           <a
             href="#"
-            className="btnPrimary inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-bold text-[0.88rem] py-2.5 px-5 rounded-[10px] no-underline shadow-[0_4px_12px_rgba(3,136,255,0.28)] whitespace-nowrap"
+            className="btnPrimary inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-bold text-[0.88rem] py-2.5 px-5 rounded-[10px] no-underline shadow-[0_4px_12px_rgba(3,136,255,0.28)] whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
             style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}
           >
             Lihat Fitur Lengkap <IconArrowRight />
@@ -512,7 +523,6 @@ function FeaturesSection() {
     </section>
   );
 }
-
 
 // ── How It Works Section ────────────────────────────────────────────────────
 const steps = [
@@ -557,7 +567,8 @@ function HowItWorksSection() {
       </div>
       <h2 className="sectionTitle text-[clamp(1.6rem,3vw,2.4rem)] font-extrabold text-[#0f1d35] leading-snug mb-4 text-center">
         Langkah gampang biar makin
-        <br />jago ngomong
+        <br />
+        jago ngomong
       </h2>
 
       <div className="stepsGrid max-w-[1100px] mt-13 mx-auto mb-0 grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7">
@@ -591,7 +602,6 @@ function HowItWorksSection() {
     </section>
   );
 }
-
 
 // ── FAQ Section ──────────────────────────────────────────────────────────────
 const faqItems = [
@@ -648,26 +658,35 @@ function FAQSection() {
         <div className="faqList flex flex-col gap-3">
           {faqItems.map((item, i) => {
             const isOpen = openIndex === i;
+            const panelId = `faq-panel-${i}`;
             return (
               <div
                 key={i}
                 className="faqItem bg-[#f7f9ff] rounded-[14px] border-[1.5px] border-transparent"
               >
-                <button
-                  onClick={() => toggle(i)}
-                  className="faqTrigger w-full flex items-center justify-between gap-4 text-left bg-none border-none cursor-pointer py-5 px-6"
-                  aria-expanded={isOpen}
-                >
-                  <span className="faqQuestion text-[0.95rem] font-extrabold text-[#0f1d35] leading-[1.4] pr-2">
-                    {item.q}
-                  </span>
-                  <span
-                    className={`faqIcon shrink-0 text-[#0388ff] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                <h3>
+                  <button
+                    onClick={() => toggle(i)}
+                    id={`faq-trigger-${i}`}
+                    className="faqTrigger w-full flex items-center justify-between gap-4 text-left bg-none border-none cursor-pointer py-5 px-6 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0388ff] focus-visible:rounded-[14px]"
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
                   >
-                    <IconChevronDown />
-                  </span>
-                </button>
+                    <span className="faqQuestion text-[0.95rem] font-extrabold text-[#0f1d35] leading-[1.4] pr-2">
+                      {item.q}
+                    </span>
+                    <span
+                      className={`faqIcon shrink-0 text-[#0388ff] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    >
+                      <IconChevronDown />
+                    </span>
+                  </button>
+                </h3>
                 <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={`faq-trigger-${i}`}
                   className={`faqAnswer overflow-hidden transition-all duration-300 ease-in-out ${
                     isOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
                   }`}
@@ -687,8 +706,18 @@ function FAQSection() {
 
 // ── Footer ──────────────────────────────────────────────────────────────────
 const footerLinks = {
-  Produk: ["Mode Presentasi", "Mode Wawancara", "Feedback AI", "Pantau Kemajuan"],
-  Bantuan: ["Pusat Bantuan", "Video Tutorial", "Tips Public Speaking", "Komunitas"],
+  Produk: [
+    "Mode Presentasi",
+    "Mode Wawancara",
+    "Feedback AI",
+    "Pantau Kemajuan",
+  ],
+  Bantuan: [
+    "Pusat Bantuan",
+    "Video Tutorial",
+    "Tips Public Speaking",
+    "Komunitas",
+  ],
   Perusahaan: ["Tentang Kami", "Blog", "Karir", "Hubungi Kami"],
 };
 
@@ -714,21 +743,21 @@ function Footer() {
             <a
               href="#"
               aria-label="Twitter"
-              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm"
             >
               <IconTwitter />
             </a>
             <a
               href="#"
               aria-label="Instagram"
-              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm"
             >
               <IconInstagram />
             </a>
             <a
               href="#"
               aria-label="LinkedIn"
-              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline"
+              className="w-9 h-9 rounded-[8px] bg-white/8 flex items-center justify-center text-white/60 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm"
             >
               <IconLinkedin />
             </a>
@@ -743,10 +772,7 @@ function Footer() {
             <ul className="footerColLinks list-none p-0 m-0 flex flex-col gap-2.5">
               {links.map((l) => (
                 <li key={l}>
-                  <a
-                    href="#"
-                    className="text-sm text-white/65 no-underline"
-                  >
+                  <a href="#" className="text-sm text-white/65 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm">
                     {l}
                   </a>
                 </li>
@@ -758,16 +784,10 @@ function Footer() {
       <div className="footerBottom max-w-[1100px] mt-6 mx-auto mb-0 flex flex-col md:flex-row items-center justify-between flex-wrap gap-3 text-[0.8rem] text-white/35 text-center">
         <span>© 2026 Pitcho. Hak cipta dilindungi.</span>
         <div className="footerBottomLinks flex gap-6">
-          <a
-            href="#"
-            className="text-white/35 no-underline"
-          >
+          <a href="#" className="text-white/35 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm">
             Kebijakan Privasi
           </a>
-          <a
-            href="#"
-            className="text-white/35 no-underline"
-          >
+          <a href="#" className="text-white/35 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm">
             Syarat & Ketentuan
           </a>
         </div>
@@ -780,8 +800,14 @@ function Footer() {
 export default function LandingPage() {
   return (
     <div className="page font-sans text-[#1a2d50] bg-white overflow-x-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[200] focus:bg-[#0388ff] focus:text-white focus:font-bold focus:text-sm focus:py-2.5 focus:px-5 focus:rounded-lg focus:no-underline focus:shadow-lg"
+      >
+        Lewati ke konten utama
+      </a>
       <Navbar />
-      <main>
+      <main id="main-content">
         <HeroSection />
         <PainSection />
         <FeaturesSection />
