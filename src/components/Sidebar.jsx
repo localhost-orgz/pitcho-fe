@@ -74,6 +74,17 @@ export default function Sidebar() {
     return pathname === href || pathname.startsWith(href);
   };
 
+  // -- Handle logout
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth-token");
+      localStorage.removeItem("auth-user");
+      document.cookie =
+        "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <div className="hidden md:flex flex-col justify-between w-20 lg:w-64 h-screen fixed left-0 top-0 p-4 border-r border-slate-100 bg-white text-slate-800 z-10 select-none">
       {/* 1. Header (fixed) */}
@@ -228,15 +239,15 @@ export default function Sidebar() {
         </div>
 
         {/* Log Out button */}
-        <Link
-          href="/"
+        <button
+          onClick={handleLogout}
           className="flex items-center lg:justify-start justify-center h-[44px] w-full lg:px-3 text-slate-500 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all font-bold"
         >
           <LogOut className="size-[22px] shrink-0" />
           <span className="hidden lg:inline text-sm font-bold tracking-wide ml-3">
             Log out
           </span>
-        </Link>
+        </button>
       </div>
     </div>
   );

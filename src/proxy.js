@@ -54,7 +54,6 @@ export function proxy(request) {
   // Protected route — redirect to login if not authenticated
   if (!authToken) {
     const loginUrl = new URL("/login", request.url);
-    // Pass the original URL so we can redirect back after login
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
