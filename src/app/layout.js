@@ -16,6 +16,9 @@ const notoJp = Noto_Sans_JP({
 export const metadata = {
   title: "Presenta - Belajar Presentasi Jadi Mudah",
   description: "Learn to present with confidence. Stay focused and keep eye contact with real-time feedback.",
+  icons: {
+    icon: "/logo-transparent.svg",
+  },
 };
 
 export default function RootLayout({ children }) {

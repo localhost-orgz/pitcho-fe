@@ -14,38 +14,18 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-// Custom Inline SVG Logo for Pitcho
-const PitchoLogo = () => (
-  <svg viewBox="0 0 100 100" className="size-10 shrink-0 select-none">
-    {/* Blue background circle */}
-    <circle cx="50" cy="50" r="46" fill="#0066ff" />
-
-    {/* White face cheeks area */}
+// Custom Inline SVG Icon only (extracted from logo-text-transparent.svg path)
+const PitchoIcon = () => (
+  <svg
+    viewBox="68 50 330 335"
+    className="size-10 shrink-0 select-none"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <path
-      d="M 22 56 C 22 36, 78 36, 78 56 C 78 72, 68 76, 50 76 C 32 76, 22 72, 22 56 Z"
-      fill="#ffffff"
+      d="M71.2 369.974V208.585C68.9068 149.638 87.0281 127.318 90.1074 123.312C118.721 86.0861 142.82 80.3897 168.031 75.8113C188.199 72.1486 231.821 74.667 252.83 76.3839C288.927 81.5346 314.519 109.386 323.305 122.168C339.806 111.18 352.717 89.7373 357.11 80.3897H346.796C334.764 80.3897 334.764 66.6547 342.786 64.9378L376.018 52.347C385.758 48.9134 388.05 52.3471 389.196 59.2147L395.498 91.2636C396.071 95.8418 397.561 103.74 389.769 105.571C381.976 107.402 377.354 96.7958 376.018 91.2636C358.256 122.168 343.55 131.706 333.618 139.337C341.41 152.614 343.741 176.155 343.931 186.266V230.333C343.931 247.502 335.91 266.388 331.326 275.545C328.461 282.984 316.2 300.382 294.656 317.322C273.113 334.263 235.068 337.544 218.452 336.781V296.72C255.58 288.479 264.098 257.612 263.716 243.496H242.516C228.192 243.496 230.484 228.616 242.516 228.616H263.716L263.143 174.819C263.143 141.054 223.609 127.318 206.993 127.318C169.75 127.318 152.752 161.084 151.415 175.392H173.76C183.501 175.392 185.22 189.699 173.188 189.699H150.842V202.29H173.188C185.793 202.29 184.647 216.598 173.76 216.598H150.842V228.616H173.76C185.793 228.616 184.647 243.496 173.76 243.496H150.842C152.217 281.954 181.973 295.003 196.679 296.72V336.781C173.302 338.154 155.235 334.682 149.123 332.775L86.6701 382.565C72.9189 388.059 70.627 376.46 71.2 369.974Z"
+      fill="#086AFC"
     />
-
-    {/* Blue helmet upper mask */}
-    <path
-      d="M 22 56 C 22 36, 78 36, 78 56 C 78 54, 75 52, 70 48 C 60 41, 40 41, 30 48 C 25 52, 22 54, 22 56 Z"
-      fill="#0055dd"
-    />
-
-    {/* Eyes */}
-    <circle cx="37" cy="54" r="6" fill="#0f172a" />
-    <circle cx="63" cy="54" r="6" fill="#0f172a" />
-
-    {/* Eye Highlights */}
-    <circle cx="35" cy="52" r="2.2" fill="#ffffff" />
-    <circle cx="61" cy="52" r="2.2" fill="#ffffff" />
-
-    {/* Cheeks */}
-    <circle cx="28" cy="62" r="4" fill="#f87171" opacity="0.5" />
-    <circle cx="72" cy="62" r="4" fill="#f87171" opacity="0.5" />
-
-    {/* Beak / Nose */}
-    <path d="M 50 56 L 44 64 C 47 67, 53 67, 56 64 Z" fill="#f97316" />
   </svg>
 );
 
@@ -105,10 +85,17 @@ export default function Sidebar() {
           href="/studio"
           className="flex items-center gap-x-3 pt-3 lg:pl-3 pb-3 justify-center lg:justify-start"
         >
-          <PitchoLogo />
-          <h1 className="hidden lg:block text-2xl font-extrabold text-[#0066ff] tracking-tight">
-            Pitcho
-          </h1>
+          {/* Expanded (lg): Show the full logo-text-transparent.svg */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-text-transparent.svg"
+            alt="Pitcho"
+            className="hidden lg:block h-auto w-[50%] select-none"
+          />
+          {/* Collapsed (md/lg-hidden): Show only the logo icon */}
+          <div className="lg:hidden flex items-center justify-center">
+            <PitchoIcon />
+          </div>
         </Link>
       </div>
 
@@ -186,20 +173,20 @@ export default function Sidebar() {
             )}
           </div>
 
-          {/* Challenges Link */}
-          <SidebarItem
-            label="Challenges"
-            href="/challenges"
-            icon={Trophy}
-            active={getActiveState("/challenges")}
-          />
-
           {/* Progress Link */}
           <SidebarItem
             label="Progress"
             href="/progress"
             icon={Target}
             active={getActiveState("/progress")}
+          />
+
+          {/* Challenges Link */}
+          <SidebarItem
+            label="Challenges"
+            href="/challenges"
+            icon={Trophy}
+            active={getActiveState("/challenges")}
           />
 
           {/* Resources Link */}
@@ -210,8 +197,6 @@ export default function Sidebar() {
             active={getActiveState("/resources")}
           />
         </div>
-
-
       </div>
 
       {/* 3. Footer (fixed profile and actions) */}

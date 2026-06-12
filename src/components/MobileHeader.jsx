@@ -44,43 +44,7 @@ const navItems = [
   },
 ];
 
-// Custom Inline SVG Logo for Pitcho
-const PitchoLogo = () => (
-  <svg viewBox="0 0 100 100" className="size-8 shrink-0 select-none">
-    {/* Blue background circle */}
-    <circle cx="50" cy="50" r="46" fill="#0066ff" />
-    
-    {/* White face cheeks area */}
-    <path
-      d="M 22 56 C 22 36, 78 36, 78 56 C 78 72, 68 76, 50 76 C 32 76, 22 72, 22 56 Z"
-      fill="#ffffff"
-    />
-    
-    {/* Blue helmet upper mask */}
-    <path
-      d="M 22 56 C 22 36, 78 36, 78 56 C 78 54, 75 52, 70 48 C 60 41, 40 41, 30 48 C 25 52, 22 54, 22 56 Z"
-      fill="#0055dd"
-    />
-    
-    {/* Eyes */}
-    <circle cx="37" cy="54" r="6" fill="#0f172a" />
-    <circle cx="63" cy="54" r="6" fill="#0f172a" />
-    
-    {/* Eye Highlights */}
-    <circle cx="35" cy="52" r="2.2" fill="#ffffff" />
-    <circle cx="61" cy="52" r="2.2" fill="#ffffff" />
-    
-    {/* Cheeks */}
-    <circle cx="28" cy="62" r="4" fill="#f87171" opacity="0.5" />
-    <circle cx="72" cy="62" r="4" fill="#f87171" opacity="0.5" />
-    
-    {/* Beak / Nose */}
-    <path
-      d="M 50 56 L 44 64 C 47 67, 53 67, 56 64 Z"
-      fill="#f97316"
-    />
-  </svg>
-);
+// Using /logo-text-transparent.svg directly in render
 
 export default function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
@@ -109,9 +73,13 @@ export default function MobileHeader() {
   return (
     <header className="md:hidden sticky top-0 w-full z-20 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between select-none">
       {/* Brand logo */}
-      <Link href="/studio" className="flex items-center gap-x-2.5">
-        <PitchoLogo />
-        <span className="text-xl font-extrabold text-[#0066ff] tracking-tight">Pitcho</span>
+      <Link href="/studio" className="flex items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo-text-transparent.svg"
+          alt="Pitcho"
+          className="h-8 w-auto select-none"
+        />
       </Link>
 
       {/* Toggle button */}
