@@ -906,9 +906,6 @@
    RESPONSIVE
 ════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
-  .heroRight {
-    display: none;
-  }
   .painGrid {
     grid-template-columns: repeat(2, 1fr);
   }
