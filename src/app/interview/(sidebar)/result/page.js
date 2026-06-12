@@ -31,6 +31,7 @@ import {
   Volume2,
   VolumeX,
   Film,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { getSessionVideo } from "@/utils/videoStorage";
@@ -217,9 +218,6 @@ function ClipCard({ clip, isActive, onClick }) {
             Look Away
           </span>
         </div>
-        <span className="text-[10px] font-semibold text-slate-500">
-          Duration: {formatDuration(clip.duration)}
-        </span>
       </div>
       <button
         className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
@@ -851,129 +849,180 @@ export default function InterviewResultPage() {
         )}
 
         {/* Tab 3: Filler Words */}
-        {activeTab === "filler" && (
-          <div>
-            <h3 className="font-bold text-lg mb-4">Filler Words Per Question</h3>
-            {perQuestionData.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">No filler word data available.</p>
-            ) : (
-              <div className="flex flex-col gap-6">
-                {perQuestionData.map((q, i) => {
-                  const analysis = q.speech_analysis;
-                  const incidents =
-                    analysis?.analysis?.filler_words?.incidents ||
-                    analysis?.filler_words?.incidents ||
-                    [];
-                  const totalCount =
-                    analysis?.analysis?.filler_words?.total_filler_count ||
-                    analysis?.filler_words?.total_filler_count ||
-                    q.filler_words_count ||
-                    0;
+        {activeTab === "filler" && (() => {
+          // Collect all filler incidents across all questions
+          const allFillerIncidents = [];
+          perQuestionData.forEach((q) => {
+            const analysis = q.speech_analysis;
+            const incidents =
+              analysis?.analysis?.filler_words?.incidents ||
+              analysis?.filler_words?.incidents ||
+              [];
+            incidents.forEach((inc) => {
+              const phrase = inc.context_text
+                ? inc.context_text.replace(
+                    new RegExp("\\b(" + inc.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")\\b", "gi"),
+                    "*$1*"
+                  )
+                : "";
+              allFillerIncidents.push({ word: inc.word.toLowerCase(), phrase, questionNumber: q.question_number });
+            });
+          });
+          const hasFiller = allFillerIncidents.length > 0;
+          const hasAnyAnalysis = perQuestionData.some((q) => q.speech_analysis);
 
-                  return (
-                    <div key={i}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-slate-700">
-                          Question {q.question_number || i + 1}
-                        </span>
-                        <span className="text-xs font-bold text-orange-500">
-                          {totalCount} filler word{totalCount !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      {incidents.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                          {incidents.slice(0, 5).map((inc, j) => (
-                            <div
-                              key={j}
-                              className="p-2.5 bg-orange-50 border border-orange-100 rounded-lg text-xs"
-                            >
-                              <span className="font-bold text-orange-600">
-                                &ldquo;{inc.word}&rdquo;
-                              </span>
-                              {inc.context_text && (
-                                <span className="text-slate-500 ml-1">
-                                  — &hellip;{inc.context_text}&hellip;
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">
-                          {totalCount > 0
-                            ? `${totalCount} filler word${totalCount !== 1 ? "s" : ""} detected (no detailed breakdown)`
-                            : "No filler words detected — great job!"}
+          return (
+            <div>
+              <h2 className="font-black text-slate-800 text-sm mb-3">
+                Filler Word Incidents in Transcript
+              </h2>
+              {!hasAnyAnalysis && (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <AudioLines size={40} className="text-slate-300" />
+                  <span className="text-sm font-bold text-slate-400">No Filler Word Analysis Available</span>
+                  <span className="text-xs text-slate-300">Filler word analysis requires microphone access during your session.</span>
+                </div>
+              )}
+              {hasAnyAnalysis && !hasFiller && (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <CheckCircle size={40} className="text-green-400" />
+                  <span className="text-sm font-bold text-green-600">No Filler Words Detected</span>
+                  <span className="text-xs text-slate-400">Great job! Your speech was clean and free of filler words.</span>
+                </div>
+              )}
+              {hasFiller && (
+                <div className="flex flex-col gap-2">
+                  {allFillerIncidents.map((event, i) => (
+                    <div key={i} className="flex items-start gap-4 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                          Q{event.questionNumber} — Used word:{" "}
+                          <span className="text-red-500 font-black">&ldquo;{event.word}&rdquo;</span>
                         </p>
-                      )}
+                        {event.phrase && (
+                          <p className="text-xs text-slate-700 mt-1 italic font-medium leading-relaxed">
+                            {event.phrase.split("*" + event.word + "*").map((part, idx, arr) => (
+                              <React.Fragment key={idx}>
+                                {part}
+                                {idx < arr.length - 1 && (
+                                  <span className="text-red-500 bg-red-50 border-b-2 border-red-300 font-black px-1 rounded not-italic">
+                                    {event.word}
+                                  </span>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Tab 4: Wordiness */}
-        {activeTab === "wordiness" && (
-          <div>
-            <h3 className="font-bold text-lg mb-4">Wordiness & Efficiency Per Question</h3>
-            {perQuestionData.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">No wordiness data available.</p>
-            ) : (
-              <div className="flex flex-col gap-6">
-                {perQuestionData.map((q, i) => {
-                  const analysis = q.speech_analysis;
-                  const findings =
-                    analysis?.analysis?.word_efficiency?.findings ||
-                    analysis?.word_efficiency?.findings ||
-                    [];
+        {activeTab === "wordiness" && (() => {
+          // Collect all wordiness findings across all questions
+          const allFindings = [];
+          perQuestionData.forEach((q) => {
+            const analysis = q.speech_analysis;
+            const findings =
+              analysis?.analysis?.word_efficiency?.findings ||
+              analysis?.word_efficiency?.findings ||
+              [];
+            findings.forEach((f) => {
+              const original = f.original_phrase || "";
+              const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              const highlighted = f.transcript_context
+                ? f.transcript_context.replace(
+                    new RegExp("\\b(" + escaped + ")\\b", "gi"),
+                    "*$1*"
+                  )
+                : "";
+              allFindings.push({
+                original,
+                improved: f.recommended_phrase,
+                context: highlighted,
+                explanation: f.coach_tip,
+                issueType: f.issue_type || "Pleonasm",
+                questionNumber: q.question_number,
+              });
+            });
+          });
+          const hasWordiness = allFindings.length > 0;
+          const hasAnyAnalysis = perQuestionData.some((q) => q.speech_analysis);
 
-                  return (
-                    <div key={i}>
-                      <span className="text-sm font-bold text-slate-700 block mb-2">
-                        Question {q.question_number || i + 1}
-                      </span>
-                      {findings.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                          {findings.map((item, j) => (
-                            <div
-                              key={j}
-                              className="p-3 bg-purple-50 border border-purple-100 rounded-xl text-xs"
-                            >
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-slate-400 line-through">
-                                  {item.original_phrase}
-                                </span>
-                                <span className="text-green-600 font-bold">
-                                  → {item.recommended_phrase}
-                                </span>
-                              </div>
-                              {item.transcript_context && (
-                                <p className="text-slate-500 mb-1">
-                                  Context: &ldquo;&hellip;{item.transcript_context}&hellip;&rdquo;
-                                </p>
-                              )}
-                              {item.coach_tip && (
-                                <p className="text-purple-600 font-medium">
-                                  <Lightbulb size={10} className="inline mr-1" />
-                                  {item.coach_tip}
-                                </p>
-                              )}
-                            </div>
-                          ))}
+          return (
+            <div>
+              <h2 className="font-bold text-slate-800">Wordiness Analysis & Pleonasm Correction</h2>
+              <p className="text-sm text-slate-500 mt-1">
+                Simplifying complex/redundant phrases improves message clarity and increases engagement.
+              </p>
+
+              {!hasAnyAnalysis && (
+                <div className="flex flex-col items-center gap-3 py-12 mt-4">
+                  <FileText size={40} className="text-slate-300" />
+                  <span className="text-sm font-bold text-slate-400">No Wordiness Analysis Available</span>
+                  <span className="text-xs text-slate-300">Wordiness analysis requires microphone access during your session.</span>
+                </div>
+              )}
+              {hasAnyAnalysis && !hasWordiness && (
+                <div className="flex flex-col items-center gap-3 py-12 mt-4">
+                  <CheckCircle size={40} className="text-green-400" />
+                  <span className="text-sm font-bold text-green-600">No Wordiness Issues Detected</span>
+                  <span className="text-xs text-slate-400">Your speech was concise and efficient — no redundant phrases found.</span>
+                </div>
+              )}
+              {hasWordiness && (
+                <div className="flex flex-col gap-4 mt-4">
+                  {allFindings.map((item, i) => (
+                    <div key={i} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex gap-4">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Wordy Phrase</span>
+                            <span className="text-sm font-extrabold text-red-500 line-through bg-red-50/50 border border-red-100 rounded px-2.5 py-1 mt-1">
+                              {item.original}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recommended</span>
+                            <span className="text-sm font-bold text-green-600 bg-green-50 border border-green-100 rounded px-2.5 py-1 mt-1">
+                              {item.improved}
+                            </span>
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">
-                          No wordiness issues — your answers were concise!
-                        </p>
+                        <span className="text-xs font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1 shrink-0">
+                          Q{item.questionNumber} · {item.issueType || "Pleonasm"}
+                        </span>
+                      </div>
+                      {item.context && (
+                        <div className="text-xs text-slate-600 font-medium leading-relaxed bg-white border border-slate-100 rounded-xl p-3">
+                          <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wider block mb-1">Transcript Context</span>
+                          <span>
+                            {item.context.split("*" + item.original + "*").map((part, idx, arr) => (
+                              <React.Fragment key={idx}>
+                                {part}
+                                {idx < arr.length - 1 && (
+                                  <span className="text-red-500 font-bold underline decoration-2">{item.original}</span>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </span>
+                        </div>
                       )}
+                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                        💡 <strong>Coach Tip:</strong> {item.explanation}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Tab 5: AI Review Carousel */}
         {activeTab === "ai_review" && (
