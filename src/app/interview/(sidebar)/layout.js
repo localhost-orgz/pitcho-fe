@@ -3,7 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 
 export const metadata = {
-  title: "Interview Setup - Presenta",
+  title: "Interview Setup - Pitcho",
 };
 
 export default function InterviewLayout({ children }) {

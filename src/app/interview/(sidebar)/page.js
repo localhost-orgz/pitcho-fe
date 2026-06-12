@@ -25,7 +25,9 @@ import {
   Square,
   Sparkles,
   Download,
+  Loader2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function InterviewSetupPage() {
   // Set beautiful body background on mount
@@ -42,10 +44,13 @@ export default function InterviewSetupPage() {
   const [rawFile, setRawFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [uploadResponse, setUploadResponse] = useState(null);
   const fileInputRef = useRef(null);
   const [jobTitle, setJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // Card 2: Question Preferences states
   const [questionTypes, setQuestionTypes] = useState(["Behavioral"]);
@@ -201,31 +206,6 @@ export default function InterviewSetupPage() {
       pages: pages,
       size: sizeInKB,
     });
-
-    // 4. Hit API - store response for later use
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch(
-        "https://pitcho-be.vercel.app/api/interview/upload",
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!res.ok) {
-        throw new Error(`Failed to upload: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      console.log("Interview upload response data:", data);
-      setUploadResponse(data);
-    } catch (error) {
-      console.error("Error uploading CV:", error);
-      setUploadError(error.message || "Failed to upload CV.");
-    }
   };
 
   const handleUploadClick = () => {
@@ -264,9 +244,93 @@ export default function InterviewSetupPage() {
   const handleRemoveCV = () => {
     setUploadedFile(null);
     setRawFile(null);
-    setUploadResponse(null);
     setUploadError("");
   };
+
+  // ── Start Interview: validate, submit, navigate ────────────
+  const handleStartInterview = useCallback(async () => {
+    // Validate job title (required)
+    const trimmedTitle = jobTitle.trim();
+    if (!trimmedTitle) {
+      alert("Please enter a job title before starting the interview.");
+      return;
+    }
+
+    // Validate at least one question type selected
+    if (questionTypes.length === 0) {
+      alert("Please select at least one question type.");
+      return;
+    }
+
+    // Validate camera/mic readiness
+    if (cameraStatus !== "ready" || micStatus !== "ready") {
+      alert(
+        "Please allow access to your camera and microphone before starting the interview.",
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const formData = new FormData();
+      if (rawFile) {
+        formData.append("file", rawFile);
+      }
+      formData.append("question_type", JSON.stringify(questionTypes));
+      formData.append(
+        "number_of_question",
+        questionCount === "other" ? customQuestionCount : questionCount,
+      );
+      formData.append("job_title", trimmedTitle);
+      if (jobDescription.trim()) {
+        formData.append("job_desc", jobDescription.trim());
+      }
+
+      const res = await fetch(
+        "https://pitcho-be.vercel.app/api/interview/upload",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3NmFiNDI1NS1mZGUwLTRiNWEtOWM0Zi1iMjRkMTRmNDA2ZjkiLCJlbWFpbCI6ImZhemFtdW10YXpyYW1hZGhhbkBnbWFpbC5jb20iLCJpYXQiOjE3ODEyNTA0MDEsImV4cCI6MTc4MTg1NTIwMX0.SkI5ausTOZaooyrk2MfL2g4q3ODvSyQambsG5guAI0M"
+          },
+          body: formData,
+        },
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        throw new Error(errorText || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log("Interview upload response:", data);
+
+      // Save to sessionStorage for the session page
+      sessionStorage.setItem("interview_configured", "true");
+      sessionStorage.setItem("interview_questions", JSON.stringify(data));
+
+      router.push("/interview/session");
+    } catch (error) {
+      console.error("Error starting interview:", error);
+      setSubmitError(
+        error.message ||
+          "Failed to generate interview questions. Please try again.",
+      );
+      setIsSubmitting(false);
+    }
+  }, [
+    rawFile,
+    jobTitle,
+    jobDescription,
+    questionTypes,
+    questionCount,
+    customQuestionCount,
+    cameraStatus,
+    micStatus,
+    router,
+  ]);
 
   // Equipment status renderer (from presentation setup)
   const renderDeviceStatus = (status, type) => {
@@ -805,9 +869,15 @@ export default function InterviewSetupPage() {
 
         <div className="flex flex-col items-center md:items-end gap-1.5 shrink-0">
           <div className="flex items-center gap-3">
-            <button className="h-11 bg-[#58cc02] hover:bg-[#58a700] text-white font-extrabold text-xs px-5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_4px_0_#58a700] active:translate-y-[4px] active:shadow-[0_0_0_#58a700]">
+            <button
+              onClick={handleStartInterview}
+              disabled={isSubmitting}
+              className="h-11 bg-[#58cc02] hover:bg-[#58a700] text-white font-extrabold text-xs px-5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_4px_0_#58a700] active:translate-y-[4px] active:shadow-[0_0_0_#58a700] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:active:shadow-[0_4px_0_#58a700]"
+            >
               <Play size={15} fill="white" />
-              <span>Start Interview</span>
+              <span>
+                {isSubmitting ? "Generating..." : "Start Interview"}
+              </span>
             </button>
           </div>
           <span className="text-[10px] text-slate-400 font-bold">
@@ -815,6 +885,43 @@ export default function InterviewSetupPage() {
           </span>
         </div>
       </div>
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+            <Loader2 size={40} className="text-main animate-spin" />
+            <p className="text-sm font-bold text-slate-700 text-center">
+              Generating your interview questions...
+            </p>
+            <div className="w-full space-y-2">
+              <div className="h-2 bg-slate-100 rounded animate-pulse" />
+              <div className="h-2 bg-slate-100 rounded animate-pulse w-4/5" />
+              <div className="h-2 bg-slate-100 rounded animate-pulse w-3/5" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Error Toast */}
+      {submitError && (
+        <div className="fixed bottom-6 right-6 z-40 max-w-sm bg-red-50 border-2 border-red-200 rounded-xl p-4 shadow-lg">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-bold text-red-700">
+                Failed to Start Interview
+              </p>
+              <p className="text-[10px] text-red-600">{submitError}</p>
+              <button
+                onClick={() => setSubmitError("")}
+                className="text-[10px] font-bold text-red-700 underline self-start mt-1 cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

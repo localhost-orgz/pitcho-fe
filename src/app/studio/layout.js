@@ -3,8 +3,8 @@ import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 
 export const metadata = {
-  title: "Dashboard - Presenta",
-  description: "Presenta dashboard untuk memantau latihan presentasi Anda.",
+  title: "Dashboard - Pitcho",
+  description: "Pitcho dashboard untuk memantau perkembangan latihan presentasi dan wawancara Anda.",
 };
 
 export default function DashboardLayout({ children }) {

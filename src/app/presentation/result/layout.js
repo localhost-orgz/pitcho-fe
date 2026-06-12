@@ -3,7 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 
 export const metadata = {
-  title: "Session Result - Presenta",
+  title: "Session Result - Pitcho",
 };
 
 export default function PresentationResultLayout({ children }) {

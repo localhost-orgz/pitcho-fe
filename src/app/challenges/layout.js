@@ -3,7 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 
 export const metadata = {
-  title: "Challenges - Presenta",
+  title: "Challenges - Pitcho",
 };
 
 export default function ChallengesLayout({ children }) {

@@ -1,7 +1,7 @@
 // src/app/presentation/session/layout.js
 
 export const metadata = {
-  title: "Presentation Session - Presenta",
+  title: "Presentation Session - Pitcho",
 };
 
 export default function SessionLayout({ children }) {

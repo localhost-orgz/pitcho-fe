@@ -14,8 +14,8 @@ const notoJp = Noto_Sans_JP({
 });
 
 export const metadata = {
-  title: "Presenta - Belajar Presentasi Jadi Mudah",
-  description: "Learn to present with confidence. Stay focused and keep eye contact with real-time feedback.",
+  title: "Pitcho - AI-Powered Presentation & Interview Coach",
+  description: "Pitcho is your personalized AI communication coach. Master public speaking, presentation delivery, and job interviews with real-time feedback and interactive simulations.",
   icons: {
     icon: "/logo-transparent.svg",
   },

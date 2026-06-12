@@ -3,7 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 
 export const metadata = {
-  title: "Resources - Presenta",
+  title: "Resources - Pitcho",
 };
 
 export default function ResourcesLayout({ children }) {

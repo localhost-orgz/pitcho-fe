@@ -3,7 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 
 export const metadata = {
-  title: "Your Progress - Presenta",
+  title: "Your Progress - Pitcho",
 };
 
 export default function ProgressLayout({ children }) {

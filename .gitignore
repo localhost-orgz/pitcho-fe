@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backups and local media/temp files
+*.bak
+*.mp4
+evaluate.json
+evaluate_response.json
+interview._response.json
