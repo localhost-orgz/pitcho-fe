@@ -8,7 +8,7 @@ export default function GoogleButton() {
 
   function handleClick() {
     setLoading(true);
-    window.location.href = "/api/auth/google";
+    window.location.href = "http://localhost:3000/api/auth/google";
   }
 
   return (

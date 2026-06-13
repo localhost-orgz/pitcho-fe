@@ -220,7 +220,7 @@ export default function Sidebar() {
             />
             <div className="hidden lg:flex flex-col select-text">
               <span className="text-sm font-extrabold text-slate-850 leading-tight">
-                {user.name}
+                {user?.name}
               </span>
               {/* <span className="text-xs font-bold text-slate-400">Level 12</span> */}
             </div>
@@ -241,7 +241,7 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center lg:justify-start justify-center h-[44px] w-full lg:px-3 text-slate-500 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all font-bold"
+          className="flex items-center lg:justify-start justify-center h-[44px] w-full lg:px-3 text-slate-500 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all font-bold cursor-pointer"
         >
           <LogOut className="size-[22px] shrink-0" />
           <span className="hidden lg:inline text-sm font-bold tracking-wide ml-3">

@@ -166,7 +166,7 @@ export default function StationPage() {
         <div className="flex flex-col text-[#1B2C52] gap-2 max-w-lg relative z-10">
           <h6 className="text-xl font-semibold">Welcome back,</h6>
           <div className="flex flex-row items-center gap-2">
-            <h1 className="text-4xl font-bold">{user.name}!</h1>
+            <h1 className="text-4xl font-bold">{user?.name}!</h1>
             <Image
               src={"/hi.svg"}
               height={100}
