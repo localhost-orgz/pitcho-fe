@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import DocumentLibrary from "@/components/DocumentLibrary";
+import api from "@/lib/api";
 
 export default function InterviewSetupPage() {
   // Set beautiful body background on mount
@@ -297,11 +298,11 @@ export default function InterviewSetupPage() {
       if (rawFile) {
         formData.append("file", rawFile);
         formData.append("fileType", rawFile.type);
-        formData.append("pageCount", String(uploadedFile?.pages ?? 1));
-        formData.append("fileSize", String(rawFile.size));
+        formData.append("pageCount", parseInt(uploadedFile?.pages ?? 1, 10));
+        formData.append("fileSize", parseInt(rawFile.size, 10));
       } else if (libraryDocId) {
         formData.append("documentId", libraryDocId);
-        if (uploadedFile?.pages != null) formData.append("pageCount", String(uploadedFile.pages));
+        if (uploadedFile?.pages != null) formData.append("pageCount", parseInt(uploadedFile.pages, 10));
         // fileSize from library doc is stored as formatted string, skip raw value
       }
       formData.append("question_type", JSON.stringify(questionTypes));
@@ -314,24 +315,15 @@ export default function InterviewSetupPage() {
         formData.append("job_desc", jobDescription.trim());
       }
 
-      const res = await fetch(
-        "https://pitcho-be.vercel.app/api/interview/upload",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3NmFiNDI1NS1mZGUwLTRiNWEtOWM0Zi1iMjRkMTRmNDA2ZjkiLCJlbWFpbCI6ImZhemFtdW10YXpyYW1hZGhhbkBnbWFpbC5jb20iLCJpYXQiOjE3ODEyNTA0MDEsImV4cCI6MTc4MTg1NTIwMX0.SkI5ausTOZaooyrk2MfL2g4q3ODvSyQambsG5guAI0M"
-          },
-          body: formData,
-        },
-      );
+      // Use api instance (Axios) — same pattern as presentation upload.
+      // The interceptor in api.js automatically attaches the auth token
+      // from localStorage and handles FormData content-type correctly.
+      const res = await api.post("/interview/upload", formData);
 
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => "");
-        throw new Error(errorText || `Server error: ${res.status}`);
-      }
+      // Axios only resolves for 2xx; 4xx/5xx throw automatically.
+      console.log("Interview upload response:", res.data);
 
-      const data = await res.json();
-      console.log("Interview upload response:", data);
+      const data = res.data;
 
       // Save to sessionStorage for the session page
       sessionStorage.setItem("interview_configured", "true");

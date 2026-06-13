@@ -193,7 +193,13 @@ function ClipVideoPlayer({ clip, onClipEnded }) {
 
   return (
     <div className="relative w-full aspect-video bg-slate-950 rounded-xl overflow-hidden group">
-      <video ref={videoRef} src={clip?.clipUrl || ""} className="absolute inset-0 w-full h-full object-contain" muted={false} playsInline />
+      {clip?.clipUrl ? (
+        <video ref={videoRef} src={clip.clipUrl} className="absolute inset-0 w-full h-full object-contain" muted={false} playsInline />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+          <Film size={32} className="text-slate-600" />
+        </div>
+      )}
 
       {!playing && (
         <div className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer" onClick={togglePlay}>
