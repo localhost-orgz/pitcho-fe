@@ -78,7 +78,7 @@ export default function StationPage() {
         if (cancelled) return;
 
         const mapped = raw.map((s) => {
-          const score = s.overall_score ?? s.score ?? 0;
+          const score = s.overallScore ?? s.overall_score ?? s.score ?? 0;
           const color =
             score >= 90 ? "#10b981"
             : score >= 80 ? "#3b82f6"
