@@ -16,23 +16,19 @@ import {
   Pause,
   CheckCircle,
   XCircle,
-  X,
   Zap,
   Volume2,
   VolumeX,
   Maximize,
   Minimize,
   Film,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   ChevronLeft,
   ChevronRight,
   FileText,
   Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
-import { getSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
+import { getSessionVideo, clearSessionVideo, getSessionClips } from "@/utils/videoStorage";
 import { calculateSessionScore } from "@/utils/scoring";
 
 // ── Static demo data ────────────────────────────────────────
@@ -150,56 +146,6 @@ const AI_FEEDBACK = [
   },
 ];
 
-// ── Tab 2: Pace Segments & Tips ──────────────────────────────
-const PACE_SEGMENTS = [
-  {
-    time: "00:00 - 02:30",
-    wpm: 112,
-    status: "Ideal Pace",
-    color: "text-green-600",
-    bg: "bg-green-50",
-  },
-  {
-    time: "02:30 - 05:00",
-    wpm: 128,
-    status: "Ideal Pace",
-    color: "text-green-600",
-    bg: "bg-green-50",
-  },
-  {
-    time: "05:00 - 07:30",
-    wpm: 145,
-    status: "Slightly Fast",
-    color: "text-orange-500",
-    bg: "bg-orange-50",
-  },
-  {
-    time: "07:30 - 10:00",
-    wpm: 117,
-    status: "Ideal Pace",
-    color: "text-green-600",
-    bg: "bg-green-50",
-  },
-  {
-    time: "10:00 - 12:45",
-    wpm: 158,
-    status: "Too Fast",
-    color: "text-red-500",
-    bg: "bg-red-50",
-  },
-];
-
-const PACE_TIPS = [
-  {
-    title: "Control speed during slide transitions",
-    desc: "Take a deep breath and pause for 2 seconds before explaining a new slide to prevent accelerating your speech.",
-  },
-  {
-    title: "Use structural pauses",
-    desc: "After key statements or statistics, pause to let the message sink in and help lower your average speaking rate.",
-  },
-];
-
 // ── Tab 3: Filler Words Distribution & Timestamps ────────────
 const FILLER_BREAKDOWN = [
   { word: "uhm / eeee", count: 14, color: "bg-blue-500", pct: 40 },
@@ -274,6 +220,7 @@ function useSessionData() {
   const [clips, setClips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [analysisData, setAnalysisData] = useState(null);
+  const blobUrlsRef = useRef([]); // track all blob URLs for cleanup
 
   useEffect(() => {
     let cancelled = false;
@@ -304,33 +251,65 @@ function useSessionData() {
           console.warn("Failed to parse speech analysis data:", e);
         }
 
-        // Load video from IndexedDB
-        const blob = await getSessionVideo();
-        if (cancelled) return;
-        if (blob) {
-          setVideoBlob(blob);
-          const url = URL.createObjectURL(blob);
-          setVideoUrl(url);
+        // Load real clips from IndexedDB (extracted at session end)
+        let realClipsLoaded = false;
+        try {
+          const storedClips = await getSessionClips();
+          if (!cancelled && storedClips.length > 0) {
+            const events = data.lookAwayEvents || [];
+            const realClips = storedClips.map((storedClip, i) => {
+              const blobUrl = URL.createObjectURL(storedClip.blob);
+              blobUrlsRef.current.push(blobUrl);
+              const matchingEvent = events.find((e) => e.id === storedClip.id) || {};
+              return {
+                id: storedClip.id || `clip-${i}`,
+                timestamp: storedClip.timestamp || matchingEvent.timestamp || 0,
+                type: storedClip.type || matchingEvent.type || "Unknown",
+                duration: storedClip.duration || matchingEvent.duration || 0,
+                clipDuration: 6,
+                clipUrl: blobUrl, // real standalone clip video
+                thumbnail: null,
+                isRealClip: true,
+              };
+            });
+            if (!cancelled) {
+              setClips(realClips);
+              realClipsLoaded = true;
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load clips from IndexedDB, falling back to full video:", e);
+        }
 
-          // Extract clips from events
-          const events = data.lookAwayEvents || [];
-          const extracted = events.map((evt) => {
-            const ts = evt.timestamp || 0;
-            const clipStart = Math.max(0, ts - 3);
-            const clipEnd = ts + 3;
-            return {
-              id: evt.id,
-              timestamp: ts,
-              type: evt.type || "Unknown",
-              duration: evt.duration || 0,
-              clipStart,
-              clipEnd,
-              clipDuration: clipEnd - clipStart,
-              clipUrl: url, // share the full video URL; playback is windowed
-              thumbnail: null,
-            };
-          });
-          if (!cancelled) setClips(extracted);
+        // Fallback: if no real clips loaded, use full video + timeline windowing
+        if (!cancelled && !realClipsLoaded) {
+          const blob = await getSessionVideo();
+          if (blob) {
+            setVideoBlob(blob);
+            const url = URL.createObjectURL(blob);
+            blobUrlsRef.current.push(url);
+            setVideoUrl(url);
+
+            const events = data.lookAwayEvents || [];
+            const extracted = events.map((evt) => {
+              const ts = evt.timestamp || 0;
+              const clipStart = Math.max(0, ts - 3);
+              const clipEnd = ts + 3;
+              return {
+                id: evt.id,
+                timestamp: ts,
+                type: evt.type || "Unknown",
+                duration: evt.duration || 0,
+                clipStart,
+                clipEnd,
+                clipDuration: clipEnd - clipStart,
+                clipUrl: url,
+                thumbnail: null,
+                isRealClip: false,
+              };
+            });
+            if (!cancelled) setClips(extracted);
+          }
         }
       } catch (err) {
         console.error("Failed to load session data:", err);
@@ -342,16 +321,17 @@ function useSessionData() {
     load();
     return () => {
       cancelled = true;
-      // Don't revoke URL here — the player may still need it
+      // Don't revoke URLs here — the player may still need them
     };
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount — revoke all blob URLs
   useEffect(() => {
     return () => {
-      if (videoUrl) URL.revokeObjectURL(videoUrl);
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
     };
-  }, [videoUrl]);
+  }, []);
 
   return { sessionData, videoBlob, videoUrl, clips, loading, analysisData };
 }
@@ -525,7 +505,7 @@ function BreakdownRow({ metric }) {
   );
 }
 
-// ── Custom Video Player (clip-windowed) ─────────────────────
+// ── Custom Video Player (handles both real clips and timeline-windowed) ──
 function CustomVideoPlayer({ clip, onClipEnded }) {
   const videoRef = useRef(null);
   const progressRef = useRef(null);
@@ -536,39 +516,60 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
   const [muted, setMuted] = useState(false);
   const [seeking, setSeeking] = useState(false);
 
+  const isRealClip = clip?.isRealClip === true;
   const clipDuration = clip?.clipDuration || 0;
   const clipStart = clip?.clipStart || 0;
   const clipEnd = clip?.clipEnd || 0;
 
-  // When clip changes, seek to clip start
+  // When clip changes: for real clips play from 0; for fallback seek to clipStart
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !clip) return;
-    video.currentTime = clipStart;
+    if (isRealClip) {
+      video.currentTime = 0;
+    } else {
+      video.currentTime = clipStart;
+    }
     setCurrentTime(0);
     setPlaying(false);
-  }, [clip, clipStart]);
+  }, [clip, clipStart, isRealClip]);
 
-  // Sync currentTime from video, clamped to clip window
+  // Sync currentTime from video
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const onTimeUpdate = () => {
       if (seeking) return;
-      const localTime = video.currentTime - clipStart;
-      setCurrentTime(Math.max(0, Math.min(localTime, clipDuration)));
-
-      // Stop at clip end
-      if (video.currentTime >= clipEnd) {
-        video.pause();
-        setPlaying(false);
-        setCurrentTime(clipDuration);
-        if (onClipEnded) onClipEnded();
+      if (isRealClip) {
+        // Real clip: track time from 0, stop at end
+        setCurrentTime(video.currentTime);
+        if (video.currentTime >= video.duration && video.duration > 0) {
+          video.pause();
+          setPlaying(false);
+          setCurrentTime(video.duration);
+          if (onClipEnded) onClipEnded();
+        }
+      } else {
+        // Fallback: windowed playback on full video
+        const localTime = video.currentTime - clipStart;
+        setCurrentTime(Math.max(0, Math.min(localTime, clipDuration)));
+        if (video.currentTime >= clipEnd) {
+          video.pause();
+          setPlaying(false);
+          setCurrentTime(clipDuration);
+          if (onClipEnded) onClipEnded();
+        }
       }
     };
 
-    const onLoaded = () => setDuration(clipDuration);
+    const onLoaded = () => {
+      if (isRealClip) {
+        setDuration(video.duration || clipDuration);
+      } else {
+        setDuration(clipDuration);
+      }
+    };
 
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("loadedmetadata", onLoaded);
@@ -576,16 +577,24 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("loadedmetadata", onLoaded);
     };
-  }, [clipStart, clipEnd, clipDuration, seeking, onClipEnded]);
+  }, [clipStart, clipEnd, clipDuration, seeking, onClipEnded, isRealClip]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video || !clip) return;
     if (video.paused || video.ended) {
-      // If at end, rewind to clip start
-      if (video.currentTime >= clipEnd - 0.1) {
-        video.currentTime = clipStart;
-        setCurrentTime(0);
+      if (isRealClip) {
+        // Real clip: rewind to start if ended
+        if (video.ended || video.currentTime >= video.duration - 0.1) {
+          video.currentTime = 0;
+          setCurrentTime(0);
+        }
+      } else {
+        // Fallback: rewind to clip start
+        if (video.currentTime >= clipEnd - 0.1) {
+          video.currentTime = clipStart;
+          setCurrentTime(0);
+        }
       }
       video
         .play()
@@ -595,7 +604,7 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
       video.pause();
       setPlaying(false);
     }
-  }, [clip, clipStart, clipEnd]);
+  }, [clip, clipStart, clipEnd, isRealClip]);
 
   const handleSeek = useCallback(
     (e) => {
@@ -607,11 +616,17 @@ function CustomVideoPlayer({ clip, onClipEnded }) {
         0,
         Math.min(1, (e.clientX - rect.left) / rect.width),
       );
-      const seekTime = clipStart + pct * clipDuration;
-      video.currentTime = Math.min(seekTime, clipEnd - 0.1);
-      setCurrentTime(pct * clipDuration);
+      if (isRealClip) {
+        const dur = video.duration || clipDuration || 6;
+        video.currentTime = Math.min(pct * dur, dur - 0.1);
+        setCurrentTime(pct * dur);
+      } else {
+        const seekTime = clipStart + pct * clipDuration;
+        video.currentTime = Math.min(seekTime, clipEnd - 0.1);
+        setCurrentTime(pct * clipDuration);
+      }
     },
-    [clip, clipStart, clipDuration, clipEnd],
+    [clip, clipStart, clipDuration, clipEnd, isRealClip],
   );
 
   const handleProgressMouseDown = useCallback(
@@ -843,298 +858,6 @@ function ClipCard({ clip, isActive, onClick, thumbnailUrl }) {
 }
 
 // ── Enhanced Pace Chart Component ──────────────────────────
-function PaceChart({ segments, averageWpm, sessionDuration }) {
-  const [selectedSegment, setSelectedSegment] = useState(null);
-  const [animateIn, setAnimateIn] = useState(false);
-
-  useEffect(() => {
-    requestAnimationFrame(() => setAnimateIn(true));
-  }, []);
-
-  const maxWpm = Math.max(...segments.map((s) => s.wpm), 180);
-
-  // Compute trend
-  const halfN = Math.floor(segments.length / 2);
-  const firstHalf = segments.slice(0, halfN);
-  const secondHalf = segments.slice(halfN);
-  const firstAvg =
-    firstHalf.length > 0
-      ? firstHalf.reduce((s, seg) => s + seg.wpm, 0) / firstHalf.length
-      : 0;
-  const secondAvg =
-    secondHalf.length > 0
-      ? secondHalf.reduce((s, seg) => s + seg.wpm, 0) / secondHalf.length
-      : 0;
-  const trend =
-    secondAvg > firstAvg ? "up" : secondAvg < firstAvg ? "down" : "stable";
-
-  const getBarColor = (wpm) => {
-    if (wpm <= 0) return "bg-slate-200";
-    if (wpm > 150) return "bg-red-500";
-    if (wpm >= 130) return "bg-orange-400";
-    if (wpm >= 100) return "bg-green-500";
-    return "bg-blue-400";
-  };
-
-  const getStatusLabel = (wpm) => {
-    if (wpm <= 0) return "No Speech";
-    if (wpm > 150) return "Too Fast";
-    if (wpm >= 130) return "Slightly Fast";
-    if (wpm >= 100) return "Ideal";
-    return "Too Slow";
-  };
-
-  const chartHeight = 200;
-  const idealTop = ((maxWpm - 130) / maxWpm) * chartHeight;
-  const idealBottom = ((maxWpm - 100) / maxWpm) * chartHeight;
-  const avgLineY = ((maxWpm - (averageWpm || 0)) / maxWpm) * chartHeight;
-
-  return (
-    <div className="bg-slate-50 border-2 border-slate-200/50 rounded-xl p-5 flex flex-col gap-4">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-            WPM Trend
-          </span>
-          <span
-            className={`text-xs font-black flex items-center gap-1 ${
-              trend === "up"
-                ? "text-orange-500"
-                : trend === "down"
-                  ? "text-blue-500"
-                  : "text-slate-400"
-            }`}
-          >
-            {trend === "up" ? (
-              <>
-                <TrendingUp size={14} /> Speeding Up
-              </>
-            ) : trend === "down" ? (
-              <>
-                <TrendingDown size={14} /> Slowing Down
-              </>
-            ) : (
-              <>
-                <Minus size={14} /> Stable
-              </>
-            )}
-          </span>
-        </div>
-        <div className="px-3 py-1 bg-white border border-slate-200 rounded-full flex items-center gap-2 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400">Avg</span>
-          <span className="text-sm font-black text-slate-800">
-            {averageWpm || 0}
-          </span>
-          <span className="text-[9px] font-bold text-slate-400">WPM</span>
-        </div>
-      </div>
-
-      {/* Chart area */}
-      <div className="relative" style={{ height: `${chartHeight}px` }}>
-        {/* Y-axis labels */}
-        <div className="absolute left-0 top-0 bottom-0 w-7 flex flex-col justify-between text-[9px] font-bold text-slate-300 pointer-events-none">
-          <span>{maxWpm}</span>
-          <span>{Math.round(maxWpm / 2)}</span>
-          <span>0</span>
-        </div>
-
-        <div className="relative ml-8 mr-2 h-full">
-          {/* Grid lines */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-            <div className="border-t border-slate-200/60" />
-            <div className="border-t border-slate-200/60" />
-            <div className="border-t border-slate-200/60" />
-          </div>
-
-          {/* Ideal Zone band */}
-          <div
-            className="absolute left-0 right-0 bg-green-100/50 border-y border-green-200/40 rounded-sm pointer-events-none transition-all duration-700"
-            style={{
-              top: `${idealTop}px`,
-              height: `${idealBottom - idealTop}px`,
-            }}
-          >
-            <span className="absolute -top-3 right-0 text-[8px] font-bold text-green-500/70 tracking-wider">
-              IDEAL ZONE
-            </span>
-          </div>
-
-          {/* Average reference line */}
-          <div
-            className="absolute left-0 right-0 border-t-2 border-dashed border-slate-400/50 pointer-events-none transition-all duration-700"
-            style={{ top: `${avgLineY}px` }}
-          >
-            <span className="absolute -top-2.5 -left-12 text-[8px] font-bold text-slate-400">
-              avg
-            </span>
-          </div>
-
-          {/* Bars */}
-          <div className="absolute inset-0 flex items-end justify-around pb-1">
-            {segments.map((seg, i) => {
-              const barHeight =
-                maxWpm > 0 ? (seg.wpm / maxWpm) * (chartHeight - 20) : 0;
-              const isSelected = selectedSegment === i;
-              const segDuration = sessionDuration / 5;
-              const startTime = i * segDuration;
-              const endTime = (i + 1) * segDuration;
-
-              return (
-                <div
-                  key={i}
-                  className="flex flex-col items-center group relative"
-                >
-                  {/* Enhanced tooltip */}
-                  <div
-                    className={`absolute bottom-full mb-2 transition-all duration-200 z-20 ${
-                      isSelected
-                        ? "opacity-100 scale-100"
-                        : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-events-none"
-                    }`}
-                  >
-                    <div className="bg-slate-800 text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white">{seg.wpm} WPM</span>
-                        <span
-                          className={`px-1.5 py-0.5 rounded text-[8px] font-black ${
-                            seg.wpm > 150
-                              ? "bg-red-500/20 text-red-300"
-                              : seg.wpm >= 130
-                                ? "bg-orange-500/20 text-orange-300"
-                                : seg.wpm >= 100
-                                  ? "bg-green-500/20 text-green-300"
-                                  : seg.wpm > 0
-                                    ? "bg-blue-500/20 text-blue-300"
-                                    : "bg-slate-500/20 text-slate-300"
-                          }`}
-                        >
-                          {getStatusLabel(seg.wpm)}
-                        </span>
-                      </div>
-                      <div className="text-[8px] text-slate-400 mt-1 flex gap-3">
-                        <span>
-                          {formatTime(startTime)} – {formatTime(endTime)}
-                        </span>
-                        <span>{seg.wordCount || 0} words</span>
-                      </div>
-                    </div>
-                    <div className="w-2 h-2 bg-slate-800 rotate-45 mx-auto -mt-1" />
-                  </div>
-
-                  {/* Clickable bar */}
-                  <button
-                    onClick={() => setSelectedSegment(isSelected ? null : i)}
-                    className={`w-8 xs:w-10 md:w-14 rounded-t-md transition-all duration-500 cursor-pointer relative focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-600 ${getBarColor(
-                      seg.wpm,
-                    )} ${
-                      isSelected
-                        ? "ring-2 ring-offset-2 ring-slate-600 scale-110"
-                        : "hover:brightness-110"
-                    }`}
-                    style={{
-                      height: animateIn ? `${Math.max(barHeight, 4)}px` : "0px",
-                      transitionDelay: `${i * 80}ms`,
-                    }}
-                    aria-label={`Segment ${i + 1}: ${seg.wpm} WPM, ${getStatusLabel(seg.wpm)}`}
-                  >
-                    {barHeight > 32 && (
-                      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/60 pointer-events-none">
-                        {seg.wordCount || 0}
-                      </span>
-                    )}
-                  </button>
-
-                  {/* X-axis label */}
-                  <span
-                    className={`text-[9px] font-bold mt-1.5 transition-colors ${
-                      isSelected ? "text-slate-700" : "text-slate-400"
-                    }`}
-                  >
-                    {formatTime(startTime)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Detail panel */}
-      {selectedSegment !== null && (
-        <div className="p-3 bg-white border border-slate-200 rounded-xl animate-fade-in">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-black text-slate-700">
-              Segment {selectedSegment + 1} Details
-            </span>
-            <button
-              onClick={() => setSelectedSegment(null)}
-              className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-              aria-label="Close detail panel"
-            >
-              <X size={14} />
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <div className="text-center">
-              <span className="block text-base sm:text-lg font-black text-slate-800">
-                {segments[selectedSegment].wpm}
-              </span>
-              <span className="text-[9px] font-bold text-slate-400">WPM</span>
-            </div>
-            <div className="text-center">
-              <span className="block text-base sm:text-lg font-black text-slate-800">
-                {segments[selectedSegment].wordCount || 0}
-              </span>
-              <span className="text-[9px] font-bold text-slate-400">Words</span>
-            </div>
-            <div className="text-center">
-              <span
-                className={`block text-base sm:text-lg font-black ${
-                  segments[selectedSegment].wpm > 150
-                    ? "text-red-500"
-                    : segments[selectedSegment].wpm >= 130
-                      ? "text-orange-500"
-                      : segments[selectedSegment].wpm >= 100
-                        ? "text-green-600"
-                        : segments[selectedSegment].wpm > 0
-                          ? "text-blue-500"
-                          : "text-slate-400"
-                }`}
-              >
-                {getStatusLabel(segments[selectedSegment].wpm)}
-              </span>
-              <span className="text-[9px] font-bold text-slate-400">
-                Status
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
-        <span className="flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[9px] font-bold text-slate-400">
-          <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block" /> Too
-          Slow (&lt;100)
-        </span>
-        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-          <span className="w-2 h-2 rounded-sm bg-green-500 inline-block" />{" "}
-          Ideal (100–130)
-        </span>
-        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-          <span className="w-2 h-2 rounded-sm bg-orange-400 inline-block" />{" "}
-          Slightly Fast (130–150)
-        </span>
-        <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-          <span className="w-2 h-2 rounded-sm bg-red-500 inline-block" /> Too
-          Fast (&gt;150)
-        </span>
-      </div>
-    </div>
-  );
-}
-
 // ── Main Page ───────────────────────────────────────────────
 export default function PresentationResultPage() {
   const { sessionData, videoBlob, videoUrl, clips, loading, analysisData } =
@@ -1195,7 +918,7 @@ export default function PresentationResultPage() {
   // Build dynamic metrics based on session data
   const hasSession =
     sessionData &&
-    (clips.length > 0 || sessionData.speechSegments?.length === 5);
+    (clips.length > 0 || (sessionData.averageWpm || 0) > 0);
   const eyeMetric = hasSession
     ? {
         id: "eye",
@@ -1237,7 +960,7 @@ export default function PresentationResultPage() {
     : METRICS[0];
 
   // Build dynamic pace metric from session speech data
-  const hasSpeechData = sessionData?.speechSegments?.length === 5;
+  const hasSpeechData = (sessionData?.averageWpm || 0) > 0;
   const paceMetric = hasSpeechData
     ? {
         id: "pace",
@@ -1313,54 +1036,6 @@ export default function PresentationResultPage() {
       : METRICS[1];
 
   const dynamicMetrics = [eyeMetric, fillerMetric, paceMetric];
-
-  // Build dynamic pace segments from session speech data
-  const paceSegments = hasSpeechData
-    ? sessionData.speechSegments.map((seg, i) => {
-        const segDuration = sessionData.sessionDuration / 5;
-        const startTime = i * segDuration;
-        const endTime = (i + 1) * segDuration;
-        const wpm = seg.wpm || 0;
-        const status =
-          wpm === 0
-            ? "No Speech"
-            : wpm > 150
-              ? "Too Fast"
-              : wpm >= 130
-                ? "Slightly Fast"
-                : wpm >= 100
-                  ? "Ideal Pace"
-                  : "Too Slow";
-        const color =
-          status === "Too Fast"
-            ? "text-red-500"
-            : status === "Slightly Fast"
-              ? "text-orange-500"
-              : status === "Ideal Pace"
-                ? "text-green-600"
-                : status === "Too Slow"
-                  ? "text-blue-500"
-                  : "text-slate-400";
-        const bg =
-          status === "Too Fast"
-            ? "bg-red-50"
-            : status === "Slightly Fast"
-              ? "bg-orange-50"
-              : status === "Ideal Pace"
-                ? "bg-green-50"
-                : status === "Too Slow"
-                  ? "bg-blue-50"
-                  : "bg-slate-50";
-        return {
-          time: `${formatTime(startTime)} - ${formatTime(endTime)}`,
-          wpm,
-          wordCount: seg.wordCount || 0,
-          status,
-          color,
-          bg,
-        };
-      })
-    : PACE_SEGMENTS;
 
   // ── Dynamic filler/wordiness data for tabs ───────────────
   // Helper: wrap word occurrences in text with *...* for highlighting
@@ -1713,82 +1388,106 @@ export default function PresentationResultPage() {
           <div className="lg:col-span-8 bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-5">
             <div>
               <h2 className="font-black text-slate-800 text-sm">
-                Speaking Pace over Time
+                Speaking Pace
               </h2>
               <p className="text-xs text-slate-400 mt-1 font-semibold">
-                Ideal speaking speed for presentations is between 100 - 130 WPM.
+                Your average speaking speed. Ideal for presentations is 100–130 WPM.
               </p>
             </div>
 
-            {/* Enhanced Pace Chart */}
-            <PaceChart
-              segments={paceSegments}
-              averageWpm={hasSpeechData ? sessionData.averageWpm : null}
-              sessionDuration={
-                hasSpeechData ? sessionData.sessionDuration : 765
-              }
-            />
+            {hasSpeechData ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <div className="text-7xl font-black text-slate-800">
+                  {sessionData.averageWpm}
+                </div>
+                <div className="text-lg font-bold text-slate-400">WPM</div>
+                <div
+                  className={`px-4 py-1.5 rounded-full text-sm font-black ${
+                    sessionData.averageWpm > 150
+                      ? "bg-red-100 text-red-600"
+                      : sessionData.averageWpm >= 130
+                        ? "bg-orange-100 text-orange-600"
+                        : sessionData.averageWpm >= 100
+                          ? "bg-green-100 text-green-600"
+                          : sessionData.averageWpm > 0
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-slate-100 text-slate-400"
+                  }`}
+                >
+                  {sessionData.averageWpm > 150
+                    ? "Too Fast"
+                    : sessionData.averageWpm >= 130
+                      ? "Slightly Fast"
+                      : sessionData.averageWpm >= 100
+                        ? "Ideal Pace"
+                        : sessionData.averageWpm > 0
+                          ? "Too Slow"
+                          : "No Data"}
+                </div>
+                <p className="text-sm text-slate-400 font-medium mt-2">
+                  {sessionData.totalWordCount || 0} words spoken in{" "}
+                  {formatTime(sessionData.sessionDuration)}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                <Timer size={40} />
+                <span className="text-sm font-bold">No pace data available</span>
+                <span className="text-xs">
+                  Audio analysis may not have completed.
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right sidebar pace summary */}
           <div className="lg:col-span-4 flex flex-col gap-4">
             <div className="bg-white rounded-2xl border-bold p-4 sm:p-5 flex flex-col gap-4">
               <h3 className="font-black text-slate-800 text-xs sm:text-sm">
-                Speaking Pace Segments
+                Pace Summary
               </h3>
-              <div className="flex flex-col gap-3">
-                {paceSegments.map((seg, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl"
-                  >
+              {hasSpeechData ? (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-slate-400 font-mono">
-                        {seg.time}
+                      <span className="text-[10px] font-black text-slate-400">
+                        Average Speed
                       </span>
                       <span className="text-xs font-bold text-slate-700 mt-0.5">
-                        {seg.wpm} Words / Min
+                        {sessionData.averageWpm} Words / Min
                       </span>
                     </div>
                     <span
-                      className={`text-[10px] font-black px-2.5 py-1 rounded-md ${seg.bg} ${seg.color}`}
-                    >
-                      {seg.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Overall summary */}
-              {hasSpeechData && (
-                <div className="mt-1 pt-3 border-t border-slate-200">
-                  <div className="flex items-center justify-between px-4 py-2">
-                    <span className="text-xs font-bold text-slate-500">
-                      Overall Average
-                    </span>
-                    <span className="text-sm font-black text-slate-800">
-                      {sessionData.averageWpm || 0} WPM
-                    </span>
-                  </div>
-                  <div className="px-4">
-                    <span
-                      className={`text-[10px] font-bold ${
-                        !sessionData.averageWpm || sessionData.averageWpm === 0
-                          ? "text-slate-400"
-                          : sessionData.averageWpm > 150
-                            ? "text-red-500"
-                            : sessionData.averageWpm >= 130
-                              ? "text-orange-500"
-                              : sessionData.averageWpm >= 100
-                                ? "text-green-600"
-                                : "text-blue-500"
+                      className={`text-[10px] font-black px-2.5 py-1 rounded-md ${
+                        sessionData.averageWpm > 150
+                          ? "bg-red-50 text-red-500"
+                          : sessionData.averageWpm >= 130
+                            ? "bg-orange-50 text-orange-500"
+                            : sessionData.averageWpm >= 100
+                              ? "bg-green-50 text-green-600"
+                              : "bg-blue-50 text-blue-500"
                       }`}
                     >
-                      {sessionData.averageWpm > 0
-                        ? `Total: ${sessionData.totalWordCount} words in ${formatTime(sessionData.sessionDuration)}`
-                        : "No speech data recorded"}
+                      {sessionData.averageWpm > 150
+                        ? "Too Fast"
+                        : sessionData.averageWpm >= 130
+                          ? "Slightly Fast"
+                          : sessionData.averageWpm >= 100
+                            ? "Ideal Pace"
+                            : "Too Slow"}
                     </span>
                   </div>
+                  <div className="mt-1 pt-3 border-t border-slate-200 px-4">
+                    <span className="text-[10px] font-bold text-slate-400">
+                      Total: {sessionData.totalWordCount} words in{" "}
+                      {formatTime(sessionData.sessionDuration)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
+                  <Timer size={28} />
+                  <span className="text-xs font-medium">No data</span>
                 </div>
               )}
             </div>

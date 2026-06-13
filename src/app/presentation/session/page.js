@@ -30,7 +30,7 @@ import {
 import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useSpeechTracker } from "@/hooks/useSpeechTracker";
-import { saveSessionVideo, clearSessionVideo } from "@/utils/videoStorage";
+import { saveSessionVideo, clearSessionVideo, saveSessionClips } from "@/utils/videoStorage";
 import { analyzeSpeech } from "@/utils/speechAnalysis";
 import { extractClip } from "@/utils/clipExtractor";
 import { uploadClip, saveSession } from "@/lib/api";
@@ -336,11 +336,6 @@ export default function PresentationSessionPage() {
   const {
     isListening: isSpeechListening,
     error: speechError,
-    currentWpm,
-    currentStatus,
-    totalWordCount: speechWordCount,
-    averageWpm: speechAverageWpm,
-    segmentData: speechSegmentData,
     transcript,
     isSupported: isSpeechSupported,
     startListening: startSpeechTracking,
@@ -498,6 +493,7 @@ export default function PresentationSessionPage() {
 
   // ── End Session handler ─────────────────────────────────
   const [isEnding, setIsEnding] = useState(false);
+  const [clipProgress, setClipProgress] = useState(null); // { current, total }
 
   const handleEndSession = useCallback(async () => {
     if (isEnding) return;
@@ -512,32 +508,49 @@ export default function PresentationSessionPage() {
       // 2. Stop tracker/recording and get the video + audio blobs
       const { videoBlob, audioBlob } = await stopTracker();
 
-      // 3. Save metadata to localStorage
-      const sessionData = {
-        lookAwayEvents,
-        lookAwayCount,
-        sessionDuration: totalSessionTime,
-        totalDistractedTime,
-        // Speech / WPM data
-        transcript: speechData?.transcript || "",
-        totalWordCount: speechData?.totalWordCount || 0,
-        averageWpm: speechData?.averageWpm || 0,
-        speechSegments: speechData?.speechSegments || [],
-      };
-      localStorage.setItem("pitcho_session_data", JSON.stringify(sessionData));
-
-      // 4. Save video blob to IndexedDB
+      // 3. Save video blob to IndexedDB
       if (videoBlob) {
         await saveSessionVideo(videoBlob);
       }
 
-      // 5. Upload audio for speech analysis (non-fatal on failure)
+      // 3.5 Extract distraction clips from full video for local replay
+      const localClips = []; // { id, blob, type, timestamp, duration }
+      if (videoBlob && lookAwayEvents.length > 0) {
+        setClipProgress({ current: 0, total: lookAwayEvents.length });
+        for (let i = 0; i < lookAwayEvents.length; i++) {
+          const event = lookAwayEvents[i];
+          try {
+            const clipStart = Math.max(0, (event.timestamp || 0) - 3);
+            const clipDuration = 6; // 6-second window around the event
+            const clipBlob = await extractClip(videoBlob, clipStart, clipDuration);
+            if (clipBlob) {
+              localClips.push({
+                id: event.id,
+                blob: clipBlob,
+                type: event.type || "Look Away",
+                timestamp: event.timestamp || 0,
+                duration: event.duration || 0,
+              });
+            }
+          } catch (clipErr) {
+            console.warn("Clip extraction failed for event:", event.id, clipErr);
+          }
+          setClipProgress({ current: i + 1, total: lookAwayEvents.length });
+        }
+        setClipProgress(null);
+        if (localClips.length > 0) {
+          await saveSessionClips(localClips);
+        }
+      }
+
+      // 4. Upload audio for speech analysis (non-fatal on failure)
+      let analysisResponse = null;
       try {
-        const response = await analyzeSpeech(audioBlob);
-        if (response?.success && response?.data) {
+        analysisResponse = await analyzeSpeech(audioBlob);
+        if (analysisResponse?.success && analysisResponse?.data) {
           localStorage.setItem(
             "pitcho_speech_analysis",
-            JSON.stringify(response.data),
+            JSON.stringify(analysisResponse.data),
           );
         }
       } catch (analysisErr) {
@@ -546,6 +559,42 @@ export default function PresentationSessionPage() {
           analysisErr,
         );
       }
+
+      // 5. Compute WPM from server transcript (fallback to browser transcript word count)
+      const serverTranscript =
+        analysisResponse?.data?.transcription ||
+        analysisResponse?.data?.analysis?.transcription ||
+        analysisResponse?.data?.transcript ||
+        analysisResponse?.data?.analysis?.transcript ||
+        "";
+      let computedWpm = 0;
+      if (serverTranscript && totalSessionTime > 0) {
+        const wordCount = serverTranscript
+          .split(/\s+/)
+          .filter((w) => w.length > 0).length;
+        const minutes = totalSessionTime / 60;
+        computedWpm = minutes > 0 ? Math.round(wordCount / minutes) : 0;
+      }
+      // Fallback to browser transcript word count if server analysis failed
+      if (!computedWpm && speechData?.totalWordCount && totalSessionTime > 0) {
+        const minutes = totalSessionTime / 60;
+        computedWpm = minutes > 0
+          ? Math.round(speechData.totalWordCount / minutes)
+          : 0;
+      }
+
+      // 6. Save metadata to localStorage
+      const sessionData = {
+        lookAwayEvents,
+        lookAwayCount,
+        sessionDuration: totalSessionTime,
+        totalDistractedTime,
+        // Speech / WPM data
+        transcript: serverTranscript || speechData?.transcript || "",
+        totalWordCount: speechData?.totalWordCount || 0,
+        averageWpm: computedWpm,
+      };
+      localStorage.setItem("pitcho_session_data", JSON.stringify(sessionData));
 
       // 6. Save session to backend (non-blocking — failures don't stop navigation)
       try {
@@ -578,42 +627,32 @@ export default function PresentationSessionPage() {
           storedAudience.charAt(0).toUpperCase() + storedAudience.slice(1);
         const sessionLength = parseInt(storedDuration, 10) || 1;
 
-        // ── Upload distraction clips ──────────────────────
+        // ── Upload distraction clips (reuse pre-extracted blobs) ──
         const distractionClips = [];
-        if (videoBlob && lookAwayEvents.length > 0) {
-          for (const event of lookAwayEvents) {
-            try {
-              const clipStart = Math.max(0, (event.timestamp || 0) - 2);
-              const clipEnd = Math.min(
-                totalSessionTime,
-                (event.timestamp || 0) + (event.duration || 3) + 2,
-              );
-              const clipDuration = clipEnd - clipStart;
+        for (const clip of localClips) {
+          try {
+            const clipStart = Math.max(0, clip.timestamp - 3);
+            const clipEnd = clipStart + 6;
+            const clipDuration = 6;
 
-              // Extract clip from full video via canvas + MediaRecorder
-              const clipBlob = await extractClip(videoBlob, clipStart, clipDuration);
+            const uploadResult = await uploadClip(clip.blob, {
+              type: clip.type,
+              timestamp_start: Math.round(clipStart),
+              timestamp_end: Math.round(clipEnd),
+              duration: clipDuration,
+            });
 
-              if (clipBlob) {
-                const uploadResult = await uploadClip(clipBlob, {
-                  type: event.type || "Look Away",
-                  timestamp_start: Math.round(clipStart),
-                  timestamp_end: Math.round(clipEnd),
-                  duration: Math.round(clipDuration),
-                });
-
-                if (uploadResult?.video_url) {
-                  distractionClips.push({
-                    video_url: uploadResult.video_url,
-                    type: event.type || "Look Away",
-                    timestamp_start: Math.round(clipStart),
-                    timestamp_end: Math.round(clipEnd),
-                    duration: Math.round(clipDuration),
-                  });
-                }
-              }
-            } catch (clipErr) {
-              console.warn("Clip extraction/upload failed for event:", event.id, clipErr);
+            if (uploadResult?.video_url) {
+              distractionClips.push({
+                video_url: uploadResult.video_url,
+                type: clip.type,
+                timestamp_start: Math.round(clipStart),
+                timestamp_end: Math.round(clipEnd),
+                duration: clipDuration,
+              });
             }
+          } catch (clipErr) {
+            console.warn("Clip upload failed for event:", clip.id, clipErr);
           }
         }
 
@@ -643,7 +682,7 @@ export default function PresentationSessionPage() {
         const scoreInput = {
           sessionDuration: totalSessionTime,
           totalWordCount: speechData?.totalWordCount || 0,
-          averageWpm: speechData?.averageWpm || 0,
+          averageWpm: computedWpm,
           totalDistractedTime,
         };
         const analysisInput = storedAnalysis;
@@ -661,7 +700,7 @@ export default function PresentationSessionPage() {
           distract_count: lookAwayCount,
           total_distract_duration: Math.round(totalDistractedTime),
           total_duration: Math.round(totalSessionTime),
-          wpm: Math.round(speechData?.averageWpm || 0),
+          wpm: Math.round(computedWpm),
           efficiency_score: scoreResult.breakdown.efficiency,
           overall_score: scoreResult.overallScore,
           filler_incidents: fillerIncidents,
@@ -813,7 +852,11 @@ export default function PresentationSessionPage() {
           disabled={isEnding}
         >
           <MonitorX size={14} />
-          {isEnding ? "Ending..." : "End Session"}
+          {isEnding
+            ? clipProgress
+              ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
+              : "Ending..."
+            : "End Session"}
         </Button>
       </header>
 
@@ -947,27 +990,6 @@ export default function PresentationSessionPage() {
                     />
                     <span className="text-[10px] font-semibold text-white/70">
                       {eyeContactStatus}
-                    </span>
-                  </div>
-                  {/* Divider */}
-                  <div className="w-px h-4 bg-white/20" />
-                  {/* Speaking Pace */}
-                  <div className="flex items-center gap-1">
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        currentStatus === "Ideal Pace"
-                          ? "bg-green-400"
-                          : currentStatus === "Slightly Fast"
-                            ? "bg-orange-400"
-                            : currentStatus === "Too Fast"
-                              ? "bg-red-400"
-                              : currentStatus === "Too Slow"
-                                ? "bg-blue-400"
-                                : "bg-white/30"
-                      }`}
-                    />
-                    <span className="text-[10px] font-semibold text-white/70">
-                      {isSpeechListening ? `${currentWpm} wpm` : "-- wpm"}
                     </span>
                   </div>
                 </div>

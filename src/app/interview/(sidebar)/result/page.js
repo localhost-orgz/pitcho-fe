@@ -34,7 +34,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
-import { getSessionVideo } from "@/utils/videoStorage";
+import { getSessionVideo, getSessionClips } from "@/utils/videoStorage";
 import { saveSession } from "@/lib/api";
 
 // ── Tabs ────────────────────────────────────────────────────
@@ -118,12 +118,13 @@ function formatDuration(secs) {
   return `${secs.toFixed(1)}s`;
 }
 
-// ── Clip Video Player ───────────────────────────────────────
+// ── Clip Video Player (handles both real clips and timeline-windowed) ──
 function ClipVideoPlayer({ clip, onClipEnded }) {
   const videoRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
 
+  const isRealClip = clip?.isRealClip === true;
   const clipDuration = clip?.clipDuration || 0;
   const clipStart = clip?.clipStart || 0;
   const clipEnd = clip?.clipEnd || 0;
@@ -131,28 +132,42 @@ function ClipVideoPlayer({ clip, onClipEnded }) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !clip) return;
-    video.currentTime = clipStart;
+    if (isRealClip) {
+      video.currentTime = 0;
+    } else {
+      video.currentTime = clipStart;
+    }
     setCurrentTime(0);
     setPlaying(false);
-  }, [clip, clipStart]);
+  }, [clip, clipStart, isRealClip]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     const tick = setInterval(() => {
       if (video && !video.paused) {
-        const ct = video.currentTime - clipStart;
-        setCurrentTime(Math.max(0, ct));
-        if (video.currentTime >= clipEnd) {
-          video.pause();
-          setPlaying(false);
-          setCurrentTime(clipDuration);
-          onClipEnded?.();
+        if (isRealClip) {
+          setCurrentTime(video.currentTime);
+          if (video.currentTime >= video.duration && video.duration > 0) {
+            video.pause();
+            setPlaying(false);
+            setCurrentTime(video.duration);
+            onClipEnded?.();
+          }
+        } else {
+          const ct = video.currentTime - clipStart;
+          setCurrentTime(Math.max(0, ct));
+          if (video.currentTime >= clipEnd) {
+            video.pause();
+            setPlaying(false);
+            setCurrentTime(clipDuration);
+            onClipEnded?.();
+          }
         }
       }
     }, 100);
     return () => clearInterval(tick);
-  }, [clipStart, clipEnd, clipDuration, onClipEnded]);
+  }, [clipStart, clipEnd, clipDuration, onClipEnded, isRealClip]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -161,13 +176,20 @@ function ClipVideoPlayer({ clip, onClipEnded }) {
       video.pause();
       setPlaying(false);
     } else {
-      if (video.currentTime >= clipEnd) video.currentTime = clipStart;
+      if (isRealClip) {
+        if (video.ended || video.currentTime >= video.duration - 0.1) {
+          video.currentTime = 0;
+        }
+      } else {
+        if (video.currentTime >= clipEnd) video.currentTime = clipStart;
+      }
       video.play().catch(() => {});
       setPlaying(true);
     }
   };
 
-  const progressPct = clipDuration > 0 ? (currentTime / clipDuration) * 100 : 0;
+  const dur = isRealClip ? (videoRef.current?.duration || clipDuration || 6) : clipDuration;
+  const progressPct = dur > 0 ? (currentTime / dur) * 100 : 0;
 
   return (
     <div className="relative w-full aspect-video bg-slate-950 rounded-xl overflow-hidden group">
@@ -190,7 +212,7 @@ function ClipVideoPlayer({ clip, onClipEnded }) {
             {playing ? <Pause size={15} /> : <Play size={15} />}
           </button>
           <span className="text-[10px] font-mono font-bold">
-            {formatTime(currentTime)} / {formatTime(clipDuration)}
+            {formatTime(currentTime)} / {formatTime(dur)}
           </span>
         </div>
       </div>
@@ -495,6 +517,7 @@ export default function InterviewResultPage() {
   const [clips, setClips] = useState([]);
   const [activeClipIndex, setActiveClipIndex] = useState(-1);
   const [videoUrl, setVideoUrl] = useState(null);
+  const blobUrlsRef = useRef([]); // track all blob URLs for cleanup
 
   // Load data
   useEffect(() => {
@@ -509,33 +532,64 @@ export default function InterviewResultPage() {
         const data = JSON.parse(raw);
         setResultData(data);
 
-        // Load video from IndexedDB and extract clips
+        // Load real clips from IndexedDB (extracted at session end)
+        let realClipsLoaded = false;
         try {
-          const blob = await getSessionVideo();
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            setVideoUrl(url);
-
+          const storedClips = await getSessionClips();
+          if (storedClips.length > 0) {
             const events = data.lookAwayEvents || [];
-            const extracted = events.map((evt) => {
-              const ts = evt.timestamp || 0;
-              const clipStart = Math.max(0, ts - 3);
-              const clipEnd = ts + 3;
+            const realClips = storedClips.map((storedClip, i) => {
+              const blobUrl = URL.createObjectURL(storedClip.blob);
+              blobUrlsRef.current.push(blobUrl);
+              const matchingEvent = events.find((e) => e.id === storedClip.id) || {};
               return {
-                id: evt.id,
-                timestamp: ts,
-                type: evt.type || "Look Away",
-                duration: evt.duration || 0,
-                clipStart,
-                clipEnd,
-                clipDuration: clipEnd - clipStart,
-                clipUrl: url,
+                id: storedClip.id || `clip-${i}`,
+                timestamp: storedClip.timestamp || matchingEvent.timestamp || 0,
+                type: storedClip.type || matchingEvent.type || "Look Away",
+                duration: storedClip.duration || matchingEvent.duration || 0,
+                clipDuration: 6,
+                clipUrl: blobUrl,
+                isRealClip: true,
               };
             });
-            setClips(extracted);
+            setClips(realClips);
+            realClipsLoaded = true;
           }
         } catch (e) {
-          console.warn("No session video available:", e);
+          console.warn("Failed to load clips from IndexedDB, falling back to full video:", e);
+        }
+
+        // Fallback: if no real clips, use full video + timeline windowing
+        if (!realClipsLoaded) {
+          try {
+            const blob = await getSessionVideo();
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              blobUrlsRef.current.push(url);
+              setVideoUrl(url);
+
+              const events = data.lookAwayEvents || [];
+              const extracted = events.map((evt) => {
+                const ts = evt.timestamp || 0;
+                const clipStart = Math.max(0, ts - 3);
+                const clipEnd = ts + 3;
+                return {
+                  id: evt.id,
+                  timestamp: ts,
+                  type: evt.type || "Look Away",
+                  duration: evt.duration || 0,
+                  clipStart,
+                  clipEnd,
+                  clipDuration: clipEnd - clipStart,
+                  clipUrl: url,
+                  isRealClip: false,
+                };
+              });
+              setClips(extracted);
+            }
+          } catch (e) {
+            console.warn("No session video available:", e);
+          }
         }
 
         setLoading(false);
@@ -548,7 +602,8 @@ export default function InterviewResultPage() {
     load();
 
     return () => {
-      if (videoUrl) URL.revokeObjectURL(videoUrl);
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
     };
   }, []);
 

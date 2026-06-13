@@ -37,7 +37,8 @@ import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useInterviewVideoController } from "@/hooks/useInterviewVideoController";
 import { analyzeSpeech } from "@/utils/speechAnalysis";
-import { saveSessionVideo } from "@/utils/videoStorage";
+import { saveSessionVideo, saveSessionClips } from "@/utils/videoStorage";
+import { extractClip } from "@/utils/clipExtractor";
 
 // ── Equipment Status Bar ───────────────────────────────────
 function EquipmentBar({ internetSpeed, isCameraOn, isMicOn }) {
@@ -389,6 +390,7 @@ export default function InterviewSessionPage() {
   const perQuestionDataRef = useRef([]);
   const pendingAnalysisRef = useRef(null); // tracks in-flight speech analysis promise
   const [isEnding, setIsEnding] = useState(false);
+  const [clipProgress, setClipProgress] = useState(null); // { current, total }
 
   // ── Per-question recording ────────────────────────────────
   const micStreamRef = useRef(null);
@@ -715,6 +717,37 @@ export default function InterviewSessionPage() {
       // Save video to IndexedDB for replay in result page
       if (videoBlob && videoBlob.size > 0) {
         await saveSessionVideo(videoBlob);
+
+        // Extract distraction clips from full video for local replay
+        const events = lookAwayEvents || [];
+        if (events.length > 0) {
+          setClipProgress({ current: 0, total: events.length });
+          const localClips = [];
+          for (let i = 0; i < events.length; i++) {
+            const event = events[i];
+            try {
+              const clipStart = Math.max(0, (event.timestamp || 0) - 3);
+              const clipDuration = 6;
+              const clipBlob = await extractClip(videoBlob, clipStart, clipDuration);
+              if (clipBlob) {
+                localClips.push({
+                  id: event.id,
+                  blob: clipBlob,
+                  type: event.type || "Look Away",
+                  timestamp: event.timestamp || 0,
+                  duration: event.duration || 0,
+                });
+              }
+            } catch (clipErr) {
+              console.warn("Clip extraction failed for event:", event.id, clipErr);
+            }
+            setClipProgress({ current: i + 1, total: events.length });
+          }
+          setClipProgress(null);
+          if (localClips.length > 0) {
+            await saveSessionClips(localClips);
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to save session recording:", err);
@@ -1216,13 +1249,24 @@ export default function InterviewSessionPage() {
           <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
             <Loader2 size={40} className="text-main animate-spin" />
             <p className="text-sm font-bold text-slate-700 text-center">
-              Analyzing your interview performance…
+              {clipProgress
+                ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
+                : "Analyzing your interview performance…"}
             </p>
-            <div className="w-full space-y-2">
-              <div className="h-2 bg-slate-100 rounded animate-pulse" />
-              <div className="h-2 bg-slate-100 rounded animate-pulse w-4/5" />
-              <div className="h-2 bg-slate-100 rounded animate-pulse w-3/5" />
-            </div>
+            {clipProgress ? (
+              <div className="w-full bg-slate-200 rounded-full h-2.5">
+                <div
+                  className="bg-main h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${(clipProgress.current / clipProgress.total) * 100}%` }}
+                />
+              </div>
+            ) : (
+              <div className="w-full space-y-2">
+                <div className="h-2 bg-slate-100 rounded animate-pulse" />
+                <div className="h-2 bg-slate-100 rounded animate-pulse w-4/5" />
+                <div className="h-2 bg-slate-100 rounded animate-pulse w-3/5" />
+              </div>
+            )}
           </div>
         </div>
       )}

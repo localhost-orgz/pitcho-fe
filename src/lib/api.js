@@ -1,12 +1,27 @@
 import axios from "axios";
+
+/**
+ * Read auth token from localStorage first, then fall back to the
+ * auth-token-fallback cookie (set during OAuth callback).
+ */
+function getAuthToken() {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("auth-token");
+  if (token) return token;
+  const match = document.cookie.match(
+    /(?:^|; )auth-token-fallback=([^;]*)/,
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 /**
  * Fetch the user's previously uploaded documents from the backend.
- * Returns an array of document objects. Handles both a bare array
- * and a `{ data: [...] }` envelope.
+ * Returns an array of document objects with fileName, pageCount, fileSize,
+ * and uploadedAt fields. Handles both a bare array and a `{ data: [...] }`
+ * envelope.
  */
 export async function fetchDocumentLibrary() {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+  const token = getAuthToken();
 
   if (!token) {
     throw new Error("No auth token found. Please log in again.");
@@ -20,13 +35,26 @@ export async function fetchDocumentLibrary() {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to fetch library: ${res.statusText}`);
+    throw new Error(`Failed to fetch library: ${res.status} ${res.statusText}`);
   }
 
   const json = await res.json();
 
   // Defensive: handle both { data: [...] } and direct array
   const documents = Array.isArray(json) ? json : (json.data ?? []);
+
+  console.log("Document library fetched:", {
+    count: documents.length,
+    sample: documents[0]
+      ? {
+          id: documents[0].id ?? documents[0]._id,
+          fileName: documents[0].fileName ?? documents[0].name,
+          pageCount: documents[0].pageCount ?? documents[0].pages,
+          fileSize: documents[0].fileSize ?? documents[0].size,
+          uploadedAt: documents[0].uploadedAt ?? documents[0].createdAt,
+        }
+      : null,
+  });
 
   return documents;
 }
@@ -46,8 +74,7 @@ export async function uploadClip(
 ) {
   if (!clipBlob || clipBlob.size === 0) return null;
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+  const token = getAuthToken();
 
   if (!token) return null;
 
@@ -84,8 +111,7 @@ export async function uploadClip(
  * @returns {Promise<Object>} Parsed response JSON
  */
 export async function saveSession(payload) {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+  const token = getAuthToken();
 
   if (!token) {
     throw new Error("No auth token found. Please log in again.");
@@ -116,8 +142,7 @@ export async function saveSession(payload) {
  * @returns {Promise<Array>}
  */
 export async function fetchHistory({ limit } = {}) {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+  const token = getAuthToken();
 
   if (!token) return [];
 
@@ -152,10 +177,16 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("auth-token");
+    // Let the browser set the correct multipart boundary for FormData
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+
+    const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => {

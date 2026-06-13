@@ -32,6 +32,40 @@ import Image from "next/image";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import DocumentLibrary from "@/components/DocumentLibrary";
+import api from "@/lib/api";
+
+/**
+ * Parse the backend upload response into slides.
+ * Handles multiple response shapes: { data: [...] }, { slides: [...] }, etc.
+ * @returns {{ documentId: string|null, slides: Array }}
+ */
+function parseUploadResponse(responseData) {
+  const documentId =
+    responseData.id ||
+    responseData.documentId ||
+    responseData.document_id ||
+    responseData.data?.id ||
+    responseData.data?.documentId ||
+    responseData.data?.document_id ||
+    responseData.meta?.document_id ||
+    responseData.meta?.documentId ||
+    null;
+
+  let slides = null;
+  if (Array.isArray(responseData.data)) {
+    slides = responseData.data;
+  } else if (responseData.slides) {
+    slides = responseData.slides;
+  } else if (responseData.data?.slides) {
+    slides = responseData.data.slides;
+  } else if (responseData.slide) {
+    slides = responseData.slide;
+  } else if (responseData.data?.slide) {
+    slides = responseData.data.slide;
+  }
+
+  return { documentId, slides };
+}
 
 export default function PresentationSetupPage() {
   const router = useRouter();
@@ -195,75 +229,57 @@ export default function PresentationSetupPage() {
     // 4. Hit API
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file, file.name);
+      formData.append("fileType", file.type);
+      formData.append("pageCount", String(pages));
+      formData.append("fileSize", String(file.size));
 
-      const res = await fetch(
-        "https://pitcho-be.vercel.app/api/presentation/upload",
-        {
-          method: "POST",
-          headers: {
-            Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3NmFiNDI1NS1mZGUwLTRiNWEtOWM0Zi1iMjRkMTRmNDA2ZjkiLCJlbWFpbCI6ImZhemFtdW10YXpyYW1hZGhhbkBnbWFpbC5jb20iLCJpYXQiOjE3ODEyNTA0MDEsImV4cCI6MTc4MTg1NTIwMX0.SkI5ausTOZaooyrk2MfL2g4q3ODvSyQambsG5guAI0M",
-          },
-          body: formData,
-        },
-      );
+      // `api` is an Axios instance — res.data is already parsed JSON;
+      // .ok and .json() do not exist on Axios responses.
+      const res = await api.post("/presentation/upload", formData);
 
-      if (!res.ok) {
-        throw new Error(`Failed to upload: ${res.statusText}`);
+      // Axios only resolves for 2xx; 4xx/5xx throw automatically,
+      // so reaching here means the request succeeded.
+      console.log("Upload response status:", res.status);
+      console.log("Upload response data:", res.data);
+
+      const { documentId, slides } = parseUploadResponse(res.data);
+
+      if (documentId) {
+        setUploadedFile((prev) => ({
+          ...(prev || {}),
+          document_id: documentId,
+        }));
       }
 
-      const data = await res.json();
-      console.log("Upload response data:", data);
-
-      // Capture documentId from upload response
-      const uploadedDocumentId =
-        data.id ||
-        data.documentId ||
-        data.document_id ||
-        data.data?.id ||
-        data.data?.documentId ||
-        data.data?.document_id ||
-        data.meta?.document_id ||
-        data.meta?.documentId;
-      if (uploadedDocumentId) {
-        setUploadedFile((prev) => ({ ...(prev || {}), documentId: uploadedDocumentId }));
-      }
-
-      let slidesData = null;
-      if (data) {
-        if (Array.isArray(data.data)) {
-          // Store raw array of slide objects
-          slidesData = data.data;
-        } else if (data.slide) {
-          slidesData = data.slide;
-        } else if (data.data && data.data.slide) {
-          slidesData = data.data.slide;
-        } else if (data.slides) {
-          slidesData = data.slides;
-        } else if (data.data && data.data.slides) {
-          slidesData = data.data.slides;
-        }
-      }
-
-      if (slidesData) {
-        // Change the cue card with the response data
-        const slidesArray = Array.isArray(slidesData)
-          ? slidesData
-          : [slidesData];
+      if (slides) {
+        const slidesArray = Array.isArray(slides) ? slides : [slides];
         setCueCards(slidesArray);
-        setActiveSlideIndex(0); // Reset index on new upload
+        setActiveSlideIndex(0);
         setCueCardStatus("ready");
       } else {
         console.error(
           "Missing expected slides data in response. Response payload:",
-          data,
+          res.data,
         );
         throw new Error("Invalid response structure from server");
       }
     } catch (error) {
-      console.error("Error uploading presentation:", error);
-      setUploadError(error.message || "Failed to generate speaking notes.");
+      // Distinguish network errors from Axios error responses
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to generate speaking notes.";
+
+      console.error("Error uploading presentation:", {
+        message,
+        status: error.response?.status,
+        data: error.response?.data,
+        stack: error.stack,
+      });
+
+      setUploadError(message);
       setCueCardStatus("error");
     }
   };
@@ -336,66 +352,39 @@ export default function PresentationSetupPage() {
         ? (Number(fileSize) / (1024 * 1024)).toFixed(2) + " MB"
         : "?";
 
-    setUploadedFile({ name: fileName, pages: pages, size: sizeFormatted, documentId: doc.id || doc._id });
+    setUploadedFile({
+      name: fileName,
+      pages: pages,
+      size: sizeFormatted,
+      document_id: doc.id || doc._id,
+    });
     setRawFile(null);
     setUploadError("");
     setCueCardStatus("loading");
 
     try {
-      const token = localStorage.getItem("auth-token");
       const formData = new FormData();
-      formData.append("documentId", doc.id || doc._id);
+      formData.append("document_id", doc.id || doc._id);
+      if (doc.pageCount != null) formData.append("pageCount", String(doc.pageCount));
+      if (doc.fileSize != null) formData.append("fileSize", String(doc.fileSize));
+      if (doc.fileType) formData.append("fileType", doc.fileType);
 
-      const res = await fetch(
-        "https://pitcho-be.vercel.app/api/presentation/upload",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        },
-      );
+      // Use Axios instead of raw fetch for consistency
+      const res = await api.post("/presentation/upload", formData);
 
-      if (!res.ok) {
-        throw new Error(`Failed to upload: ${res.statusText}`);
+      console.log("Library re-process response:", res.data);
+
+      const { documentId, slides } = parseUploadResponse(res.data);
+
+      if (documentId) {
+        setUploadedFile((prev) => ({
+          ...(prev || {}),
+          document_id: documentId,
+        }));
       }
 
-      const data = await res.json();
-
-      const uploadedDocumentId =
-        data.id ||
-        data.documentId ||
-        data.document_id ||
-        data.data?.id ||
-        data.data?.documentId ||
-        data.data?.document_id ||
-        data.meta?.document_id ||
-        data.meta?.documentId;
-
-      if (uploadedDocumentId) {
-        setUploadedFile((prev) => ({ ...(prev || {}), documentId: uploadedDocumentId }));
-      }
-
-      let slidesData = null;
-      if (data) {
-        if (Array.isArray(data.data)) {
-          slidesData = data.data;
-        } else if (data.slide) {
-          slidesData = data.slide;
-        } else if (data.data && data.data.slide) {
-          slidesData = data.data.slide;
-        } else if (data.slides) {
-          slidesData = data.slides;
-        } else if (data.data && data.data.slides) {
-          slidesData = data.data.slides;
-        }
-      }
-
-      if (slidesData) {
-        const slidesArray = Array.isArray(slidesData)
-          ? slidesData
-          : [slidesData];
+      if (slides) {
+        const slidesArray = Array.isArray(slides) ? slides : [slides];
         setCueCards(slidesArray);
         setActiveSlideIndex(0);
         setCueCardStatus("ready");
@@ -403,8 +392,19 @@ export default function PresentationSetupPage() {
         throw new Error("Invalid response structure from server");
       }
     } catch (error) {
-      console.error("Error processing library document:", error);
-      setUploadError(error.message || "Failed to generate speaking notes.");
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to generate speaking notes.";
+
+      console.error("Error processing library document:", {
+        message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+
+      setUploadError(message);
       setCueCardStatus("error");
     }
   };

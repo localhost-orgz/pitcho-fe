@@ -296,8 +296,13 @@ export default function InterviewSetupPage() {
       const formData = new FormData();
       if (rawFile) {
         formData.append("file", rawFile);
+        formData.append("fileType", rawFile.type);
+        formData.append("pageCount", String(uploadedFile?.pages ?? 1));
+        formData.append("fileSize", String(rawFile.size));
       } else if (libraryDocId) {
         formData.append("documentId", libraryDocId);
+        if (uploadedFile?.pages != null) formData.append("pageCount", String(uploadedFile.pages));
+        // fileSize from library doc is stored as formatted string, skip raw value
       }
       formData.append("question_type", JSON.stringify(questionTypes));
       formData.append(

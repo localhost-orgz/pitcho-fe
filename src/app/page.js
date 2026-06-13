@@ -358,8 +358,9 @@ function HeroSection() {
         </h1>
 
         <p className="heroDesc text-[1.05rem] text-[#5a7090] leading-[1.7] mb-8 max-w-[620px] mx-auto">
-          Pitcho bantu kamu asah skill ngomong lewat simulasi yang kerasa nyata,
-          plus feedback dari AI yang beneran bikin kamu makin luwes.
+          Pitcho menciptakan lingkungan latihan yang terasa seperti situasi
+          sesungguhnya, wawancara, presentasi, pitching ide, dengan coach AI
+          yang memberi feedback spesifik dan actionable.
         </p>
 
         <div className="heroBtns flex gap-3.5 flex-wrap mb-10 justify-center">
