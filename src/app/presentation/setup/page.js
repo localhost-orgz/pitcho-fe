@@ -232,7 +232,7 @@ export default function PresentationSetupPage() {
       formData.append("file", file, file.name);
       formData.append("fileType", file.type);
       formData.append("pageCount", String(pages));
-      formData.append("fileSize", String(file.size));
+      formData.append("fileSize", file.size);
 
       // `api` is an Axios instance — res.data is already parsed JSON;
       // .ok and .json() do not exist on Axios responses.
@@ -365,8 +365,10 @@ export default function PresentationSetupPage() {
     try {
       const formData = new FormData();
       formData.append("document_id", doc.id || doc._id);
-      if (doc.pageCount != null) formData.append("pageCount", String(doc.pageCount));
-      if (doc.fileSize != null) formData.append("fileSize", String(doc.fileSize));
+      if (doc.pageCount != null)
+        formData.append("pageCount", String(doc.pageCount));
+      if (doc.fileSize != null)
+        formData.append("fileSize", String(doc.fileSize));
       if (doc.fileType) formData.append("fileType", doc.fileType);
 
       // Use Axios instead of raw fetch for consistency
