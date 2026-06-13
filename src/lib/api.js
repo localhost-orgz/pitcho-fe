@@ -143,8 +143,8 @@ export async function fetchHistory({ limit } = {}) {
 }
 
 const api = axios.create({
-  // baseUrl: "https://pitcho-be.vercel.app/api",
-  baseURL: "http://localhost:3000/api",
+  baseURL: "https://pitcho-be.vercel.app/api",
+  // baseURL: "http://localhost:3000/api",
   headers: {
     "Content-Type": "application/json",
   },
