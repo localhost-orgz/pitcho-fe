@@ -380,7 +380,7 @@ function HeroSection() {
     </section>
   );
 }
-
+// hai
 // ── Pain Points Section ─────────────────────────────────────────────────────
 const painPoints = [
   {
