@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { getSessionVideo, getSessionClips } from "@/utils/videoStorage";
-import { saveSession } from "@/lib/api";
+import { saveSession, uploadClip } from "@/lib/api";
 
 // ── Tabs ────────────────────────────────────────────────────
 const TABS = [
@@ -657,6 +657,36 @@ export default function InterviewResultPage() {
           });
         });
 
+        // Upload distraction clips to get video_urls
+        const distractionClips = [];
+        try {
+          const storedClips = await getSessionClips();
+          for (const clip of storedClips) {
+            try {
+              const ts = Math.round(clip.timestamp || 0);
+              const dur = Math.round(clip.duration || 0);
+              const uploadResult = await uploadClip(clip.blob, {
+                type: clip.type || "Look Away",
+                timestamp: ts,
+                duration: dur,
+              });
+
+              if (uploadResult?.video_url) {
+                distractionClips.push({
+                  video_url: uploadResult.video_url,
+                  type: clip.type || "Look Away",
+                  timestamp: ts,
+                  duration: dur,
+                });
+              }
+            } catch (clipErr) {
+              console.warn("Clip upload failed:", clipErr);
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load clips for upload:", e);
+        }
+
         // Build interview_details from qaAnalysis
         const interviewDetails = qaAnalysis.map((qa, i) => {
           const qData = perQuestionData[i] || {};
@@ -708,6 +738,7 @@ export default function InterviewResultPage() {
           filler_incidents: allFillerIncidents,
           word_findings: allWordFindings,
           interview_details: interviewDetails,
+          distraction_clips: distractionClips,
         };
 
         await saveSession(payload);

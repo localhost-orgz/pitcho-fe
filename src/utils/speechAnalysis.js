@@ -1,86 +1,151 @@
 // ── Upload recorded audio for speech analysis ───────────────
 
+import { Muxer, ArrayBufferTarget } from "mp4-muxer";
+
 const SPEECH_ANALYSIS_URL = "https://pitcho-be.vercel.app/api/speech/analyze";
+const TARGET_SAMPLE_RATE = 16000; // 16 kHz — optimal for speech analysis
 
 /**
- * Convert WebM/Opus audio blob to WAV format using Web Audio API.
- * WAV is universally supported by speech-to-text backends.
+ * Convert WebM/Opus audio blob → M4A (AAC in MP4 container) via WebCodecs.
+ * Falls back to original WebM if WebCodecs is unavailable.
  * @param {Blob} webmBlob
- * @returns {Promise<Blob>} WAV audio blob
+ * @returns {Promise<{ blob: Blob, filename: string }>}
  */
-async function convertToWav(webmBlob) {
+async function convertToM4a(webmBlob) {
+  // Decode WebM/Opus → AudioBuffer
   const arrayBuffer = await webmBlob.arrayBuffer();
   const audioContext = new AudioContext();
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
   const numChannels = audioBuffer.numberOfChannels;
-  const sampleRate = audioBuffer.sampleRate;
+  const originalSampleRate = audioBuffer.sampleRate;
   const length = audioBuffer.length;
 
-  // Build WAV file: 44-byte header + PCM data
-  const buffer = new ArrayBuffer(44 + length * numChannels * 2);
-  const view = new DataView(buffer);
-
-  // RIFF header
-  writeString(view, 0, "RIFF");
-  view.setUint32(4, 36 + length * numChannels * 2, true);
-  writeString(view, 8, "WAVE");
-
-  // fmt chunk
-  writeString(view, 12, "fmt ");
-  view.setUint32(16, 16, true); // chunk size
-  view.setUint16(20, 1, true); // PCM format
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * numChannels * 2, true); // byte rate
-  view.setUint16(32, numChannels * 2, true); // block align
-  view.setUint16(34, 16, true); // bits per sample
-
-  // data chunk
-  writeString(view, 36, "data");
-  view.setUint32(40, length * numChannels * 2, true);
-
-  // Write interleaved PCM samples
-  let offset = 44;
-  for (let i = 0; i < length; i++) {
-    for (let ch = 0; ch < numChannels; ch++) {
-      const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(ch)[i]));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-      offset += 2;
-    }
-  }
-
+  // Resample to 16 kHz mono via OfflineAudioContext
+  const outputFrames = Math.ceil(length * (TARGET_SAMPLE_RATE / originalSampleRate));
+  const offlineCtx = new OfflineAudioContext(1, outputFrames, TARGET_SAMPLE_RATE);
+  const source = offlineCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(offlineCtx.destination);
+  source.start(0);
   audioContext.close();
-  return new Blob([buffer], { type: "audio/wav" });
-}
 
-function writeString(view, offset, str) {
-  for (let i = 0; i < str.length; i++) {
-    view.setUint8(offset + i, str.charCodeAt(i));
-  }
+  const resampledBuffer = await offlineCtx.startRendering();
+  const pcmData = resampledBuffer.getChannelData(0); // Float32Array, mono
+
+  // Encode PCM → AAC via WebCodecs AudioEncoder, mux into MP4
+  return new Promise((resolve, reject) => {
+    if (typeof AudioEncoder === "undefined") {
+      // WebCodecs not available — fall back to original WebM
+      resolve(null);
+      return;
+    }
+
+    const muxer = new Muxer({
+      target: new ArrayBufferTarget(),
+      audio: {
+        codec: "aac",
+        numberOfChannels: 1,
+        sampleRate: TARGET_SAMPLE_RATE,
+      },
+      fastStart: "in-memory",
+    });
+
+    const encoder = new AudioEncoder({
+      output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+      error: (e) => {
+        encoder.close();
+        resolve(null); // Fallback
+      },
+    });
+
+    encoder.configure({
+      codec: "mp4a.40.2", // AAC-LC
+      numberOfChannels: 1,
+      sampleRate: TARGET_SAMPLE_RATE,
+      bitrate: 64000, // 64 kbps — great for speech
+    });
+
+    // Feed PCM as AudioData frames (1024 samples per frame is standard for AAC)
+    const frameSize = 1024;
+    let offset = 0;
+    let timestamp = 0;
+
+    while (offset < pcmData.length) {
+      const frame = pcmData.slice(offset, offset + frameSize);
+      // Pad last frame with silence if needed
+      if (frame.length < frameSize) {
+        const padded = new Float32Array(frameSize);
+        padded.set(frame);
+        const audioData = new AudioData({
+          format: "f32-planar",
+          sampleRate: TARGET_SAMPLE_RATE,
+          numberOfFrames: frameSize,
+          numberOfChannels: 1,
+          timestamp: timestamp,
+          data: padded,
+        });
+        encoder.encode(audioData);
+        audioData.close();
+      } else {
+        const audioData = new AudioData({
+          format: "f32-planar",
+          sampleRate: TARGET_SAMPLE_RATE,
+          numberOfFrames: frameSize,
+          numberOfChannels: 1,
+          timestamp: timestamp,
+          data: frame,
+        });
+        encoder.encode(audioData);
+        audioData.close();
+      }
+      offset += frameSize;
+      timestamp += Math.round((frameSize / TARGET_SAMPLE_RATE) * 1_000_000); // microseconds
+    }
+
+    encoder.flush().then(() => {
+      muxer.finalize();
+      encoder.close();
+      const blob = new Blob([muxer.target.buffer], { type: "audio/mp4" });
+      resolve({ blob, filename: "recording.m4a" });
+    }).catch(() => {
+      encoder.close();
+      resolve(null); // Fallback
+    });
+  });
 }
 
 /**
  * Sends the recorded audio blob to the speech analysis API.
- * Converts WebM to WAV before uploading.
+ * Converts WebM → M4A (AAC) before uploading for minimal file size.
+ * Falls back to original WebM blob if conversion fails or WebCodecs unavailable.
  * @param {Blob|null} audioBlob - WebM audio blob from MediaRecorder
  * @returns {Promise<Object|null>} Parsed JSON response or null if no blob provided
  */
 export async function analyzeSpeech(audioBlob) {
   if (!audioBlob || audioBlob.size === 0) return null;
 
-  // Convert WebM → WAV (no external deps, reliable format)
-  let wavBlob;
+  // Try converting to M4A (AAC) — drastically smaller than WAV
+  let uploadBlob;
+  let filename;
   try {
-    wavBlob = await convertToWav(audioBlob);
+    const result = await convertToM4a(audioBlob);
+    if (result) {
+      uploadBlob = result.blob;
+      filename = result.filename;
+    }
   } catch (convErr) {
-    console.error("Failed to convert audio to WAV:", convErr);
-    // Fallback: try sending the original webm blob
-    wavBlob = audioBlob;
+    console.error("Failed to convert audio to M4A:", convErr);
+  }
+
+  // Fallback: send original WebM/Opus blob if M4A conversion failed
+  if (!uploadBlob) {
+    uploadBlob = audioBlob;
+    filename = "recording.webm";
   }
 
   const formData = new FormData();
-  formData.append("file", wavBlob, "recording.wav");
+  formData.append("file", uploadBlob, filename);
 
   const res = await fetch(SPEECH_ANALYSIS_URL, {
     method: "POST",

@@ -70,7 +70,7 @@ export async function fetchDocumentLibrary() {
  */
 export async function uploadClip(
   clipBlob,
-  { type, timestamp_start, timestamp_end, duration } = {},
+  { type, timestamp, duration } = {},
 ) {
   if (!clipBlob || clipBlob.size === 0) return null;
 
@@ -79,12 +79,10 @@ export async function uploadClip(
   if (!token) return null;
 
   const formData = new FormData();
-  formData.append("file", clipBlob, `clip-${timestamp_start ?? 0}.webm`);
+  formData.append("video", clipBlob, `clip-${timestamp ?? 0}.webm`);
   if (type != null) formData.append("type", String(type));
-  if (timestamp_start != null)
-    formData.append("timestamp_start", String(timestamp_start));
-  if (timestamp_end != null)
-    formData.append("timestamp_end", String(timestamp_end));
+  if (timestamp != null)
+    formData.append("timestamp", String(timestamp));
   if (duration != null) formData.append("duration", String(duration));
 
   try {

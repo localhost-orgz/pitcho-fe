@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/UI/button";
 import { getSessionVideo, clearSessionVideo, getSessionClips } from "@/utils/videoStorage";
 import { calculateSessionScore } from "@/utils/scoring";
+import { uploadClip, saveSession } from "@/lib/api";
 
 // ── Static demo data ────────────────────────────────────────
 const METRICS = [
@@ -864,6 +865,123 @@ export default function PresentationResultPage() {
     useSessionData();
   const [activeClipIndex, setActiveClipIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState("eye"); // 'eye' | 'tempo' | 'filler' | 'wordiness'
+
+  // ── Upload clips and save session to backend ───────────────
+  const hasPostedRef = useRef(false);
+
+  useEffect(() => {
+    if (loading || !sessionData || hasPostedRef.current) return;
+    hasPostedRef.current = true;
+
+    async function uploadAndSave() {
+      try {
+        // Load raw clips from IndexedDB (with blobs for upload)
+        const storedClips = await getSessionClips();
+        const distractionClips = [];
+
+        if (storedClips.length > 0) {
+          for (const clip of storedClips) {
+            try {
+              const ts = Math.round(clip.timestamp || 0);
+              const dur = Math.round(clip.duration || 0);
+              const uploadResult = await uploadClip(clip.blob, {
+                type: clip.type || "Look Away",
+                timestamp: ts,
+                duration: dur,
+              });
+
+              if (uploadResult?.video_url) {
+                distractionClips.push({
+                  video_url: uploadResult.video_url,
+                  type: clip.type || "Look Away",
+                  timestamp: ts,
+                  duration: dur,
+                });
+              }
+            } catch (clipErr) {
+              console.warn("Clip upload failed:", clipErr);
+            }
+          }
+        }
+
+        // Load session config from localStorage
+        const storedFile = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("pitcho_presentation_file") || "null");
+          } catch {
+            return null;
+          }
+        })();
+        const storedDistraction = localStorage.getItem("pitcho_selected_distraction") || "medium";
+        const storedAudience = localStorage.getItem("pitcho_selected_audience") || "classroom";
+        const storedDuration = localStorage.getItem("pitcho_selected_duration") || "1";
+        const storedAnalysis = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("pitcho_speech_analysis") || "null");
+          } catch {
+            return null;
+          }
+        })();
+
+        const documentId = storedFile?.document_id || "00000000-0000-0000-0000-000000000000";
+        const name = storedFile?.name || "Untitled";
+        const analysis = storedAnalysis?.analysis || {};
+
+        const fillerIncidents =
+          analysis.filler_words?.incidents?.map((item) => ({
+            word: item.word,
+            context_text: item.context_text,
+          })) || [];
+
+        const wordFindings =
+          analysis.word_efficiency?.findings?.map((item) => ({
+            issue_type: item.issue_type,
+            original_phrase: item.original_phrase,
+            recommended_phrase: item.recommended_phrase,
+            transcript_context: item.transcript_context,
+            coach_tip: item.coach_tip,
+          })) || [];
+
+        const scoreResult = calculateSessionScore(
+          {
+            sessionDuration: sessionData.sessionDuration || 0,
+            totalWordCount: sessionData.totalWordCount || 0,
+            averageWpm: sessionData.averageWpm || 0,
+            totalDistractedTime: sessionData.totalDistractedTime || 0,
+          },
+          storedAnalysis,
+        );
+
+        const payload = {
+          practice_type: "PRESENTATION",
+          document_id: documentId,
+          name,
+          distraction_intensity:
+            storedDistraction.charAt(0).toUpperCase() + storedDistraction.slice(1),
+          audience_type:
+            storedAudience.charAt(0).toUpperCase() + storedAudience.slice(1),
+          session_length: parseInt(storedDuration, 10) || 1,
+          transcript: analysis.transcript || sessionData.transcript || "",
+          distract_count: sessionData.lookAwayCount || 0,
+          total_distract_duration: Math.round(sessionData.totalDistractedTime || 0),
+          total_duration: Math.round(sessionData.sessionDuration || 0),
+          wpm: Math.round(sessionData.averageWpm || 0),
+          efficiency_score: scoreResult.breakdown.efficiency,
+          overall_score: scoreResult.overallScore,
+          filler_incidents: fillerIncidents,
+          word_findings: wordFindings,
+          interview_details: [],
+          distraction_clips: distractionClips,
+        };
+
+        await saveSession(payload);
+      } catch (err) {
+        console.warn("Failed to save presentation session to history:", err);
+      }
+    }
+
+    uploadAndSave();
+  }, [loading, sessionData]);
 
   // ── Derived analysis data ──────────────────────────────────
   const hasAnalysis = !!analysisData?.analysis;

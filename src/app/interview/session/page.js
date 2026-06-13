@@ -636,6 +636,8 @@ export default function InterviewSessionPage() {
 
   // ── End session ───────────────────────────────────────────
   const handleEndSession = useCallback(async () => {
+    setSessionRunning(false); // Stop the timer immediately
+
     // Wait for any pending analysis
     if (pendingAnalysisRef.current) {
       await pendingAnalysisRef.current;

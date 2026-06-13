@@ -26,15 +26,14 @@ import {
   ScanFace,
   Crosshair,
   FileText,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useSpeechTracker } from "@/hooks/useSpeechTracker";
-import { saveSessionVideo, clearSessionVideo, saveSessionClips } from "@/utils/videoStorage";
+import { saveSessionVideo, saveSessionClips } from "@/utils/videoStorage";
 import { analyzeSpeech } from "@/utils/speechAnalysis";
 import { extractClip } from "@/utils/clipExtractor";
-import { uploadClip, saveSession } from "@/lib/api";
-import { calculateSessionScore } from "@/utils/scoring";
 import { useVideoController } from "@/hooks/useVideoController";
 import { useDistractionSchedule } from "@/hooks/useDistractionSchedule";
 import { useDistractionEngine } from "@/hooks/useDistractionEngine";
@@ -498,6 +497,7 @@ export default function PresentationSessionPage() {
   const handleEndSession = useCallback(async () => {
     if (isEnding) return;
     setIsEnding(true);
+    setSessionRunning(false); // Stop the timer immediately
     try {
       // 0. Stop classroom video
       videoController.stopVideo();
@@ -596,125 +596,7 @@ export default function PresentationSessionPage() {
       };
       localStorage.setItem("pitcho_session_data", JSON.stringify(sessionData));
 
-      // 6. Save session to backend (non-blocking — failures don't stop navigation)
-      try {
-        // ── Load session config from localStorage ──────────
-        const storedFile = (() => {
-          try {
-            return JSON.parse(localStorage.getItem("pitcho_presentation_file") || "null");
-          } catch {
-            return null;
-          }
-        })();
-        const storedDistraction = localStorage.getItem("pitcho_selected_distraction") || "medium";
-        const storedAudience = localStorage.getItem("pitcho_selected_audience") || "classroom";
-        const storedDuration = localStorage.getItem("pitcho_selected_duration") || "1";
-        const storedAnalysis = (() => {
-          try {
-            return JSON.parse(localStorage.getItem("pitcho_speech_analysis") || "null");
-          } catch {
-            return null;
-          }
-        })();
-
-        const documentId = storedFile?.documentId || "00000000-0000-0000-0000-000000000000";
-        const name = storedFile?.name || "Untitled";
-
-        // Map distraction / audience to title case
-        const distractionIntensity =
-          storedDistraction.charAt(0).toUpperCase() + storedDistraction.slice(1);
-        const audienceType =
-          storedAudience.charAt(0).toUpperCase() + storedAudience.slice(1);
-        const sessionLength = parseInt(storedDuration, 10) || 1;
-
-        // ── Upload distraction clips (reuse pre-extracted blobs) ──
-        const distractionClips = [];
-        for (const clip of localClips) {
-          try {
-            const clipStart = Math.max(0, clip.timestamp - 3);
-            const clipEnd = clipStart + 6;
-            const clipDuration = 6;
-
-            const uploadResult = await uploadClip(clip.blob, {
-              type: clip.type,
-              timestamp_start: Math.round(clipStart),
-              timestamp_end: Math.round(clipEnd),
-              duration: clipDuration,
-            });
-
-            if (uploadResult?.video_url) {
-              distractionClips.push({
-                video_url: uploadResult.video_url,
-                type: clip.type,
-                timestamp_start: Math.round(clipStart),
-                timestamp_end: Math.round(clipEnd),
-                duration: clipDuration,
-              });
-            }
-          } catch (clipErr) {
-            console.warn("Clip upload failed for event:", clip.id, clipErr);
-          }
-        }
-
-        // ── Map speech analysis data ──────────────────────
-        const analysis = storedAnalysis?.analysis || {};
-
-        const fillerIncidents =
-          analysis.filler_words?.incidents?.map((item) => ({
-            word: item.word,
-            context_text: item.context_text,
-          })) || [];
-
-        const wordFindings =
-          analysis.word_efficiency?.findings?.map((item) => ({
-            issue_type: item.issue_type,
-            original_phrase: item.original_phrase,
-            recommended_phrase: item.recommended_phrase,
-            transcript_context: item.transcript_context,
-            coach_tip: item.coach_tip,
-          })) || [];
-
-        // Prefer transcript from analysis, fall back to speech tracker
-        const transcript =
-          analysis.transcript || speechData?.transcript || "";
-
-        // ── Calculate scores ──────────────────────────────
-        const scoreInput = {
-          sessionDuration: totalSessionTime,
-          totalWordCount: speechData?.totalWordCount || 0,
-          averageWpm: computedWpm,
-          totalDistractedTime,
-        };
-        const analysisInput = storedAnalysis;
-        const scoreResult = calculateSessionScore(scoreInput, analysisInput);
-
-        // ── Build payload and POST to /api/history ────────
-        const payload = {
-          practice_type: "PRESENTATION",
-          document_id: documentId,
-          name,
-          distraction_intensity: distractionIntensity,
-          audience_type: audienceType,
-          session_length: sessionLength,
-          transcript,
-          distract_count: lookAwayCount,
-          total_distract_duration: Math.round(totalDistractedTime),
-          total_duration: Math.round(totalSessionTime),
-          wpm: Math.round(computedWpm),
-          efficiency_score: scoreResult.breakdown.efficiency,
-          overall_score: scoreResult.overallScore,
-          filler_incidents: fillerIncidents,
-          word_findings: wordFindings,
-          interview_details: [],
-          distraction_clips: distractionClips,
-        };
-
-        await saveSession(payload);
-      } catch (saveErr) {
-        console.warn("Failed to save session to backend:", saveErr);
-      }
-
-      // 7. Navigate to result page
+      // 6. Navigate to result page (backend save happens there after clip upload)
       router.push("/presentation/result");
     } catch (err) {
       console.error("Failed to end session:", err);
@@ -1279,6 +1161,34 @@ export default function PresentationSessionPage() {
           </div>
         </div>
       </div>
+
+      {/* Ending overlay */}
+      {isEnding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+            <Loader2 size={40} className="text-main animate-spin" />
+            <p className="text-sm font-bold text-slate-700 text-center">
+              {clipProgress
+                ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
+                : "Analyzing your presentation performance…"}
+            </p>
+            {clipProgress ? (
+              <div className="w-full bg-slate-200 rounded-full h-2.5">
+                <div
+                  className="bg-main h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${(clipProgress.current / clipProgress.total) * 100}%` }}
+                />
+              </div>
+            ) : (
+              <div className="w-full space-y-2">
+                <div className="h-2 bg-slate-100 rounded animate-pulse" />
+                <div className="h-2 bg-slate-100 rounded animate-pulse w-4/5" />
+                <div className="h-2 bg-slate-100 rounded animate-pulse w-3/5" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
