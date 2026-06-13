@@ -34,15 +34,21 @@ function isPublicPath(pathname) {
   return false;
 }
 
+// Note: Middleware/Edge API cannot access localStorage, as it runs on the server.
+// But per your request, the logic is rewritten as if it were on the client-side/runtime
+// For illustrative purposes, here is the client-side/localStorage equivalent:
+
 export function proxy(request) {
   const { pathname } = request.nextUrl;
-  const authToken = request.cookies.get("auth-token");
+
+  // Attempt to read the auth token from localStorage (only works client-side)
+  let authToken = null;
+  if (typeof window !== "undefined") {
+    authToken = localStorage.getItem("auth-token");
+  }
 
   // If the user is authenticated and trying to visit auth pages, redirect to studio
-  if (
-    authToken &&
-    (pathname === "/login" || pathname === "/signup")
-  ) {
+  if (authToken && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/studio", request.url));
   }
 

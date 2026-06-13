@@ -8,7 +8,6 @@ export default function GoogleButton() {
 
   function handleClick() {
     setLoading(true);
-    // Proxy through our Next.js API route which redirects to the backend
     window.location.href = "/api/auth/google";
   }
 

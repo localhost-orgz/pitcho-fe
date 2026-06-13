@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Mic,
   Trophy,
@@ -13,6 +13,7 @@ import {
   MonitorPlay,
   ChevronDown,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Custom Inline SVG Icon only (extracted from logo-text-transparent.svg path)
 const PitchoIcon = () => (
@@ -49,6 +50,10 @@ const SidebarItem = ({ label, href, icon: Icon, active }) => {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const { logout, user } = useAuth();
+
   const isPracticeActive =
     pathname.startsWith("/interview") || pathname.startsWith("/presentation");
   const [practiceOpen, setPracticeOpen] = useState(isPracticeActive);
@@ -60,6 +65,11 @@ export default function Sidebar() {
       setPracticeOpen(true);
     }
   }
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
 
   // Match active state for Pitcho routing mapping
   const getActiveState = (href) => {
@@ -210,7 +220,7 @@ export default function Sidebar() {
             />
             <div className="hidden lg:flex flex-col select-text">
               <span className="text-sm font-extrabold text-slate-850 leading-tight">
-                Faza Mumtaz
+                {user.name}
               </span>
               {/* <span className="text-xs font-bold text-slate-400">Level 12</span> */}
             </div>
@@ -228,15 +238,16 @@ export default function Sidebar() {
         </div>
 
         {/* Log Out button */}
-        <Link
-          href="/"
+        <button
+          type="button"
+          onClick={handleLogout}
           className="flex items-center lg:justify-start justify-center h-[44px] w-full lg:px-3 text-slate-500 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all font-bold"
         >
           <LogOut className="size-[22px] shrink-0" />
           <span className="hidden lg:inline text-sm font-bold tracking-wide ml-3">
             Log out
           </span>
-        </Link>
+        </button>
       </div>
     </div>
   );

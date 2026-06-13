@@ -8,6 +8,7 @@ import AuthCard from "@/components/Auth/AuthCard";
 import PasswordInput from "@/components/Auth/PasswordInput";
 import GoogleButton from "@/components/Auth/GoogleButton";
 import { Button } from "@/components/UI/button";
+import api from "@/lib/api";
 
 // ── Password Strength Checker ──────────────────────────────────
 function getPasswordStrength(password) {
@@ -30,9 +31,7 @@ function Requirement({ met, label }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors ${
-        met
-          ? "bg-green-100 text-green-700"
-          : "bg-slate-100 text-slate-400"
+        met ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400"
       }`}
     >
       {met ? <Check size={10} /> : <X size={10} />}
@@ -66,7 +65,8 @@ export default function SignupPage() {
     }
     if (name === "email") {
       if (!value.trim()) return "Email is required";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Enter a valid email";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+        return "Enter a valid email";
       return "";
     }
     if (name === "password") {
@@ -87,9 +87,17 @@ export default function SignupPage() {
     next.name = validateField("name", form.name);
     next.email = validateField("email", form.email);
     next.password = validateField("password", form.password);
-    next.confirmPassword = validateField("confirmPassword", form.confirmPassword);
+    next.confirmPassword = validateField(
+      "confirmPassword",
+      form.confirmPassword,
+    );
     setErrors(next);
-    setTouched({ name: true, email: true, password: true, confirmPassword: true });
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+    });
     return !next.name && !next.email && !next.password && !next.confirmPassword;
   }
 
@@ -99,8 +107,13 @@ export default function SignupPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
 
     // Live confirm-password re-check when password changes
-    if (name === "password" && touched.confirmPassword && form.confirmPassword) {
-      const matchErr = value !== form.confirmPassword ? "Passwords don't match" : "";
+    if (
+      name === "password" &&
+      touched.confirmPassword &&
+      form.confirmPassword
+    ) {
+      const matchErr =
+        value !== form.confirmPassword ? "Passwords don't match" : "";
       setErrors((prev) => ({ ...prev, confirmPassword: matchErr }));
     }
 
@@ -119,7 +132,8 @@ export default function SignupPage() {
 
     // Also check confirm match on blur
     if (name === "password" && form.confirmPassword) {
-      const matchErr = value !== form.confirmPassword ? "Passwords don't match" : "";
+      const matchErr =
+        value !== form.confirmPassword ? "Passwords don't match" : "";
       setErrors((prev) => ({ ...prev, confirmPassword: matchErr }));
     }
   }
@@ -132,35 +146,16 @@ export default function SignupPage() {
     setServerError("");
 
     try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          email: form.email.trim(),
-          password: form.password,
-          confirmPassword: form.confirmPassword,
-        }),
+      const res = await api.post("/auth/signup", {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        confirmPassword: form.confirmPassword,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setStatus("error");
-        setServerError(data.error || "Signup failed. Please try again.");
-        return;
-      }
-
-      // Store token
-      if (data.token) {
-        localStorage.setItem("auth-token", data.token);
-      }
-      if (data.user) {
-        localStorage.setItem("auth-user", JSON.stringify(data.user));
-      }
+      const data = res.data;
 
       setStatus("success");
-      router.push("/login");
+      router.push("/login?register-success=true");
     } catch {
       setStatus("error");
       setServerError("Something went wrong. Please try again.");
@@ -170,7 +165,10 @@ export default function SignupPage() {
   const isLoading = status === "loading";
 
   return (
-    <AuthCard title="Create your account" subtitle="Start practicing with Pitcho today">
+    <AuthCard
+      title="Create your account"
+      subtitle="Start practicing with Pitcho today"
+    >
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         {/* Server error */}
         {serverError && (
@@ -197,7 +195,9 @@ export default function SignupPage() {
               <User
                 size={18}
                 className={
-                  touched.name && errors.name ? "text-red-400" : "text-slate-400"
+                  touched.name && errors.name
+                    ? "text-red-400"
+                    : "text-slate-400"
                 }
               />
             </div>
@@ -326,15 +326,15 @@ export default function SignupPage() {
 
               {/* Requirements */}
               <div className="flex flex-wrap gap-1.5">
-                <Requirement
-                  met={form.password.length >= 6}
-                  label="6+ chars"
-                />
+                <Requirement met={form.password.length >= 6} label="6+ chars" />
                 <Requirement
                   met={form.password.length >= 10}
                   label="10+ chars"
                 />
-                <Requirement met={/[A-Z]/.test(form.password)} label="Uppercase" />
+                <Requirement
+                  met={/[A-Z]/.test(form.password)}
+                  label="Uppercase"
+                />
                 <Requirement met={/[0-9]/.test(form.password)} label="Number" />
                 <Requirement
                   met={/[^A-Za-z0-9]/.test(form.password)}
@@ -415,10 +415,7 @@ export default function SignupPage() {
       {/* Footer link */}
       <p className="mt-6 text-center text-sm text-slate-500">
         Already have an account?{" "}
-        <Link
-          href="/login"
-          className="font-bold text-main hover:underline"
-        >
+        <Link href="/login" className="font-bold text-main hover:underline">
           Sign in
         </Link>
       </p>

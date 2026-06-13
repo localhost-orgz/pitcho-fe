@@ -1,44 +1,61 @@
 "use client";
 
-import { createContext, useState, useEffect, useCallback, useMemo } from "react";
+import api from "@/lib/api";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export const AuthContext = createContext(null);
 
-const AUTH_TOKEN_KEY = "auth-token";
-const AUTH_USER_KEY = "auth-user";
-
-export function AuthProvider({ children }) {
+export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On mount, restore auth state from localStorage
   useEffect(() => {
-    try {
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      const userJson = localStorage.getItem(AUTH_USER_KEY);
+    async function initAuth() {
+      const existingToken = localStorage.getItem("auth-token");
+      const savedUser = localStorage.getItem("auth-user");
 
-      if (token && userJson) {
-        const parsedUser = JSON.parse(userJson);
-        setUser(parsedUser);
+      if (!existingToken) {
+        setIsLoading(false);
+        return;
       }
-    } catch {
-      // Corrupted data — clear it
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(AUTH_USER_KEY);
-    } finally {
-      setIsLoading(false);
+
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+
+      try {
+        const res = await api.get("/auth/me");
+        localStorage.setItem("auth-user", JSON.stringify(res.data));
+        setUser(res.data);
+      } catch (error) {
+        console.error("Gagal sinkronisasi sesi:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
+
+    initAuth();
   }, []);
 
-  const login = useCallback((userData, token) => {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
-    setUser(userData);
+  const login = useCallback((data, token) => {
+    localStorage.setItem("auth-token", token);
+    localStorage.setItem("auth-user", JSON.stringify(data));
+    document.cookie = `auth-token-fallback=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    setUser(data);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_USER_KEY);
+    localStorage.removeItem("auth-token");
+    localStorage.removeItem("auth-user");
+    document.cookie =
+      "auth-token-fallback=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     setUser(null);
   }, []);
 
@@ -54,4 +71,8 @@ export function AuthProvider({ children }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
 }

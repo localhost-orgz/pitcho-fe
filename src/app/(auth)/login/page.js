@@ -8,122 +8,168 @@ import AuthCard from "@/components/Auth/AuthCard";
 import PasswordInput from "@/components/Auth/PasswordInput";
 import GoogleButton from "@/components/Auth/GoogleButton";
 import { Button } from "@/components/UI/button";
+import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    remember: false,
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  const [status, setStatus] = useState("idle"); // idle | loading | error | success
   const [serverError, setServerError] = useState("");
 
-  // ── Validation ──────────────────────────────────────────────
-  function validateField(name, value) {
-    if (name === "email") {
-      if (!value.trim()) return "Email is required";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
-        return "Enter a valid email";
-      return "";
-    }
-    if (name === "password") {
-      if (!value) return "Password is required";
-      if (value.length < 6) return "Password must be at least 6 characters";
-      return "";
-    }
-    return "";
-  }
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setErrors({});
+    setServerError("");
 
-  function validateForm() {
-    const next = {};
-    next.email = validateField("email", form.email);
-    next.password = validateField("password", form.password);
-    setErrors(next);
-    setTouched({ email: true, password: true });
-    return !next.email && !next.password;
-  }
+    try {
+      const response = await api.post("/auth/signin", { email, password });
+      const { user, token } = response.data.data;
 
-  // ── Handlers ────────────────────────────────────────────────
-  function handleChange(e) {
-    const { name, value, type, checked } = e.target;
-    const val = type === "checkbox" ? checked : value;
-    setForm((prev) => ({ ...prev, [name]: val }));
-
-    // Clear errors on change
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+      if (token) {
+        login(user, token);
+        router.push("/studio");
+      }
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Unauthorized";
+        setServerError(message);
+      } else {
+        const apiErrors = error?.response?.data?.errors ?? [];
+        const nextErrors = {};
+        for (const err of apiErrors) {
+          if (err.field) {
+            const parts = err.field.split(".");
+            const fieldName = parts[parts.length - 1];
+            nextErrors[fieldName] = err.message;
+          }
+        }
+        setErrors(nextErrors);
+      }
     }
-    if (serverError) setServerError("");
-  }
+  };
+
+  // // ── Validation ──────────────────────────────────────────────
+  // function validateField(name, value) {
+  //   if (name === "email") {
+  //     if (!value.trim()) return "Email is required";
+  //     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+  //       return "Enter a valid email";
+  //     return "";
+  //   }
+  //   if (name === "password") {
+  //     if (!value) return "Password is required";
+  //     if (value.length < 6) return "Password must be at least 6 characters";
+  //     return "";
+  //   }
+  //   return "";
+  // }
+
+  // function validateForm() {
+  //   const next = {};
+  //   next.email = validateField("email", form.email);
+  //   next.password = validateField("password", form.password);
+  //   setErrors(next);
+  //   setTouched({ email: true, password: true });
+  //   return !next.email && !next.password;
+  // }
+
+  // // ── Handlers ────────────────────────────────────────────────
+  // function handleChange(e) {
+  //   const { name, value, type, checked } = e.target;
+  //   const val = type === "checkbox" ? checked : value;
+  //   setForm((prev) => ({ ...prev, [name]: val }));
+
+  //   // Clear errors on change
+  //   if (errors[name]) {
+  //     setErrors((prev) => ({ ...prev, [name]: "" }));
+  //   }
+  //   if (serverError) setServerError("");
+  // }
 
   function handleBlur(e) {
     const { name, value } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
-    const err = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: err }));
+    // const err = validateField(name, value);
+    // setErrors((prev) => ({ ...prev, [name]: err }));
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!validateForm()) return;
+  // async function handleSubmit(e) {
+  //   e.preventDefault();
+  //   if (!validateForm()) return;
 
-    setStatus("loading");
-    setServerError("");
+  //   setStatus("loading");
+  //   setServerError("");
 
-    try {
-      const res = await fetch("/api/auth/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, password: form.password }),
-      });
+  //   try {
+  //     const res = await fetch("/api/auth/signin", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ email: form.email, password: form.password }),
+  //     });
 
-      const data = await res.json();
+  //     const data = await res.json();
 
-      if (!res.ok) {
-        setStatus("error");
-        setServerError(data.error || "Invalid email or password");
-        return;
-      }
+  //     if (!res.ok) {
+  //       setStatus("error");
+  //       setServerError(data.error || "Invalid email or password");
+  //       return;
+  //     }
 
-      const { token, user } = data.data;
-      // Store token for use across the app
-      if (token) {
-        localStorage.setItem("auth-token", token);
-        document.cookie = `auth-token=${token}; path=/`;
-      }
-      if (user) {
-        localStorage.setItem("auth-user", JSON.stringify(user));
-      }
+  //     const { token, user } = data.data;
+  //     // Store token for use across the app
+  //     if (token) {
+  //       localStorage.setItem("auth-token", token);
+  //       document.cookie = `auth-token=${token}; path=/`;
+  //     }
+  //     if (user) {
+  //       localStorage.setItem("auth-user", JSON.stringify(user));
+  //     }
 
-      setStatus("success");
-      router.push("/studio");
-    } catch {
-      setStatus("error");
-      setServerError("Something went wrong. Please try again.");
-    }
-  }
+  //     setStatus("success");
+  //     router.push("/studio");
+  //   } catch {
+  //     setStatus("error");
+  //     setServerError("Something went wrong. Please try again.");
+  //   }
+  // }
 
-  const hasFormError = status === "error";
-  const isLoading = status === "loading";
+  // const hasFormError = status === "error";
+  // const isLoading = status === "loading";
 
   return (
     <AuthCard title="Welcome back" subtitle="Sign in to your Pitcho account">
-      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      <form onSubmit={handleEmailLogin} noValidate className="space-y-5">
         {/* Server error banner */}
         {serverError && (
-          <div
-            className={`flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 ${
-              hasFormError ? "animate-shake" : ""
-            }`}
-          >
+          <div className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             <AlertCircle size={16} className="shrink-0" />
             {serverError}
           </div>
         )}
+        {errors &&
+          typeof errors === "object" &&
+          !Array.isArray(errors) &&
+          Object.values(errors).some(Boolean) && (
+            <div className="flex flex-col gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>There are errors:</span>
+              </div>
+              <ul className="list-disc ml-6 font-normal">
+                {Object.entries(errors).map(
+                  ([key, val]) => val && <li key={key}>{val}</li>,
+                )}
+              </ul>
+            </div>
+          )}
 
         {/* Email */}
         <div>
@@ -137,36 +183,32 @@ export default function LoginPage() {
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
               <Mail
                 size={18}
-                className={
-                  touched.email && errors.email
-                    ? "text-red-400"
-                    : "text-slate-400"
-                }
+                className={touched.email ? "text-red-400" : "text-slate-400"}
               />
             </div>
             <input
               id="email"
               name="email"
               type="email"
-              value={form.email}
-              onChange={handleChange}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               onBlur={handleBlur}
               placeholder="you@example.com"
               autoComplete="email"
               className={`w-full rounded-xl border-2 px-3.5 py-2.5 pl-11 text-sm font-medium text-foreground placeholder:text-slate-400 transition-all duration-200 outline-none
-                ${
-                  touched.email && errors.email
-                    ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-200"
-                    : "border-slate-200 bg-white focus:border-main focus:ring-2 focus:ring-blue-100 hover:border-slate-300"
-                }
               `}
             />
           </div>
-          {touched.email && errors.email && (
+          {/* ${
+            touched.email && errors.email
+              ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+              : "border-slate-200 bg-white focus:border-main focus:ring-2 focus:ring-blue-100 hover:border-slate-300"
+          } */}
+          {/* {touched.email && errors.email && (
             <p className="mt-1.5 text-xs font-medium text-red-500 animate-fade-in">
               {errors.email}
             </p>
-          )}
+          )} */}
         </div>
 
         {/* Password */}
@@ -188,17 +230,17 @@ export default function LoginPage() {
           <PasswordInput
             id="password"
             name="password"
-            value={form.password}
-            onChange={handleChange}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             onBlur={handleBlur}
             placeholder="Enter your password"
-            error={touched.password ? errors.password : ""}
+            // error={touched.password ? errors.password : ""}
             autoComplete="current-password"
           />
         </div>
 
         {/* Remember me */}
-        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+        {/* <label className="flex items-center gap-2.5 cursor-pointer select-none">
           <input
             type="checkbox"
             name="remember"
@@ -222,17 +264,17 @@ export default function LoginPage() {
           <span className="text-sm font-medium text-slate-600">
             Remember me
           </span>
-        </label>
+        </label> */}
 
         {/* Submit */}
         <Button
           type="submit"
           variant="secondary"
           size="default"
-          disabled={isLoading}
+          // disabled={isLoading}
           className="w-full h-12 text-base border-b-[5px] active:border-b-0"
         >
-          {isLoading ? (
+          {false ? (
             <>
               <Loader2 size={18} className="animate-spin" />
               Signing in…

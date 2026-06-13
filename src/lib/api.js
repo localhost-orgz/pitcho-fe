@@ -1,3 +1,4 @@
+import axios from "axios";
 /**
  * Fetch the user's previously uploaded documents from the backend.
  * Returns an array of document objects. Handles both a bare array
@@ -5,23 +6,18 @@
  */
 export async function fetchDocumentLibrary() {
   const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("auth-token")
-      : null;
+    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
   if (!token) {
     throw new Error("No auth token found. Please log in again.");
   }
 
-  const res = await fetch(
-    "https://pitcho-be.vercel.app/api/document/library",
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const res = await fetch("https://pitcho-be.vercel.app/api/document/library", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
-  );
+  });
 
   if (!res.ok) {
     throw new Error(`Failed to fetch library: ${res.statusText}`);
@@ -30,7 +26,7 @@ export async function fetchDocumentLibrary() {
   const json = await res.json();
 
   // Defensive: handle both { data: [...] } and direct array
-  const documents = Array.isArray(json) ? json : json.data ?? [];
+  const documents = Array.isArray(json) ? json : (json.data ?? []);
 
   return documents;
 }
@@ -44,21 +40,24 @@ export async function fetchDocumentLibrary() {
  * @param {Object} metadata - { type, timestamp_start, timestamp_end, duration }
  * @returns {Promise<Object|null>}
  */
-export async function uploadClip(clipBlob, { type, timestamp_start, timestamp_end, duration } = {}) {
+export async function uploadClip(
+  clipBlob,
+  { type, timestamp_start, timestamp_end, duration } = {},
+) {
   if (!clipBlob || clipBlob.size === 0) return null;
 
   const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("auth-token")
-      : null;
+    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
   if (!token) return null;
 
   const formData = new FormData();
   formData.append("file", clipBlob, `clip-${timestamp_start ?? 0}.webm`);
   if (type != null) formData.append("type", String(type));
-  if (timestamp_start != null) formData.append("timestamp_start", String(timestamp_start));
-  if (timestamp_end != null) formData.append("timestamp_end", String(timestamp_end));
+  if (timestamp_start != null)
+    formData.append("timestamp_start", String(timestamp_start));
+  if (timestamp_end != null)
+    formData.append("timestamp_end", String(timestamp_end));
   if (duration != null) formData.append("duration", String(duration));
 
   try {
@@ -86,9 +85,7 @@ export async function uploadClip(clipBlob, { type, timestamp_start, timestamp_en
  */
 export async function saveSession(payload) {
   const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("auth-token")
-      : null;
+    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
   if (!token) {
     throw new Error("No auth token found. Please log in again.");
@@ -120,9 +117,7 @@ export async function saveSession(payload) {
  */
 export async function fetchHistory({ limit } = {}) {
   const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("auth-token")
-      : null;
+    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
   if (!token) return [];
 
@@ -140,9 +135,32 @@ export async function fetchHistory({ limit } = {}) {
     if (!res.ok) return [];
 
     const json = await res.json();
-    const sessions = Array.isArray(json) ? json : json.data ?? [];
+    const sessions = Array.isArray(json) ? json : (json.data ?? []);
     return sessions;
   } catch {
     return [];
   }
 }
+
+const api = axios.create({
+  // baseUrl: "https://pitcho-be.vercel.app/api",
+  baseURL: "http://localhost:3000/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
+export default api;

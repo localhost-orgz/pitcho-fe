@@ -25,8 +25,10 @@ import Link from "next/link";
 import PerformanceCircle from "@/components/UI/PerformanceCircle";
 import MiniLineChart from "@/components/UI/MiniLineChart";
 import { fetchHistory } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function StationPage() {
+  const { user } = useAuth();
   React.useEffect(() => {
     const originalBg = document.body.style.backgroundColor;
     document.body.style.backgroundColor = "#f3f7fd";
@@ -80,18 +82,26 @@ export default function StationPage() {
         const mapped = raw.map((s) => {
           const score = s.overallScore ?? s.overall_score ?? s.score ?? 0;
           const color =
-            score >= 90 ? "#10b981"
-            : score >= 80 ? "#3b82f6"
-            : score >= 70 ? "#f59e0b"
-            : score >= 60 ? "#8b5cf6"
-            : "#ef4444";
+            score >= 90
+              ? "#10b981"
+              : score >= 80
+                ? "#3b82f6"
+                : score >= 70
+                  ? "#f59e0b"
+                  : score >= 60
+                    ? "#8b5cf6"
+                    : "#ef4444";
 
           const feedback =
-            score >= 90 ? "Excellent! Outstanding delivery and pacing."
-            : score >= 80 ? "Great job! Very confident tone, keep it up."
-            : score >= 70 ? "Fair effort. Keep working on your delivery."
-            : score >= 60 ? "Good start. Focus on eye contact and clarity."
-            : "Practice needed. Keep at it — you'll improve!";
+            score >= 90
+              ? "Excellent! Outstanding delivery and pacing."
+              : score >= 80
+                ? "Great job! Very confident tone, keep it up."
+                : score >= 70
+                  ? "Fair effort. Keep working on your delivery."
+                  : score >= 60
+                    ? "Good start. Focus on eye contact and clarity."
+                    : "Practice needed. Keep at it — you'll improve!";
 
           const rawDate = s.created_at || s.date;
           const d = rawDate ? new Date(rawDate) : new Date();
@@ -124,10 +134,13 @@ export default function StationPage() {
       }
     }
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const activeSession = recentSessions.length > 0 ? recentSessions[activeSessionIndex] : null;
+  const activeSession =
+    recentSessions.length > 0 ? recentSessions[activeSessionIndex] : null;
 
   return (
     <div className="space-y-6">
@@ -153,7 +166,7 @@ export default function StationPage() {
         <div className="flex flex-col text-[#1B2C52] gap-2 max-w-lg relative z-10">
           <h6 className="text-xl font-semibold">Welcome back,</h6>
           <div className="flex flex-row items-center gap-2">
-            <h1 className="text-4xl font-bold">Faza!</h1>
+            <h1 className="text-4xl font-bold">{user.name}!</h1>
             <Image
               src={"/hi.svg"}
               height={100}
@@ -245,7 +258,6 @@ export default function StationPage() {
               </span>
             </div>
           </div>
-
         </div>
 
         {/* Continue Your Practice (Order 2 on Mobile, Order 1 on Desktop) */}
@@ -336,7 +348,7 @@ export default function StationPage() {
               <span className="text-sm text-slate-500">keep it going!</span>
             </div>
           </div>
-<div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
+          <div className="w-full bg-yellow-400/10 gap-3 rounded-2xl border-bold p-6 flex items-center">
             <Image
               src="/trophy.svg"
               width={100}
@@ -458,7 +470,9 @@ export default function StationPage() {
           {sessionsLoading ? (
             <div className="w-full border-2 rounded-xl py-6 px-4 flex flex-col items-center justify-center h-[185px] mt-6 gap-3">
               <Loader2 size={24} className="text-slate-400 animate-spin" />
-              <span className="text-xs font-bold text-slate-400">Loading sessions…</span>
+              <span className="text-xs font-bold text-slate-400">
+                Loading sessions…
+              </span>
             </div>
           ) : !activeSession ? (
             <div className="w-full border-2 rounded-xl py-6 px-4 flex flex-col items-center justify-center h-[185px] mt-6 gap-3 border-dashed border-slate-200">

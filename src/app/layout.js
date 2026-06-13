@@ -1,5 +1,6 @@
 import { Nunito, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+import AuthProvider from "@/contexts/AuthContext";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -15,7 +16,8 @@ const notoJp = Noto_Sans_JP({
 
 export const metadata = {
   title: "Pitcho - AI-Powered Presentation & Interview Coach",
-  description: "Pitcho is your personalized AI communication coach. Master public speaking, presentation delivery, and job interviews with real-time feedback and interactive simulations.",
+  description:
+    "Pitcho is your personalized AI communication coach. Master public speaking, presentation delivery, and job interviews with real-time feedback and interactive simulations.",
   icons: {
     icon: "/logo-transparent.svg",
   },
@@ -27,7 +29,9 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${nunito.variable} ${notoJp.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
