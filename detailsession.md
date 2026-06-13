@@ -94,6 +94,6 @@ session.type === "interview"
 
 ## Catatan
 
-Saat ini response API sudah benar dan tidak perlu diubah.
+Saat ini response API sudah benar dan tidak perlu diubah.s
 
 Fokus pengerjaan adalah memperbaiki mapping data pada halaman Detail Session agar seluruh komponen mengambil data dari field API yang sesuai seperti yang dijelaskan di atas.
