@@ -103,7 +103,7 @@ export default function StationPage() {
                     ? "Good start. Focus on eye contact and clarity."
                     : "Practice needed. Keep at it — you'll improve!";
 
-          const rawDate = s.created_at || s.date;
+          const rawDate = s.createdAt || s.created_at || s.date;
           const d = rawDate ? new Date(rawDate) : new Date();
           const dateStr = d.toLocaleDateString("en-US", {
             month: "short",
@@ -527,7 +527,7 @@ export default function StationPage() {
                         {activeSession.feedback}
                       </span>
                       <Link
-                        href="/presentation/result"
+                        href={`/session/${activeSession.id}`}
                         className="flex items-center text-main hover:underline font-bold text-xs mt-1.5 cursor-pointer"
                       >
                         Lihat laporan

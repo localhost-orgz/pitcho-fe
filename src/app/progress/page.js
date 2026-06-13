@@ -16,204 +16,79 @@ import SessionHistoryList from "@/components/Progress/SessionHistoryList";
 import BadgeGrid from "@/components/Progress/BadgeGrid";
 import { BADGE_DEFINITIONS } from "@/lib/badgeDefinitions";
 
-// ── Mock session generation ──────────────────────────────────
-// Generates realistic session objects spanning ~3 months
-// Adapted from progress-v2/mockData.js
-// Uses a seeded PRNG so server and client render identical data.
+// ── API helpers ───────────────────────────────────────────────
 
-function createRng(seed) {
-  let s = seed | 0;
-  return function () {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+/**
+ * Normalize a session object from the API into the shape expected
+ * by the progress page components.
+ */
+function normalizeSession(raw) {
+  const date = raw.createdAt || raw.date || raw.created_at || new Date().toISOString();
+  const dateObj = new Date(date);
+  const formattedDate = isNaN(dateObj.getTime())
+    ? ""
+    : dateObj.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+
+  const mode = raw.practiceType || raw.type || raw.mode || "presentation";
+  const overallScore = raw.score ?? raw.overallScore ?? raw.overall_score ?? 0;
+  const duration = raw.totalDuration ?? raw.duration ?? raw.sessionDuration ?? raw.session_duration ?? 0;
+  const topic = raw.name || raw.topic || raw.title || "";
+
+  const scores = {
+    focus: raw.scores?.focus ?? raw.focusScore ?? raw.focus_score ?? 0,
+    pace: raw.scores?.pace ?? raw.paceScore ?? raw.pace_score ?? 0,
+    filler: raw.scores?.filler ?? raw.fillerScore ?? raw.filler_score ?? 0,
+    efficiency: raw.scores?.efficiency ?? raw.clarityScore ?? raw.efficiency_score ?? 0,
+  };
+
+  return {
+    id: raw.id || raw._id || raw.sessionId || String(Math.random()),
+    date,
+    formattedDate,
+    mode,
+    overallScore,
+    scores,
+    duration,
+    topic,
+    wordCount: raw.wordCount ?? raw.word_count ?? raw.totalWords ?? 0,
+    averageWpm: raw.averageWpm ?? raw.average_wpm ?? raw.wpm ?? 0,
+    fillerWords: raw.fillerWords ?? raw.filler_words ?? [],
+    lookAwayEvents: raw.lookAwayEvents ?? raw.look_away_events ?? [],
+    totalDistractedTime:
+      raw.totalDistractedTime ??
+      raw.total_distracted_time ??
+      raw.distractedDurationSeconds ??
+      0,
+    transcript: raw.transcript || "",
   };
 }
 
-const TOPICS = [
-  "Product Launch Pitch",
-  "Q1 Financial Review",
-  "Team Standup Update",
-  "UX Redesign Proposal",
-  "Job Interview: Frontend Lead",
-  "Sales Deck Walkthrough",
-  "Investor Pitch Practice",
-  "Conference Talk: AI in Education",
-  "Job Interview: Product Manager",
-  "Client Onboarding Presentation",
-  "Monthly Metrics Review",
-  "Hackathon Demo Pitch",
-  "Job Interview: Engineering Manager",
-  "Board Meeting Update",
-  "Job Interview: Startup CTO Role",
-  "Marketing Campaign Pitch",
-  "Internal Tool Demo",
-  "All-Hands Company Update",
-  "Job Interview: Senior Developer",
-  "Workshop: Public Speaking 101",
-];
-
-const FILLER_OPTIONS = [
-  "um",
-  "uh",
-  "like",
-  "you know",
-  "I mean",
-  "sort of",
-  "kind of",
-  "actually",
-  "basically",
-  "literally",
-];
-
-function generateSessions(rng) {
-  const sessions = [];
-  // Sessions across May, April, March 2025 (roughly one every ~3 days)
-  const dates = [
-    { y: 2025, m: 5, d: 1 },
-    { y: 2025, m: 5, d: 3 },
-    { y: 2025, m: 5, d: 6 },
-    { y: 2025, m: 5, d: 9 },
-    { y: 2025, m: 5, d: 12 },
-    { y: 2025, m: 5, d: 15 },
-    { y: 2025, m: 5, d: 18 },
-    { y: 2025, m: 5, d: 20 },
-    { y: 2025, m: 4, d: 1 },
-    { y: 2025, m: 4, d: 4 },
-    { y: 2025, m: 4, d: 7 },
-    { y: 2025, m: 4, d: 10 },
-    { y: 2025, m: 4, d: 13 },
-    { y: 2025, m: 4, d: 16 },
-    { y: 2025, m: 4, d: 19 },
-    { y: 2025, m: 4, d: 22 },
-    { y: 2025, m: 4, d: 25 },
-    { y: 2025, m: 3, d: 2 },
-    { y: 2025, m: 3, d: 5 },
-    { y: 2025, m: 3, d: 8 },
-    { y: 2025, m: 3, d: 11 },
-    { y: 2025, m: 3, d: 14 },
-    { y: 2025, m: 3, d: 17 },
-    { y: 2025, m: 3, d: 20 },
-  ];
-
-  dates.forEach(({ y, m, d }, idx) => {
-    const mode = idx % 5 === 0 ? "interview" : "presentation";
-    const isPresentation = mode === "presentation";
-
-    // Scores generally improve over time
-    const progress = idx / (dates.length - 1); // 0 to 1
-    const base = 55 + Math.round(progress * 35);
-    const noise = Math.round((rng() - 0.5) * 16);
-    const overallScore = Math.min(100, Math.max(40, base + noise));
-
-    const scores = {
-      focus: Math.min(
-        100,
-        Math.max(
-          25,
-          50 + Math.round(progress * 42) + Math.round((rng() - 0.5) * 14),
-        ),
-      ),
-      pace: Math.min(
-        100,
-        Math.max(
-          30,
-          55 + Math.round(progress * 25) + Math.round((rng() - 0.5) * 12),
-        ),
-      ),
-      filler: Math.min(
-        100,
-        Math.max(
-          20,
-          40 + Math.round(progress * 40) + Math.round((rng() - 0.5) * 18),
-        ),
-      ),
-      efficiency: Math.min(
-        100,
-        Math.max(
-          25,
-          48 + Math.round(progress * 35) + Math.round((rng() - 0.5) * 14),
-        ),
-      ),
-    };
-
-    const duration = isPresentation
-      ? [180, 300, 600, 300, 420][idx % 5]
-      : [600, 900, 720, 480, 540][idx % 5];
-    const wordCount = Math.round(
-      duration * (isPresentation ? 2.2 : 1.8) + (rng() - 0.5) * 100,
-    );
-
-    // Filler words
-    const fillerRate = Math.max(0, ((100 - scores.filler) / 100) * 0.12);
-    const fillerCount = Math.round(wordCount * fillerRate);
-    const fillerWords = [];
-    for (let i = 0; i < Math.min(fillerCount, 15); i++) {
-      fillerWords.push({
-        word: FILLER_OPTIONS[i % FILLER_OPTIONS.length],
-        timestamp: Math.round(rng() * duration),
+/**
+ * Build available month list from an array of session objects.
+ * Returns array of { name, monthIndex, year } sorted newest first.
+ */
+function buildMonthsFromSessions(sessions) {
+  const monthSet = new Map();
+  sessions.forEach((s) => {
+    const d = new Date(s.date);
+    if (isNaN(d.getTime())) return;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!monthSet.has(key)) {
+      monthSet.set(key, {
+        name: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        monthIndex: d.getMonth(),
+        year: d.getFullYear(),
       });
     }
-
-    // Look-away events
-    const lookAwayCount = Math.max(
-      0,
-      Math.round(((100 - scores.focus) / 100) * 6) +
-        Math.round((rng() - 0.5) * 2),
-    );
-    const lookAwayEvents = [];
-    for (let i = 0; i < lookAwayCount; i++) {
-      lookAwayEvents.push({
-        timestamp: Math.round(rng() * duration),
-        type: rng() > 0.5 ? "head" : "eye",
-        duration: parseFloat((rng() * 3 + 0.5).toFixed(1)),
-      });
-    }
-
-    const dateObj = new Date(y, m - 1, d);
-    const formattedDate = dateObj.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-
-    sessions.push({
-      id: `sess_${String(idx).padStart(3, "0")}`,
-      date: dateObj.toISOString(),
-      formattedDate,
-      mode,
-      overallScore,
-      scores,
-      duration,
-      wordCount,
-      averageWpm: Math.round(110 + rng() * 60),
-      fillerWords,
-      lookAwayEvents,
-      totalDistractedTime: lookAwayEvents.reduce(
-        (sum, e) => sum + e.duration,
-        0,
-      ),
-      transcript: isPresentation
-        ? "Thank you all for joining today. I want to walk you through our latest product metrics and share some exciting updates... The key takeaway here is that we've seen a 40% increase in user engagement since the last quarter. Looking at the data, we can identify three main drivers of this growth."
-        : "I believe my experience aligns well with this role. In my previous position, I led a team of five engineers through a complete platform migration... One of the challenges we faced was managing stakeholder expectations while maintaining sprint velocity.",
-      topic: TOPICS[idx % TOPICS.length],
-    });
   });
-
-  // Sort newest first
-  sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
-  return sessions;
+  return Array.from(monthSet.values()).sort(
+    (a, b) => b.year - a.year || b.monthIndex - a.monthIndex,
+  );
 }
-
-const ALL_SESSIONS = generateSessions(createRng(42));
-
-// ── Month definitions for the dropdown ────────────────────────
-const MONTHS = [
-  { name: "May 2025", monthIndex: 4, year: 2025 },
-  { name: "April 2025", monthIndex: 3, year: 2025 },
-  { name: "March 2025", monthIndex: 2, year: 2025 },
-];
 
 // ── Build badge display data from definitions ─────────────────
 function buildBadgeDisplayData(definitions, unlockedMap, progressMap) {
@@ -333,13 +208,13 @@ function computeStreak(sessions) {
 
 // ── Main Page Component ───────────────────────────────────────
 export default function ProgressPage() {
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(-1);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
   // ── Session history from API ──────────────────────────────────
-  const [totalSessions, setTotalSessions] = useState(null);
+  const [apiSessions, setApiSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState(null);
 
@@ -361,7 +236,9 @@ export default function ProgressPage() {
           );
         }
         const data = await res.json();
-        setFetchedBadgeStates(data.badges || []);
+        // Handle multiple response shapes
+        const badges = data.badges || data.data?.badges || data.data || [];
+        setFetchedBadgeStates(badges);
       } catch (err) {
         setBadgesError(err.message || "Failed to load badges");
       } finally {
@@ -385,8 +262,11 @@ export default function ProgressPage() {
         }
         const data = await res.json();
         // Handle both array and { data: [...] } envelope
-        const sessions = Array.isArray(data) ? data : data.data ?? [];
-        setTotalSessions(sessions.length);
+        const raw = Array.isArray(data) ? data : data.data ?? [];
+        const normalized = raw.map(normalizeSession);
+        // Sort newest first
+        normalized.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setApiSessions(normalized);
       } catch (err) {
         setSessionsError(err.message || "Failed to load sessions");
       } finally {
@@ -405,23 +285,34 @@ export default function ProgressPage() {
     };
   }, []);
 
+  // ── Build month list from API sessions ──────────────────────
+  const availableMonths = useMemo(() => buildMonthsFromSessions(apiSessions), [apiSessions]);
+
+  // Reset selected month + page when available months change
+  useEffect(() => {
+    setSelectedMonthIndex(-1);
+    setCurrentPage(1);
+  }, [apiSessions]);
+
   // Reset page when month changes
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedMonthIndex]);
 
-  const activeMonth = MONTHS[selectedMonthIndex];
+  const activeMonth = selectedMonthIndex === -1 ? null : (availableMonths[selectedMonthIndex] || null);
 
   // ── Filter sessions by selected month ───────────────────────
   const filteredSessions = useMemo(() => {
-    return ALL_SESSIONS.filter((s) => {
+    if (!activeMonth) return apiSessions;
+    return apiSessions.filter((s) => {
       const d = new Date(s.date);
+      if (isNaN(d.getTime())) return false;
       return (
         d.getMonth() === activeMonth.monthIndex &&
         d.getFullYear() === activeMonth.year
       );
     });
-  }, [activeMonth]);
+  }, [apiSessions, activeMonth]);
 
   // ── Paginated sessions (10 per page) ────────────────────────
   const totalPages = Math.max(
@@ -454,17 +345,6 @@ export default function ProgressPage() {
     };
   }, [filteredSessions]);
 
-  // ── Improvement percentage (first vs last session in month) ──
-  const improvement = useMemo(() => {
-    if (filteredSessions.length < 2) return 0;
-    const sorted = [...filteredSessions].sort(
-      (a, b) => new Date(a.date) - new Date(b.date),
-    );
-    const first = sorted[0].overallScore;
-    const last = sorted[sorted.length - 1].overallScore;
-    return first > 0 ? Math.round(((last - first) / first) * 100) : 0;
-  }, [filteredSessions]);
-
   // ── Streak data (all-time, client-only to avoid hydration mismatch) ──
   const [streakData, setStreakData] = useState({
     current: 0,
@@ -474,15 +354,20 @@ export default function ProgressPage() {
   });
 
   useEffect(() => {
+    if (apiSessions.length === 0) return;
     const { practicedToday, weeklyHistory } =
-      computeWeeklyHistory(ALL_SESSIONS);
-    const { current, best } = computeStreak(ALL_SESSIONS);
+      computeWeeklyHistory(apiSessions);
+    const { current, best } = computeStreak(apiSessions);
     setStreakData({ current, best, practicedToday, weeklyHistory });
-  }, []);
+  }, [apiSessions]);
 
   // ── Badge display data ──────────────────────────────────────
   const badgeDisplayData = useMemo(() => {
-    if (!fetchedBadgeStates) return [];
+    // Always build from definitions so all badges show even when API is empty
+    if (!fetchedBadgeStates || fetchedBadgeStates.length === 0) {
+      // Return all badges as locked
+      return buildBadgeDisplayData(BADGE_DEFINITIONS, {}, {});
+    }
     const unlockedMap = {};
     const progressMap = {};
     fetchedBadgeStates.forEach((b) => {
@@ -502,22 +387,27 @@ export default function ProgressPage() {
   );
 
   // ── Full-year daily duration data for heatmap ───────────────
+  const heatmapYear = useMemo(() => {
+    if (apiSessions.length === 0) return new Date().getFullYear();
+    // Use the newest session's year
+    const dates = apiSessions.map((s) => new Date(s.date)).filter((d) => !isNaN(d.getTime()));
+    if (dates.length === 0) return new Date().getFullYear();
+    return dates.reduce((a, b) => (a > b ? a : b)).getFullYear();
+  }, [apiSessions]);
+
   const fullYearDailyData = useMemo(() => {
     const map = {};
-    ALL_SESSIONS.forEach((s) => {
+    apiSessions.forEach((s) => {
       const d = new Date(s.date);
-      if (d.getFullYear() === 2025) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const dateStr = `${y}-${m}-${day}`;
-        map[dateStr] = (map[dateStr] || 0) + s.duration;
-      }
+      if (isNaN(d.getTime())) return;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const dateStr = `${y}-${m}-${day}`;
+      map[dateStr] = (map[dateStr] || 0) + s.duration;
     });
     return map;
-  }, []);
-
-  const heatmapYear = 2025;
+  }, [apiSessions]);
 
   return (
     <div className="w-full min-h-screen pb-12">
@@ -534,28 +424,54 @@ export default function ProgressPage() {
         </div>
 
         {/* Month Selector Dropdown */}
-        <div className="relative">
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border-bold shadow-lg z-20 overflow-hidden">
-              {MONTHS.map((month, idx) => (
+        {availableMonths.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-bold rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Calendar size={14} className="text-slate-400" />
+              {activeMonth?.name || "All Sessions"}
+              <ChevronDown
+                size={14}
+                className={`text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border-bold shadow-lg z-20 overflow-hidden rounded-lg max-h-60 overflow-y-auto">
                 <button
-                  key={idx}
                   onClick={() => {
-                    setSelectedMonthIndex(idx);
+                    setSelectedMonthIndex(-1);
                     setDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-4 py-3 text-sm font-bold border-b border-slate-100 last:border-0 transition-colors ${
-                    selectedMonthIndex === idx
+                  className={`w-full text-left px-4 py-3 text-sm font-bold border-b border-slate-100 transition-colors ${
+                    selectedMonthIndex === -1
                       ? "bg-sky-50 text-main"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
-                  {month.name}
+                  All Sessions
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
+                {availableMonths.map((month, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedMonthIndex(idx);
+                      setDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-3 text-sm font-bold border-b border-slate-100 last:border-0 transition-colors ${
+                      selectedMonthIndex === idx
+                        ? "bg-sky-50 text-main"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {month.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Row 1: Stats Widgets ─── */}
@@ -582,14 +498,10 @@ export default function ProgressPage() {
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-lg font-black text-slate-800 leading-none">
-              {totalSessions !== null && !sessionsError
-                ? totalSessions
-                : filteredSessions.length}
+              {apiSessions.length}
             </span>
             <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase mt-0.5">
-              {totalSessions !== null && !sessionsError
-                ? "Total Sessions"
-                : "Sessions"}
+              Total Sessions
             </span>
           </div>
         </div>
