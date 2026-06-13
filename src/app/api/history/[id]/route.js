@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
   try {
-    const token = request.cookies.get("auth-token")?.value;
+    // Read token from cookie first, then fall back to Authorization header
+    let token = request.cookies.get("auth-token")?.value;
+    if (!token) {
+      const authHeader = request.headers.get("authorization") || "";
+      token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    }
 
     if (!token) {
       return NextResponse.json(

@@ -460,7 +460,7 @@ function AIReviewCarousel({ interviewDetails }) {
           <ChevronLeft size={16} />
         </button>
         <span className="text-sm font-bold text-slate-500">
-          Question {current.question_number || activeIdx + 1} / {total}
+          Question {current.questionNumber || current.question_number || activeIdx + 1} / {total}
         </span>
         <button
           onClick={goNext}
@@ -477,7 +477,7 @@ function AIReviewCarousel({ interviewDetails }) {
           Question
         </p>
         <p className="text-sm font-semibold text-slate-800 leading-snug">
-          {current.question_text || "N/A"}
+          {current.questionText || current.question_text || "N/A"}
         </p>
       </div>
 
@@ -486,7 +486,7 @@ function AIReviewCarousel({ interviewDetails }) {
           Your Answer
         </p>
         <p className="text-sm text-slate-700 leading-snug">
-          {current.user_answer || current.recommended_answer || "No answer recorded."}
+          {current.userAnswer || current.user_answer || current.recommendedAnswer || current.recommended_answer || "No answer recorded."}
         </p>
       </div>
 
@@ -495,54 +495,54 @@ function AIReviewCarousel({ interviewDetails }) {
         <div className="p-4 bg-white border-2 border-slate-200 rounded-2xl text-center">
           <Target size={16} className="text-blue-500 mx-auto mb-1" />
           <span className="text-xl font-black text-slate-800 block">
-            {current.relevancy_score ?? "-"}
+            {current.relevancyScore ?? current.relevancy_score ?? "-"}
           </span>
           <span className="text-[10px] font-bold text-slate-400">Relevancy</span>
         </div>
         <div className="p-4 bg-white border-2 border-slate-200 rounded-2xl text-center">
           <Star size={16} className="text-amber-500 mx-auto mb-1" />
           <span className="text-xl font-black text-slate-800 block">
-            {current.star_structure_score ?? "-"}
+            {current.starStructureScore ?? current.star_structure_score ?? "-"}
           </span>
           <span className="text-[10px] font-bold text-slate-400">STAR Method</span>
         </div>
         <div className="p-4 bg-white border-2 border-slate-200 rounded-2xl text-center">
           <MessageSquare size={16} className="text-green-500 mx-auto mb-1" />
           <span className="text-xl font-black text-slate-800 block">
-            {current.overall_answer_score ?? "-"}
+            {current.overallAnswerScore ?? current.overall_answer_score ?? "-"}
           </span>
           <span className="text-[10px] font-bold text-slate-400">Overall</span>
         </div>
       </div>
 
       {/* Feedback */}
-      {current.strengths && (
+      {(current.strengths || current.strength) && (
         <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
           <p className="text-[10px] font-black uppercase tracking-wider text-green-500 mb-1">
             Strengths
           </p>
           <p className="text-xs text-green-800 leading-relaxed">
-            {current.strengths}
+            {current.strengths || current.strength}
           </p>
         </div>
       )}
-      {current.weaknesses && (
+      {(current.weaknesses || current.weakness) && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
           <p className="text-[10px] font-black uppercase tracking-wider text-red-400 mb-1">
             Areas to Improve
           </p>
           <p className="text-xs text-red-700 leading-relaxed">
-            {current.weaknesses}
+            {current.weaknesses || current.weakness}
           </p>
         </div>
       )}
-      {current.recommended_answer && (
+      {(current.recommendedAnswer || current.recommended_answer) && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <p className="text-[10px] font-black uppercase tracking-wider text-blue-500 mb-1">
             Recommended Improvement
           </p>
           <p className="text-xs text-blue-800 leading-relaxed">
-            {current.recommended_answer}
+            {current.recommendedAnswer || current.recommended_answer}
           </p>
         </div>
       )}
@@ -582,8 +582,9 @@ export default function SessionDetailPage() {
         const data = await fetchSession(id);
         if (!cancelled) {
           setSession(data);
-          // Set initial tab based on practice type
-          const isInterview = data?.practice_type === "INTERVIEW";
+          // Set initial tab based on session type
+          const rawType = data?.practiceType || data?.type || data?.practice_type || "";
+          const isInterview = rawType.toLowerCase() === "interview";
           setActiveTab(isInterview ? "distraction" : "eye");
         }
       } catch (err) {
@@ -603,47 +604,48 @@ export default function SessionDetailPage() {
 
   // ── Derived data ────────────────────────────────────────────
 
-  const isInterview = session?.practice_type === "INTERVIEW";
-  const isPresentation = session?.practice_type === "PRESENTATION";
+  const sessionType = (session?.practiceType || session?.type || session?.practice_type || "").toLowerCase();
+  const isInterview = sessionType === "interview";
+  const isPresentation = sessionType === "presentation";
 
-  // Clips: build from distraction_clips using remote video_url
+  // Clips: build from distractionClips using remote videoUrl
   const clips = React.useMemo(() => {
-    const raw = session?.distraction_clips || [];
+    const raw = session?.distractionClips || session?.distractionCases || session?.distraction_clips || [];
     return raw
-      .filter((c) => c.video_url)
+      .filter((c) => c.video_url || c.videoUrl)
       .map((c, i) => ({
         id: c._id || c.id || `clip-${i}`,
         timestamp: c.timestamp || 0,
         type: c.type || "Distraction",
         duration: c.duration || 0,
         clipDuration: 6,
-        clipUrl: c.video_url,
+        clipUrl: c.videoUrl || c.video_url,
       }));
   }, [session]);
 
   // Filler incidents
   const fillerIncidents = React.useMemo(() => {
-    const raw = session?.filler_incidents || [];
+    const raw = session?.fillerIncidents || session?.filler_incidents || [];
     return raw.map((inc) => ({
       word: (inc.word || "").toLowerCase(),
-      phrase: highlightWord(inc.context_text || "", inc.word),
+      phrase: highlightWord(inc.contextText || inc.context_text || "", inc.word),
     }));
   }, [session]);
 
   // Wordiness findings
   const wordinessItems = React.useMemo(() => {
-    const raw = session?.word_findings || [];
+    const raw = session?.wordFindings || session?.word_findings || [];
     return raw.map((f) => ({
-      original: f.original_phrase || "",
-      improved: f.recommended_phrase || "",
-      context: highlightWord(f.transcript_context || "", f.original_phrase || ""),
-      explanation: f.coach_tip || "",
-      issueType: f.issue_type || "Pleonasm",
+      original: f.originalPhrase || f.original_phrase || "",
+      improved: f.recommendedPhrase || f.recommended_phrase || "",
+      context: highlightWord(f.transcriptContext || f.transcript_context || "", f.originalPhrase || f.original_phrase || ""),
+      explanation: f.coachTip || f.coach_tip || "",
+      issueType: f.issueType || f.issue_type || "Pleonasm",
     }));
   }, [session]);
 
   // Interview details for AI Review
-  const interviewDetails = session?.interview_details || [];
+  const interviewDetails = session?.interviewDetails || session?.interview_details || [];
 
   // Word count from transcript
   const wordCount = React.useMemo(() => {
@@ -669,8 +671,8 @@ export default function SessionDetailPage() {
     : "bg-slate-100 text-slate-400";
 
   // Date
-  const sessionDate = session?.created_at
-    ? new Date(session.created_at).toLocaleDateString("en-US", {
+  const sessionDate = (session?.createdAt || session?.created_at)
+    ? new Date(session.createdAt || session.created_at).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -685,7 +687,7 @@ export default function SessionDetailPage() {
         { id: "wpm", label: "WPM", icon: TrendingUp },
         { id: "filler", label: "Filler Words", icon: AudioLines },
         { id: "wordiness", label: "Wordiness", icon: FileText },
-        { id: "ai_review", label: "AI Review", icon: Star },
+        { id: "ai_review", label: "Interview Details", icon: Star },
       ]
     : [
         { id: "eye", label: "Eye Tracking", icon: Eye },
@@ -741,7 +743,7 @@ export default function SessionDetailPage() {
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 font-semibold mt-1 flex items-center gap-2 flex-wrap">
             <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] font-black uppercase">
-              {session.practice_type || "SESSION"}
+              {session.practiceType || session.type || session.practice_type || "SESSION"}
             </span>
             {sessionDate && (
               <>
@@ -749,10 +751,10 @@ export default function SessionDetailPage() {
                 <span>{sessionDate}</span>
               </>
             )}
-            {session.total_duration != null && (
+            {(session.totalDuration != null || session.total_duration != null) && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 inline-block" />
-                <span>{formatTime(session.total_duration)}</span>
+                <span>{formatTime(session.totalDuration ?? session.total_duration)}</span>
               </>
             )}
           </p>
@@ -772,7 +774,7 @@ export default function SessionDetailPage() {
         {/* Overall Score */}
         <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center">
           <ScoreRing
-            score={session.overall_score ?? 0}
+            score={session.overallScore ?? session.overall_score ?? 0}
             size={100}
             strokeWidth={8}
             label="Overall Score"
@@ -783,7 +785,7 @@ export default function SessionDetailPage() {
         <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
           <AudioLines size={20} className="text-orange-500" />
           <span className="text-2xl font-black text-slate-800">
-            {(session.filler_incidents || []).length}
+            {(session.fillerIncidents || session.filler_incidents || []).length}
           </span>
           <span className="text-xs font-bold text-slate-400">Total Filler Words</span>
         </div>
@@ -792,8 +794,8 @@ export default function SessionDetailPage() {
         <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
           <Eye size={20} className="text-blue-500" />
           <span className="text-2xl font-black text-slate-800">
-            {session.total_distract_duration != null
-              ? `${session.total_distract_duration.toFixed(1)}s`
+            {session.totalDistractDuration != null || session.total_distract_duration != null
+              ? `${(session.totalDistractDuration ?? session.total_distract_duration).toFixed(1)}s`
               : "0s"}
           </span>
           <span className="text-xs font-bold text-slate-400">Total Distracted</span>
@@ -942,19 +944,19 @@ export default function SessionDetailPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Duration</span>
                     <span className="font-bold text-slate-700">
-                      {formatTime(session.total_duration)}
+                      {formatTime(session.totalDuration ?? session.total_duration)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Distractions</span>
                     <span className="font-bold text-slate-700">
-                      {session.distract_count ?? 0}
+                      {session.distractCount ?? session.distract_count ?? 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Total Distracted</span>
                     <span className="font-bold text-slate-700">
-                      {formatDuration(session.total_distract_duration)}
+                      {formatDuration(session.totalDistractDuration ?? session.total_distract_duration)}
                     </span>
                   </div>
                 </div>
@@ -983,7 +985,7 @@ export default function SessionDetailPage() {
                     {wpmStatus}
                   </div>
                   <p className="text-sm text-slate-400 font-medium mt-2">
-                    {wordCount} words spoken in {formatTime(session.total_duration)}
+                    {wordCount} words spoken in {formatTime(session.totalDuration ?? session.total_duration)}
                   </p>
                 </div>
               ) : (
@@ -1018,7 +1020,7 @@ export default function SessionDetailPage() {
                     </div>
                     <div className="mt-1 pt-3 border-t border-slate-200 px-4">
                       <span className="text-[10px] font-bold text-slate-400">
-                        Total: {wordCount} words in {formatTime(session.total_duration)}
+                        Total: {wordCount} words in {formatTime(session.totalDuration ?? session.total_duration)}
                       </span>
                     </div>
                     {/* Per-question breakdown for interview */}
@@ -1031,7 +1033,7 @@ export default function SessionDetailPage() {
                           {interviewDetails.map((detail, i) => (
                             <div key={i} className="flex items-center justify-between text-[11px]">
                               <span className="font-medium text-slate-600">
-                                Q{detail.question_number || i + 1}
+                              Q{detail.questionNumber || detail.question_number || i + 1}
                               </span>
                               <span className="font-bold text-slate-700">
                                 {detail.duration != null ? formatTime(detail.duration) : "—"}
@@ -1184,10 +1186,10 @@ export default function SessionDetailPage() {
           </div>
         )}
 
-        {/* ── AI Review Tab (Interview only) ── */}
+        {/* ── Interview Details Tab (Interview only) ── */}
         {activeTab === "ai_review" && (
           <div>
-            <h3 className="font-bold text-lg mb-4">AI Review Per Question</h3>
+            <h3 className="font-bold text-lg mb-4">Interview Details</h3>
             <AIReviewCarousel interviewDetails={interviewDetails} />
           </div>
         )}

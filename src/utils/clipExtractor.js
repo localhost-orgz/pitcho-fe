@@ -86,7 +86,14 @@ export async function extractClip(videoBlob, startSeconds, clipDurationSeconds) 
       canvas.height = height;
       const ctx = canvas.getContext("2d");
 
-      const stream = canvas.captureStream(30); // 30 fps
+      const stream = canvas.captureStream(30); // 30 fps — video only
+
+      // Capture audio track from the source video so clips preserve sound
+      try {
+        const videoStream = video.captureStream();
+        videoStream.getAudioTracks().forEach((track) => stream.addTrack(track));
+      } catch (_) { /* audio capture not supported by this browser */ }
+
       const chunks = [];
 
       let recorder;
