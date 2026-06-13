@@ -231,7 +231,7 @@ export default function PresentationSetupPage() {
       const formData = new FormData();
       formData.append("file", file, file.name);
       formData.append("fileType", file.type);
-      formData.append("pageCount", String(pages));
+      formData.append("pageCount", pages);
       formData.append("fileSize", file.size);
 
       // `api` is an Axios instance — res.data is already parsed JSON;
