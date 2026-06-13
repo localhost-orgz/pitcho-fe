@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
-export async function GET(request) {
+export async function GET(request, { params }) {
   try {
-    const token =
-      request.cookies.get("auth-token")?.value ??
-      request.cookies.get("auth-token-fallback")?.value;
+    const token = request.cookies.get("auth-token")?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -13,22 +11,22 @@ export async function GET(request) {
       );
     }
 
-    const res = await fetch(
-      "https://pitcho-be.vercel.app/api/badges/my-badges",
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const { id } = await params;
+    const backendUrl = `https://pitcho-be.vercel.app/api/history/${id}`;
+
+    const res = await fetch(backendUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     const data = await res.json();
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: data.error || data.message || "Failed to fetch badges" },
+        { error: data.error || data.message || "Failed to fetch session" },
         { status: res.status }
       );
     }

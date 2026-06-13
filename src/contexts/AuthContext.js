@@ -21,6 +21,8 @@ export default function AuthProvider({ children }) {
       const existingToken = localStorage.getItem("auth-token");
       const savedUser = localStorage.getItem("auth-user");
 
+      
+
       if (!existingToken) {
         setIsLoading(false);
         return;
@@ -33,7 +35,7 @@ export default function AuthProvider({ children }) {
       try {
         const res = await api.get("/auth/me");
         localStorage.setItem("auth-user", JSON.stringify(res.data));
-        setUser(res.data);
+        setUser(res.data.data);
       } catch (error) {
         console.error("Gagal sinkronisasi sesi:", error);
       } finally {
