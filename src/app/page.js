@@ -213,7 +213,10 @@ const IconInstagram = (props) => (
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <nav className="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-slate-100/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]" aria-label="Navigasi utama">
+    <nav
+      className="navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-slate-100/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]"
+      aria-label="Navigasi utama"
+    >
       <div className="navInner max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <a
@@ -230,7 +233,10 @@ function Navbar() {
         </a>
 
         {/* Nav links */}
-        <ul className="navLinks hidden md:flex list-none gap-8 m-0 p-0 justify-center" role="list">
+        <ul
+          className="navLinks hidden md:flex list-none gap-8 m-0 p-0 justify-center"
+          role="list"
+        >
           <li>
             <a
               href="#how-it-works"
@@ -260,16 +266,16 @@ function Navbar() {
         {/* CTA buttons */}
         <div className="navCta hidden md:flex items-center gap-4 shrink-0">
           <a
-            href="#"
+            href="/login"
             className="inline-flex items-center text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
           >
-            Masuk
+            Login
           </a>
           <a
-            href="#"
+            href="/signup"
             className="inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-semibold text-sm py-2.5 px-5 rounded-lg no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
           >
-            Mulai Gratis <IconArrowRight />
+            Sign Up
           </a>
         </div>
 
@@ -359,13 +365,13 @@ function HeroSection() {
 
         <div className="heroBtns flex gap-3.5 flex-wrap mb-10 justify-center">
           <a
-            href="#"
+            href="/signup"
             className="btnHeroPrimary inline-flex items-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-3.5 px-7 rounded-xl no-underline shadow-[0_4px_20px_rgba(3,136,255,0.3)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
           >
             Coba Latihan Gratis <IconArrowRight />
           </a>
           <a
-            href="#how-it-works"
+            href=""
             className="btnHeroSecondary inline-flex items-center gap-2 text-[#0f1d35] font-bold text-base py-[13px] px-6 rounded-xl border-2 border-[#d5dff5] bg-white no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
           >
             Lihat Demo
@@ -490,13 +496,13 @@ function FeaturesSection() {
             improve. Semuanya didukung AI yang ngerti banget gimana caranya
             komunikasi yang oke.
           </p>
-          <a
+          {/* <a
             href="#"
             className="btnPrimary inline-flex items-center gap-1.5 bg-[#0388ff] text-white font-bold text-[0.88rem] py-2.5 px-5 rounded-[10px] no-underline shadow-[0_4px_12px_rgba(3,136,255,0.28)] whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
             style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}
           >
             Lihat Fitur Lengkap <IconArrowRight />
-          </a>
+          </a> */}
         </div>
 
         <div className="featuresRight flex-1 min-w-0 flex flex-col gap-4.5 w-full">
@@ -772,7 +778,10 @@ function Footer() {
             <ul className="footerColLinks list-none p-0 m-0 flex flex-col gap-2.5">
               {links.map((l) => (
                 <li key={l}>
-                  <a href="#" className="text-sm text-white/65 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm">
+                  <a
+                    href="#"
+                    className="text-sm text-white/65 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm"
+                  >
                     {l}
                   </a>
                 </li>
@@ -784,10 +793,16 @@ function Footer() {
       <div className="footerBottom max-w-[1100px] mt-6 mx-auto mb-0 flex flex-col md:flex-row items-center justify-between flex-wrap gap-3 text-[0.8rem] text-white/35 text-center">
         <span>© 2026 Pitcho. Hak cipta dilindungi.</span>
         <div className="footerBottomLinks flex gap-6">
-          <a href="#" className="text-white/35 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm">
+          <a
+            href="#"
+            className="text-white/35 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm"
+          >
             Kebijakan Privasi
           </a>
-          <a href="#" className="text-white/35 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm">
+          <a
+            href="#"
+            className="text-white/35 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 focus-visible:rounded-sm"
+          >
             Syarat & Ketentuan
           </a>
         </div>
