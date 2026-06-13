@@ -221,7 +221,7 @@ function Navbar() {
         {/* Logo */}
         <a
           href="#"
-          aria-label="Pitcho — kembali ke beranda"
+          aria-label="Pitcho | kembali ke beranda"
           className="logo shrink-0"
         >
           <Image
@@ -350,12 +350,11 @@ function HeroSection() {
     <section className="hero max-w-[800px] mx-auto pt-16 px-5 pb-12 md:pt-24 md:px-6 md:pb-20 flex flex-col items-center text-center">
       <div className="flex flex-col items-center">
         <h1 className="heroTitle text-[clamp(2.2rem,5vw,3.6rem)] font-black leading-[1.15] text-[#0f1d35] mt-0 mx-0 mb-6 tracking-[-0.02em]">
-          Latihan ngomong.
+          Latihan <span className="heroAccent text-[#fabf24]">ngomong.</span>
           <br />
-          Lawan gangguan.
+          Lawan <span className="heroAccent text-[#0388ff]">gangguan.</span>
           <br />
-          <span className="heroAccent text-[#fabf24]">Makin jago</span> lewat
-          feedback.
+          Lewat <span className="heroAccent text-[#fabf24]">feedback.</span>
         </h1>
 
         <p className="heroDesc text-[1.05rem] text-[#5a7090] leading-[1.7] mb-8 max-w-[620px] mx-auto">
@@ -549,7 +548,7 @@ const steps = [
   {
     num: "3",
     title: "Mulai Simulasi",
-    desc: "Ngobrol, bikin kesalahan sampe ngulang-ngulang, hadapi gangguan — semua terjadi langsung.",
+    desc: "Ngobrol, bikin kesalahan sampe ngulang-ngulang, hadapi gangguan semua terjadi langsung.",
     color: "#0388ff",
     imgSrc: "/step3.png",
   },
@@ -613,7 +612,7 @@ function HowItWorksSection() {
 const faqItems = [
   {
     q: "Apa sih Pitcho itu?",
-    a: "Pitcho itu semacam pelatih ngomong pribadi yang pakai AI. Kamu bakal simulasi ngomong di depan audiens — bisa presentasi, bisa wawancara — lengkap sama gangguannya: suara bising, notifikasi HP, kejadian nggak terduga. Abis sesi, kamu langsung dikasih tahu apa yang udah oke dan apa yang masih perlu diasah.",
+    a: "Pitcho itu semacam pelatih ngomong pribadi yang pakai AI. Kamu bakal simulasi ngomong di depan audiens,  bisa presentasi, bisa wawancara lengkap sama gangguannya: suara bising, notifikasi HP, kejadian nggak terduga. Abis sesi, kamu langsung dikasih tahu apa yang udah oke dan apa yang masih perlu diasah.",
   },
   {
     q: "Gimana AI-nya ngasih feedback?",
@@ -637,7 +636,7 @@ const faqItems = [
   },
   {
     q: "Bedanya sama latihan depan kaca?",
-    a: "Cermin nggak bakal motong kamu pas lagi ngomong, nggak bisa nilai nada dan kecepatanmu, apalagi ngasih masukan yang jelas. Pitcho bikin suasana yang nggak tertebak dan penuh tekanan — mirip kayak komunikasi beneran — terus ngasih tahu kamu mesti improve di bagian mana.",
+    a: "Cermin nggak bakal motong kamu pas lagi ngomong, nggak bisa nilai nada dan kecepatanmu, apalagi ngasih masukan yang jelas. Pitcho bikin suasana yang nggak tertebak dan penuh tekanan, mirip kayak komunikasi beneran terus ngasih tahu kamu mesti improve di bagian mana.",
   },
 ];
 
