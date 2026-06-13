@@ -54,7 +54,7 @@ async function convertToM4a(webmBlob) {
     const encoder = new AudioEncoder({
       output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
       error: (e) => {
-        encoder.close();
+        if (encoder.state !== "closed") encoder.close();
         resolve(null); // Fallback
       },
     });
@@ -109,7 +109,7 @@ async function convertToM4a(webmBlob) {
       const blob = new Blob([muxer.target.buffer], { type: "audio/mp4" });
       resolve({ blob, filename: "recording.m4a" });
     }).catch(() => {
-      encoder.close();
+      if (encoder.state !== "closed") encoder.close();
       resolve(null); // Fallback
     });
   });

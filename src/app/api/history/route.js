@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(request) {
   try {
-    const token =
-      request.cookies.get("auth-token")?.value ||
-      request.cookies.get("auth-token-fallback")?.value;
+    const token = request.cookies.get("auth-token")?.value;
 
     if (!token) {
       return NextResponse.json(
