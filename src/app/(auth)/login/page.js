@@ -20,11 +20,13 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [serverError, setServerError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     setErrors({});
     setServerError("");
+    setIsLoading(true);
 
     try {
       const response = await api.post("/auth/signin", { email, password });
@@ -32,6 +34,7 @@ export default function LoginPage() {
 
       if (token) {
         login(user, token);
+        router.refresh();
         router.push("/studio");
       }
     } catch (error) {
@@ -53,6 +56,8 @@ export default function LoginPage() {
         }
         setErrors(nextErrors);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -271,10 +276,10 @@ export default function LoginPage() {
           type="submit"
           variant="secondary"
           size="default"
-          // disabled={isLoading}
+          disabled={isLoading}
           className="w-full h-12 text-base border-b-[5px] active:border-b-0"
         >
-          {false ? (
+          {isLoading ? (
             <>
               <Loader2 size={18} className="animate-spin" />
               Signing in…
