@@ -3,16 +3,18 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Menu, 
-  X, 
-  Mic, 
-  Trophy, 
-  Target, 
+import {
+  Menu,
+  X,
+  Mic,
+  Trophy,
+  Target,
   FileText,
   MonitorPlay,
-  ChevronDown
+  ChevronDown,
+  HelpCircle
 } from "lucide-react";
+import { useTour } from "@/components/Tour/TourContext";
 
 // Navigation Items mapping matching Sidebar
 const navItems = [
@@ -50,6 +52,7 @@ export default function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const [mobilePracticeOpen, setMobilePracticeOpen] = useState(false);
   const pathname = usePathname();
+  const { restartTour } = useTour();
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -165,6 +168,20 @@ export default function MobileHeader() {
               </Link>
             );
           })}
+
+          {/* Tour Guide button */}
+          <div className="mt-2 pt-3 border-t border-slate-100">
+            <button
+              onClick={() => {
+                restartTour();
+                setIsOpen(false);
+              }}
+              className="flex items-center gap-x-3 px-4 py-3 rounded-xl font-bold transition-all text-slate-500 hover:bg-blue-50 hover:text-[#0066ff] cursor-pointer w-full"
+            >
+              <HelpCircle className="size-5" />
+              <span className="text-sm tracking-wide">Tour Guide</span>
+            </button>
+          </div>
         </div>
       )}
     </header>

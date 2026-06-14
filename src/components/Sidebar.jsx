@@ -14,6 +14,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTour } from "@/components/Tour/TourContext";
 
 // Custom Inline SVG Icon only (extracted from logo-text-transparent.svg path)
 const PitchoIcon = () => (
@@ -53,6 +54,7 @@ export default function Sidebar() {
   const router = useRouter();
 
   const { logout, user } = useAuth();
+  const { restartTour } = useTour();
 
   const isPracticeActive =
     pathname.startsWith("/interview") || pathname.startsWith("/presentation");
@@ -236,6 +238,18 @@ export default function Sidebar() {
             </span>
           </div> */}
         </div>
+
+        {/* Tour Guide button */}
+        <button
+          type="button"
+          onClick={restartTour}
+          className="flex items-center lg:justify-start justify-center h-[44px] w-full lg:px-3 text-slate-500 hover:bg-blue-50 hover:text-[#0066ff] rounded-xl transition-all font-bold cursor-pointer"
+        >
+          <HelpCircle className="size-[22px] shrink-0" />
+          <span className="hidden lg:inline text-sm font-bold tracking-wide ml-3">
+            Tour Guide
+          </span>
+        </button>
 
         {/* Log Out button */}
         <button

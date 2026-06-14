@@ -26,9 +26,18 @@ import PerformanceCircle from "@/components/UI/PerformanceCircle";
 import MiniLineChart from "@/components/UI/MiniLineChart";
 import { fetchHistory } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTour } from "@/components/Tour/TourContext";
 
 export default function StationPage() {
-  const { user } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const { isTourActive, startTour, isNewUser } = useTour();
+
+  // ── Auto-trigger tour for new users ──────────────────────────
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated && isNewUser && !isTourActive) {
+      startTour();
+    }
+  }, [isLoading, isAuthenticated, isNewUser, isTourActive, startTour]);
   React.useEffect(() => {
     const originalBg = document.body.style.backgroundColor;
     document.body.style.backgroundColor = "#f3f7fd";
@@ -274,7 +283,10 @@ export default function StationPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-3">
-            <div className="w-full bg-blue-500/10 border-2 border-blue-100/50 relative rounded-2xl p-5 gap-7 flex flex-col justify-between">
+            <div
+              data-tour="presentation-card"
+              className="w-full bg-blue-500/10 border-2 border-blue-100/50 relative rounded-2xl p-5 gap-7 flex flex-col justify-between"
+            >
               <div className="flex flex-col gap-1">
                 <span className="text-xl font-bold text-blue-500">
                   Presentation Mode

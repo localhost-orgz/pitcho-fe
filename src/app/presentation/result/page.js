@@ -228,9 +228,11 @@ function useSessionData() {
 
     async function load() {
       try {
+        // Skip redirect when tour is active (user is viewing, not reviewing real data)
+        const tourCompleted = localStorage.getItem("pitcho_tour_completed");
         // Load metadata from localStorage
         const raw = localStorage.getItem("pitcho_session_data");
-        if (!raw) {
+        if (!raw && tourCompleted === "true") {
           setLoading(false);
           window.location.replace("/presentation/setup");
           return;
@@ -1243,7 +1245,10 @@ export default function PresentationResultPage() {
       {/* ── Row 1: Score + Metric cards ──────────────────────── */}
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         {/* Overall score card */}
-        <div className="bg-white rounded-2xl border-bold px-5 py-5 flex flex-col sm:flex-row items-center sm:items-center gap-5 shrink-0 w-full lg:w-[380px] text-center sm:text-left">
+        <div
+          data-tour="score-rings"
+          className="bg-white rounded-2xl border-bold px-5 py-5 flex flex-col sm:flex-row items-center sm:items-center gap-5 shrink-0 w-full lg:w-[380px] text-center sm:text-left"
+        >
           <ScoreRing score={overallScore} />
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -1299,7 +1304,10 @@ export default function PresentationResultPage() {
       )}
 
       {/* ── Tab Navigation ────────────────────────────────────── */}
-      <div className="flex border-b-2 border-slate-200 gap-1 mb-6 overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+      <div
+        data-tour="metrics-tabs"
+        className="flex border-b-2 border-slate-200 gap-1 mb-6 overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0"
+      >
         <button
           onClick={() => setActiveTab("eye")}
           className={`pb-3 px-4 sm:px-6 text-xs sm:text-sm font-bold border-b-4 transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${

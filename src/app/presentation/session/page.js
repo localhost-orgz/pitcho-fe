@@ -37,6 +37,7 @@ import { extractClip } from "@/utils/clipExtractor";
 import { useVideoController } from "@/hooks/useVideoController";
 import { useDistractionSchedule } from "@/hooks/useDistractionSchedule";
 import { useDistractionEngine } from "@/hooks/useDistractionEngine";
+import { useTour } from "@/components/Tour/TourContext";
 
 // ── Key points (iterable) ──────────────────────────────────
 const KEY_POINTS = [
@@ -293,6 +294,21 @@ export default function PresentationSessionPage() {
   const router = useRouter();
   const internetSpeed = useInternetSpeed();
 
+  // ── Tour integration ──────────────────────────────────────
+  const {
+    currentStepIndex,
+    signalReady,
+    isTourActive,
+    markRealSessionStarted,
+  } = useTour();
+
+  // ── Tour awareness — don't redirect during tour ───────────
+  let isTourBlockRedirect = false;
+  try {
+    isTourBlockRedirect =
+      localStorage.getItem("pitcho_tour_completed") !== "true";
+  } catch {}
+
   // ── Eye Tracker integration ─────────────────────────────
   const tracker = useFaceTracker();
   const {
@@ -368,18 +384,21 @@ export default function PresentationSessionPage() {
   const [activeTab, setActiveTab] = useState("cuecard"); // 'cuecard' | 'notes'
 
   useEffect(() => {
-    // Guard: redirect to setup if no session configuration exists
+    // Always read all config from localStorage so cue cards / settings appear
+    // regardless of whether a tour is in progress.
     const storedDuration = localStorage.getItem("pitcho_selected_duration");
-    if (!storedDuration) {
-      router.replace("/presentation/setup");
-      return;
-    }
-
     const storedFile = localStorage.getItem("pitcho_presentation_file");
     const storedDistraction = localStorage.getItem(
       "pitcho_selected_distraction",
     );
     const storedCueCards = localStorage.getItem("pitcho_cue_cards");
+
+    // Guard: only redirect to setup if there is no session config AND we are
+    // NOT in the middle of a tour (tour uses the session page for demo viewing).
+    if (!isTourBlockRedirect && !storedDuration) {
+      router.replace("/presentation/setup");
+      return;
+    }
 
     if (storedFile) {
       try {
@@ -459,6 +478,22 @@ export default function PresentationSessionPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Tour: signal when calibration is complete ──────────────
+  useEffect(() => {
+    if (!isTourActive) return;
+    if (currentStepIndex === 5 && eyeTrackingActive && sessionRunning) {
+      signalReady("Eye tracking calibrated! Session is live.");
+      markRealSessionStarted();
+    }
+  }, [
+    isTourActive,
+    currentStepIndex,
+    eyeTrackingActive,
+    sessionRunning,
+    signalReady,
+    markRealSessionStarted,
+  ]);
 
   // Called once calibration finishes
   const handleCalibrated = useCallback(() => {
@@ -726,20 +761,22 @@ export default function PresentationSessionPage() {
         </div>
 
         {/* End Session Button */}
-        <Button
-          variant={"danger"}
-          size="sm"
-          className="flex items-center gap-1.5 font-bold"
-          onClick={handleEndSession}
-          disabled={isEnding}
-        >
-          <MonitorX size={14} />
-          {isEnding
-            ? clipProgress
-              ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
-              : "Ending..."
-            : "End Session"}
-        </Button>
+        <div data-tour="end-session-btn">
+          <Button
+            variant={"danger"}
+            size="sm"
+            className="flex items-center gap-1.5 font-bold"
+            onClick={handleEndSession}
+            disabled={isEnding}
+          >
+            <MonitorX size={14} />
+            {isEnding
+              ? clipProgress
+                ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
+                : "Ending..."
+              : "End Session"}
+          </Button>
+        </div>
       </header>
 
       {/* ── Audience Alert Banner ───────────────────────────── */}
@@ -798,6 +835,7 @@ export default function PresentationSessionPage() {
             style={{ containerType: "size" }}
           >
             <div
+              data-tour="classroom-video eye-calibration"
               className="rounded-2xl relative overflow-hidden bg-black"
               style={{
                 width: "min(100cqw, calc(100cqh * 16 / 9))",
@@ -901,7 +939,10 @@ export default function PresentationSessionPage() {
         </div>
 
         {/* ── Right Panel: Cue Card / Notes ─────────────────── */}
-        <div className="w-80 shrink-0 flex flex-col border-l-2 border-border bg-white overflow-hidden">
+        <div
+          data-tour="cue-card-panel"
+          className="w-80 shrink-0 flex flex-col border-l-2 border-border bg-white overflow-hidden"
+        >
           {/* Tab Header */}
           {sessionCueCards.length > 0 && (
             <div className="flex border-b-2 border-border px-4 pt-3 gap-4 shrink-0">

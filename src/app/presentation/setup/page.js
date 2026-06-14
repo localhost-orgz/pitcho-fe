@@ -33,6 +33,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import DocumentLibrary from "@/components/DocumentLibrary";
 import api from "@/lib/api";
+import { useTour } from "@/components/Tour/TourContext";
 
 /**
  * Parse the backend upload response into slides.
@@ -69,6 +70,8 @@ function parseUploadResponse(responseData) {
 
 export default function PresentationSetupPage() {
   const router = useRouter();
+  const { isTourActive } = useTour();
+
   // Card 1: Upload state
   const [uploadedFile, setUploadedFile] = useState(null);
   const [rawFile, setRawFile] = useState(null);
@@ -111,6 +114,32 @@ export default function PresentationSetupPage() {
     }
     checkPermissions();
   }, []);
+
+  // ── Tour integration: sync config to localStorage so session page can read it ──
+  useEffect(() => {
+    if (!isTourActive) return;
+    try {
+      if (uploadedFile) {
+        localStorage.setItem(
+          "pitcho_presentation_file",
+          JSON.stringify(uploadedFile),
+        );
+      }
+      localStorage.setItem("pitcho_selected_distraction", selectedDistraction);
+      localStorage.setItem("pitcho_selected_audience", selectedAudience);
+      localStorage.setItem("pitcho_selected_duration", selectedDuration);
+      if (cueCards.length > 0) {
+        localStorage.setItem("pitcho_cue_cards", JSON.stringify(cueCards));
+      }
+    } catch {}
+  }, [
+    isTourActive,
+    uploadedFile,
+    selectedDistraction,
+    selectedAudience,
+    selectedDuration,
+    cueCards,
+  ]);
 
   const handleAllowCamera = useCallback(async () => {
     try {
@@ -507,7 +536,10 @@ export default function PresentationSetupPage() {
       {/* main grid */}
       <div className="w-full mt-10 grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-4">
         {/* card 1: presentation material */}
-        <div className="col-span-1 row-span-1 w-full px-4 py-6 rounded-2xl border-bold bg-white">
+        <div
+          data-tour="upload-area"
+          className="col-span-1 row-span-1 w-full px-4 py-6 rounded-2xl border-bold bg-white"
+        >
           <div className="flex items-start gap-3">
             <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
               1
@@ -598,7 +630,10 @@ export default function PresentationSetupPage() {
         </div>
 
         {/* card 2: equipemnt check */}
-        <div className="col-span-1 row-span-1 lg:row-start-2 w-full px-4 py-6 rounded-2xl border-bold bg-white">
+        <div
+          data-tour="equipment-check"
+          className="col-span-1 row-span-1 lg:row-start-2 w-full px-4 py-6 rounded-2xl border-bold bg-white"
+        >
           <div className="flex items-start gap-3">
             <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
               2
@@ -834,7 +869,10 @@ export default function PresentationSetupPage() {
         </div>
 
         {/* card 4: simulation environment */}
-        <div className="col-span-1 lg:row-span-2 w-full px-4 py-5 rounded-2xl border-bold bg-white">
+        <div
+          data-tour="simulation-config"
+          className="col-span-1 lg:row-span-2 w-full px-4 py-5 rounded-2xl border-bold bg-white"
+        >
           <div className="flex items-start gap-3">
             <div className="text-white bg-main w-7 h-7 text-sm font-semibold flex justify-center items-center rounded-full">
               4
@@ -1158,6 +1196,7 @@ export default function PresentationSetupPage() {
         </div>
         <div className="flex flex-col justify-center items-center">
           <button
+            data-tour="start-button"
             disabled={
               cameraStatus !== "ready" ||
               micStatus !== "ready" ||
