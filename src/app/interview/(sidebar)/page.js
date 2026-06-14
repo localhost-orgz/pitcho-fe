@@ -849,10 +849,10 @@ export default function InterviewSetupPage() {
         </div>
         <div className="flex flex-col justify-center items-center">
           <button
-            disabled={cameraStatus !== "ready" || micStatus !== "ready" || isSubmitting}
+            disabled={cameraStatus !== "ready" || micStatus !== "ready" || isSubmitting || !uploadedFile}
             onClick={handleStartInterview}
             className={`flex gap-2 items-center rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors ${
-              cameraStatus === "ready" && micStatus === "ready" && !isSubmitting
+              cameraStatus === "ready" && micStatus === "ready" && !isSubmitting && uploadedFile
                 ? "bg-main hover:bg-main/90 cursor-pointer"
                 : "bg-slate-300 cursor-not-allowed opacity-75"
             }`}
@@ -861,7 +861,9 @@ export default function InterviewSetupPage() {
             {isSubmitting ? "Generating..." : "Start Interview"}
           </button>
           <span className="text-xs text-slate-500 mt-1">
-            You can't pause or restart once begin
+            {!uploadedFile
+              ? "Upload your CV/Resume to start"
+              : "You can't pause or restart once begin"}
           </span>
         </div>
       </div>
