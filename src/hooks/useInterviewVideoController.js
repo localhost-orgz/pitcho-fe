@@ -31,11 +31,19 @@ export function useInterviewVideoController(videoRef) {
     const video = videoRef.current;
     if (!video) return;
 
+    const alreadyInIdleSegment =
+      stateRef.current === "idle" &&
+      video.currentTime >= TIMELINE.IDLE_BLINK.start &&
+      video.currentTime < TIMELINE.IDLE_BLINK.end;
+
     stateRef.current = "idle";
     currentSegmentRef.current = "IDLE_BLINK";
     setCurrentState("idle");
 
-    video.currentTime = TIMELINE.IDLE_BLINK.start;
+    // Only seek if necessary — prevents flicker on redundant calls
+    if (!alreadyInIdleSegment || video.paused) {
+      video.currentTime = TIMELINE.IDLE_BLINK.start;
+    }
     video.play().catch(() => {});
   }, [videoRef]);
 

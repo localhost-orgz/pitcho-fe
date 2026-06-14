@@ -467,7 +467,7 @@ export default function ProgressPage() {
       </div>
 
       {/* ─── Row 1: Stats Widgets ─── */}
-      <div className="grid grid-cols-3 gap-4 mb-5">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4 mb-5">
         {/* Day Streak */}
         {streakCurrentLoading ? (
           <div className="bg-white rounded-2xl border-bold px-4 py-4 flex items-center gap-3.5 animate-pulse">

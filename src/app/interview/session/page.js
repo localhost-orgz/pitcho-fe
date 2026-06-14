@@ -994,8 +994,11 @@ export default function InterviewSessionPage() {
                 className="absolute inset-0 w-full h-full object-cover"
                 muted
                 playsInline
+                preload="auto"
                 onLoadedData={videoController.onVideoReady}
+                onCanPlay={videoController.onVideoReady}
                 onTimeUpdate={videoController.handleTimeUpdate}
+                onError={(e) => console.error("Interview video failed to load:", e)}
               />
 
               {/* Phase overlay */}
@@ -1016,7 +1019,7 @@ export default function InterviewSessionPage() {
               </div>
 
               {/* Facecam */}
-              <div className="absolute bottom-4 left-4 w-44 aspect-video shrink-0 rounded-2xl border-2 border-slate-200/80 bg-slate-950 relative overflow-hidden shadow-lg z-10">
+              <div className="absolute bottom-3 left-3 w-72 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 relative overflow-hidden shadow-lg z-10">
                 <video
                   ref={facecamRef}
                   className="w-full h-full object-cover scale-x-[-1]"

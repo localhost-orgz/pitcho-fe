@@ -124,8 +124,9 @@ export default function SessionHistoryList({ sessions, averageScores, loading = 
         </div>
       </div>
 
-      {/* Session rows */}
-      <div className="divide-y divide-slate-50">
+      {/* Session rows — scrollable on mobile */}
+      <div className="overflow-x-auto">
+        <div className="divide-y divide-slate-50 min-w-[500px]">
         {sortedSessions.map((session) => {
           const isPresentation =
             String(session.mode).toLowerCase() === "presentation";
@@ -181,6 +182,7 @@ export default function SessionHistoryList({ sessions, averageScores, loading = 
             </a>
           );
         })}
+      </div>
       </div>
     </div>
   );

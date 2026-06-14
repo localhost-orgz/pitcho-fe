@@ -1,6 +1,5 @@
 import React from "react";
-import Sidebar from "@/components/Sidebar";
-import MobileHeader from "@/components/MobileHeader";
+import AppShell from "@/components/AppShell";
 
 export const metadata = {
   title: "Dashboard - Pitcho",
@@ -8,18 +7,5 @@ export const metadata = {
 };
 
 export default function DashboardLayout({ children }) {
-  return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#f3f7fd]">
-      {/* Responsive Left Sidebar */}
-      <Sidebar />
-
-      {/* Mobile Top Header */}
-      <MobileHeader />
-
-      {/* Main Content Area */}
-      <main className="flex-1 md:pl-20 lg:pl-64 min-h-screen bg-[#f3f7fd]">
-        <div className=" mx-auto p-4 md:p-8 lg:p-10">{children}</div>
-      </main>
-    </div>
-  );
+  return <AppShell bgColor="bg-[#f3f7fd]">{children}</AppShell>;
 }

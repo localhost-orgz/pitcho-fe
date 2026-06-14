@@ -849,8 +849,11 @@ export default function PresentationSessionPage() {
                 className="w-full h-full object-cover"
                 autoPlay
                 playsInline
+                preload="auto"
                 onLoadedData={videoController.onVideoReady}
+                onCanPlay={videoController.onVideoReady}
                 onTimeUpdate={videoController.handleTimeUpdate}
+                onError={(e) => console.error("Classroom video failed to load:", e)}
               />
 
               {/* ── Facecam + Feedback overlays ── */}

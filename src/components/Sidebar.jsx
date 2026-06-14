@@ -57,7 +57,9 @@ export default function Sidebar() {
   const { restartTour } = useTour();
 
   const isPracticeActive =
-    pathname.startsWith("/interview") || pathname.startsWith("/presentation");
+    pathname.startsWith("/interview") ||
+    pathname.startsWith("/presentation") ||
+    pathname.startsWith("/practice");
   const [practiceOpen, setPracticeOpen] = useState(isPracticeActive);
   const [prevPathname, setPrevPathname] = useState(pathname);
 

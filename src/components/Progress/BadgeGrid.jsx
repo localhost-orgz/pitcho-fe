@@ -285,7 +285,7 @@ export default function BadgeGrid({ badges = [], loading = false, compact = fals
           <button
             key={badge.id}
             onClick={() => setSelectedBadge(badge)}
-            className="border-0 bg-transparent p-0 cursor-pointer outline-none text-left w-full"
+            className="border-0 bg-transparent p-0 cursor-pointer outline-none flex justify-center w-full"
           >
             <BadgeIcon
               badge={badge}
