@@ -31,6 +31,7 @@ import {
 import Image from "next/image";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/UI/button";
 import DocumentLibrary from "@/components/DocumentLibrary";
 import api from "@/lib/api";
 import { useTour } from "@/components/Tour/TourContext";
@@ -1195,25 +1196,21 @@ export default function PresentationSetupPage() {
           </div>
         </div>
         <div className="flex flex-col justify-center items-center">
-          <button
+          <Button
             data-tour="start-button"
+            variant="primary"
+            size="sm"
             disabled={
               cameraStatus !== "ready" ||
               micStatus !== "ready" ||
               cueCardStatus === "loading"
             }
             onClick={handleStartPresentation}
-            className={`flex gap-2 items-center rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors ${
-              cameraStatus === "ready" &&
-              micStatus === "ready" &&
-              cueCardStatus !== "loading"
-                ? "bg-main hover:bg-main/90 cursor-pointer"
-                : "bg-slate-300 cursor-not-allowed opacity-75"
-            }`}
+            className="font-semibold text-sm"
           >
             <Play size={17} />
             Start Presentation
-          </button>
+          </Button>
           <span className="text-xs text-slate-500 mt-1">
             You can't pause or restart once begin
           </span>

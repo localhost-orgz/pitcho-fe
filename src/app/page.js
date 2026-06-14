@@ -350,22 +350,30 @@ function HeroSection() {
   return (
     <section className="hero relative overflow-hidden w-full min-h-[calc(100vh-4rem)] flex items-center py-12 md:py-16 px-6 md:px-12 lg:px-20 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/20">
       {/* Decorative Blob Accents */}
-      <div 
+      <div
         className="absolute top-[-10%] left-[-5%] w-[350px] h-[350px] bg-[#fabf24]/10 rounded-full filter blur-[100px] -z-10 animate-float-bob"
-        style={{ animationDuration: '8s' }}
+        style={{ animationDuration: "8s" }}
       ></div>
-      <div 
+      <div
         className="absolute bottom-[-15%] right-[20%] w-[500px] h-[500px] bg-[#0388ff]/8 rounded-full filter blur-[130px] -z-10 animate-float-bob"
-        style={{ animationDuration: '12s', animationDelay: '2s' }}
+        style={{ animationDuration: "12s", animationDelay: "2s" }}
       ></div>
-      <div 
+      <div
         className="absolute top-[20%] right-[-5%] w-[300px] h-[300px] bg-indigo-200/20 rounded-full filter blur-[90px] -z-10 animate-float-bob"
-        style={{ animationDuration: '10s', animationDelay: '1s' }}
+        style={{ animationDuration: "10s", animationDelay: "1s" }}
       ></div>
 
       <div className="max-w-[1200px] mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center z-10">
         {/* Left Column: Text and Actions */}
         <div className="flex flex-col items-start text-left max-w-xl">
+          <div className="inline-flex items-center gap-2 bg-[#0388ff]/10 text-[#0388ff] font-bold text-xs px-3.5 py-1.5 rounded-full mb-6 border border-[#0388ff]/20">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0388ff] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0388ff]"></span>
+            </span>
+            Simulasi Latihan & Analisis Berbasis AI
+          </div>
+
           <h1 className="heroTitle text-[clamp(2.2rem,4.5vw,3.6rem)] font-bold leading-[1.15] text-[#0f1d35] mt-0 mb-6 tracking-[-0.02em]">
             Latihan{" "}
             <span className="heroAccent font-extrabold text-[#fabf24] relative inline-block">
@@ -413,6 +421,68 @@ function HeroSection() {
           {/* Subtle glow / backdrop behind the image */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] h-[95%] bg-blue-400/10 rounded-full filter blur-3xl -z-10"></div>
 
+          {/* Floating AI Coach Card */}
+          <div
+            className="absolute left-[-25px] top-[10%] z-20 hidden lg:flex items-center gap-3.5 bg-white/90 backdrop-blur-md border border-white/50 shadow-[0_10px_30px_rgba(15,29,53,0.08)] rounded-2xl p-4 max-w-[260px] animate-float-bob"
+            style={{ animationDuration: "5s" }}
+          >
+            <div className="shrink-0 flex items-center justify-center bg-blue-50 text-[#0388ff] w-10 h-10 rounded-xl">
+              <IconBrain className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                COACH AI
+              </span>
+              <span className="text-xs font-bold text-slate-700 leading-tight">
+                "Bicara lebih lambat di slide ini (Pace: 115 WPM)"
+              </span>
+            </div>
+          </div>
+
+          {/* Floating Metrics Card */}
+          <div
+            className="absolute right-[-25px] bottom-[10%] z-20 hidden lg:flex flex-col gap-3.5 bg-slate-900/95 backdrop-blur-md border border-slate-800/80 shadow-[0_20px_40px_rgba(15,29,53,0.2)] rounded-2xl p-4 w-[210px] text-white animate-float-bob"
+            style={{ animationDuration: "6s", animationDelay: "2.5s" }}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold text-[#0388ff] uppercase tracking-widest leading-none mb-1">
+                  LIVE ANALISIS
+                </span>
+                <span className="text-xs font-bold text-slate-200">
+                  Performa Anda
+                </span>
+              </div>
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {/* Metric 1 */}
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 font-medium">Filler Words</span>
+                <span className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold text-[9px] tracking-wider uppercase">
+                  Aman (0)
+                </span>
+              </div>
+              {/* Metric 2 */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-medium">Eye Contact</span>
+                  <span className="font-extrabold text-[#fabf24]">95%</span>
+                </div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#0388ff] to-[#fabf24] rounded-full"
+                    style={{ width: "95%" }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Hero Image Frame */}
           <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(15,29,53,0.12)] border border-slate-100/80 transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_25px_60px_rgba(15,29,53,0.15)]">
             <img
               src="/hero-image.jpeg"
@@ -606,6 +676,17 @@ const steps = [
   },
 ];
 
+function StepConnector() {
+  return (
+    <div className="hidden lg:flex flex-1 items-center justify-center mt-[18px] mb-3 self-start pt-[18px]">
+      <div
+        className="w-full border-t-2 border-dashed border-[#b8cfe8]"
+        style={{ marginTop: "0px" }}
+      />
+    </div>
+  );
+}
+
 function HowItWorksSection() {
   return (
     <section
@@ -621,33 +702,63 @@ function HowItWorksSection() {
         jago ngomong
       </h2>
 
-      <div className="stepsGrid max-w-[1100px] mt-13 mx-auto mb-0 grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7">
-        {steps.map((s, i) => (
-          <div
-            key={i}
-            className="stepCard bg-white rounded-[18px] pt-0 px-0 pb-7 text-center shadow-[0_2px_16px_rgba(3,136,255,0.06)] overflow-hidden"
-          >
-            <div className="stepImgContainer w-full h-[130px] overflow-hidden bg-slate-50">
-              <img
-                src={s.imgSrc}
-                alt={`Langkah ${s.num}: ${s.title}`}
-                className="w-full h-full object-cover"
-              />
+      {/* Wrapper untuk grid + connector line */}
+      <div className="max-w-[1100px] mt-13 mx-auto">
+        {/* Row khusus untuk nomor step + connector line */}
+        <div className="hidden lg:grid lg:grid-cols-4 gap-7 mb-6">
+          {steps.map((s, i) => (
+            <div key={i} className="relative flex justify-center">
+              {/* Step number */}
+              <div
+                className="w-9 h-9 rounded-full text-white text-base font-black flex items-center justify-center relative z-10"
+                style={{ background: s.color }}
+              >
+                {s.num}
+              </div>
+
+              {/* Connector line (kecuali setelah step terakhir) */}
+              {i < steps.length - 1 && (
+                <div
+                  className="absolute left-[calc(50%+18px)] w-[calc(100%+28px-36px)] top-1/2 -translate-y-1/2 border-t-2 border-dashed border-[#b8cfe8] z-0"
+                />
+              )}
             </div>
+          ))}
+        </div>
+
+        {/* Grid card (tanpa step number di dalamnya) */}
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-7 mt-0">
+          {steps.map((s, i) => (
             <div
-              className="stepNum w-9 h-9 rounded-full text-white text-base font-black flex items-center justify-center mt-[18px] mx-auto mb-3"
-              style={{ background: s.color }}
+              key={i}
+              className="rounded-[18px] pt-3 px-0 pb-7 text-center overflow-hidden"
             >
-              {s.num}
+              {/* Step number mobile (hanya muncul di bawah lg) */}
+              <div
+                className="lg:hidden w-9 h-9 rounded-full text-white text-base font-black flex items-center justify-center mx-auto mb-3"
+                style={{ background: s.color }}
+              >
+                {s.num}
+              </div>
+
+              <div className="stepImgContainer w-full overflow-hidden mb-5">
+                <img
+                  src={s.imgSrc}
+                  alt={`Langkah ${s.num}: ${s.title}`}
+                  className="w-full object-contain"
+                  style={{ height: "180px" }}
+                />
+              </div>
+
+              <h3 className="stepTitle text-[0.95rem] font-extrabold text-[#0f1d35] mb-2 px-4">
+                {s.title}
+              </h3>
+              <p className="stepDesc text-[0.82rem] text-[#6880a0] leading-[1.55] px-4">
+                {s.desc}
+              </p>
             </div>
-            <h3 className="stepTitle text-[0.95rem] font-extrabold text-[#0f1d35] mb-2 px-4">
-              {s.title}
-            </h3>
-            <p className="stepDesc text-[0.82rem] text-[#6880a0] leading-[1.55] px-4">
-              {s.desc}
-            </p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -474,7 +474,8 @@ export default function InterviewSessionPage() {
       videoController.playIdleLoop();
 
       const q = questions[questionIdx];
-      const questionText = q.question || q.title || `Question ${questionIdx + 1}`;
+      const questionText =
+        q.question || q.title || `Question ${questionIdx + 1}`;
 
       // Read the question via ElevenLabs TTS (falls back to browser SpeechSynthesis)
       await tts.play(questionText, q.id);
@@ -482,7 +483,7 @@ export default function InterviewSessionPage() {
       // TTS done → wait for user to click "Answer"
       setPhase("waiting_to_answer");
     },
-    [questions, videoController, tts]
+    [questions, videoController, tts],
   );
 
   // ── User clicks "Answer" → start recording ────────────────
@@ -510,10 +511,10 @@ export default function InterviewSessionPage() {
         }, 200);
       }, 45000);
     },
-    [videoController, startPerQuestionRecording]
+    [videoController, startPerQuestionRecording],
   );
 
-  // ── User clicks "Submit Answer" → stop, analyze, next ──────
+  // ── User clicks "Submit Answer" → stop, fire analysis in background, next ──
   const handleSubmitAnswer = useCallback(
     async (questionIdx) => {
       // Clear yawn timer
@@ -534,59 +535,77 @@ export default function InterviewSessionPage() {
       setPhase("nodding");
       videoController.playNoddingOnce();
 
-      // Send audio for speech analysis — use server-side transcription
-      let analysisResult = null;
-      let transcript = "";
-      let fillerCount = 0;
-      let wpm = 0;
-
-      if (audioBlob && audioBlob.size > 0) {
-        try {
-          const res = await analyzeSpeech(audioBlob);
-          analysisResult = res?.data || res?.analysis || res;
-
-          // Extract server-side transcription (more accurate than browser SpeechRecognition)
-          transcript =
-            analysisResult?.transcription ||
-            analysisResult?.analysis?.transcription ||
-            analysisResult?.transcript ||
-            analysisResult?.analysis?.transcript ||
-            "";
-
-          // Calculate WPM from server transcript: word count / minutes
-          if (transcript && answerDurationSecs > 0) {
-            const wordCount = transcript
-              .split(/\s+/)
-              .filter((w) => w.length > 0).length;
-            const minutes = answerDurationSecs / 60;
-            wpm = minutes > 0 ? Math.round(wordCount / minutes) : 0;
-          }
-
-          fillerCount =
-            analysisResult?.analysis?.filler_words?.total_filler_count ||
-            analysisResult?.filler_words?.total_filler_count ||
-            0;
-        } catch (err) {
-          console.error("Speech analysis failed:", err);
-        }
-      }
-
-      // Accumulate per-question data
+      // Set initial per-question data (analysis placeholders will be filled in background)
       perQuestionDataRef.current[questionIdx] = {
         question_number: questionIdx + 1,
-        question_text: questions[questionIdx]?.question || questions[questionIdx]?.title || "",
-        user_answer: transcript,
+        question_text:
+          questions[questionIdx]?.question ||
+          questions[questionIdx]?.title ||
+          "",
+        user_answer: "",
         answer_duration_seconds: Math.round(answerDurationSecs),
-        filler_words_count: fillerCount,
+        filler_words_count: 0,
         distract_duration_seconds: Math.round(distractDuration),
-        wpm,
-        speech_analysis: analysisResult,
+        wpm: 0,
+        speech_analysis: null,
       };
+
+      // Fire speech analysis in background — don't block the transition to next question
+      if (audioBlob && audioBlob.size > 0) {
+        const analysisPromise = analyzeSpeech(audioBlob)
+          .then((res) => {
+            const analysisResult = res?.data || res?.analysis || res;
+
+            // Extract server-side transcription (more accurate than browser SpeechRecognition)
+            const transcript =
+              analysisResult?.transcription ||
+              analysisResult?.analysis?.transcription ||
+              analysisResult?.transcript ||
+              analysisResult?.analysis?.transcript ||
+              "";
+
+            // Calculate WPM from server transcript: word count / minutes
+            let wpm = 0;
+            if (transcript && answerDurationSecs > 0) {
+              const wordCount = transcript
+                .split(/\s+/)
+                .filter((w) => w.length > 0).length;
+              const minutes = answerDurationSecs / 60;
+              wpm = minutes > 0 ? Math.round(wordCount / minutes) : 0;
+            }
+
+            const fillerCount =
+              analysisResult?.analysis?.filler_words?.total_filler_count ||
+              analysisResult?.filler_words?.total_filler_count ||
+              0;
+
+            // Update the per-question data with analysis results
+            perQuestionDataRef.current[questionIdx] = {
+              ...perQuestionDataRef.current[questionIdx],
+              user_answer: transcript,
+              filler_words_count: fillerCount,
+              wpm,
+              speech_analysis: analysisResult,
+            };
+          })
+          .catch((err) => {
+            console.error(
+              "Speech analysis failed for Q" + (questionIdx + 1) + ":",
+              err,
+            );
+          });
+
+        // Track this promise so handleEndSession can await all pending analyses
+        if (!pendingAnalysisRef.current) {
+          pendingAnalysisRef.current = [];
+        }
+        pendingAnalysisRef.current.push(analysisPromise);
+      }
 
       // Mark as completed
       setCompletedQuestions((prev) => new Set(prev).add(questionIdx));
 
-      // Wait for nodding animation to finish before next question
+      // Immediately transition to next question — don't wait for analysis
       const checkNodDone = setInterval(() => {
         if (videoController.currentState !== "nodding") {
           clearInterval(checkNodDone);
@@ -601,7 +620,7 @@ export default function InterviewSessionPage() {
       stopPerQuestionRecording,
       totalDistractedTime,
       goToInterviewer,
-    ]
+    ],
   );
 
   // ── End session ───────────────────────────────────────────
@@ -614,16 +633,14 @@ export default function InterviewSessionPage() {
     }
 
     // Build evaluate payload
-    const sessions = perQuestionDataRef.current
-      .filter(Boolean)
-      .map((q) => ({
-        question_number: q.question_number,
-        question_text: q.question_text,
-        user_answer: q.user_answer,
-        answer_duration_seconds: q.answer_duration_seconds,
-        filler_words_count: q.filler_words_count,
-        distract_duration_seconds: q.distract_duration_seconds,
-      }));
+    const sessions = perQuestionDataRef.current.filter(Boolean).map((q) => ({
+      question_number: q.question_number,
+      question_text: q.question_text,
+      user_answer: q.user_answer,
+      answer_duration_seconds: q.answer_duration_seconds,
+      filler_words_count: q.filler_words_count,
+      distract_duration_seconds: q.distract_duration_seconds,
+    }));
 
     let evaluateData = null;
 
@@ -643,7 +660,10 @@ export default function InterviewSessionPage() {
             parsed?.data?.documentId;
         }
       } catch (err) {
-        console.warn("Failed to retrieve documentId from interview_questions:", err);
+        console.warn(
+          "Failed to retrieve documentId from interview_questions:",
+          err,
+        );
       }
     }
 
@@ -660,7 +680,7 @@ export default function InterviewSessionPage() {
             documentId: documentId || undefined,
             document_id: documentId || undefined,
           }),
-        }
+        },
       );
       if (res.ok) {
         evaluateData = await res.json();
@@ -680,7 +700,7 @@ export default function InterviewSessionPage() {
         lookAwayEvents: lookAwayEvents || [],
         documentId: documentId || null,
         document_id: documentId || null,
-      })
+      }),
     );
 
     // Stop eye tracker and get recording blobs
@@ -700,7 +720,11 @@ export default function InterviewSessionPage() {
             try {
               const clipStart = Math.max(0, (event.timestamp || 0) - 3);
               const clipDuration = 6;
-              const clipBlob = await extractClip(videoBlob, clipStart, clipDuration);
+              const clipBlob = await extractClip(
+                videoBlob,
+                clipStart,
+                clipDuration,
+              );
               if (clipBlob) {
                 localClips.push({
                   id: event.id,
@@ -711,7 +735,11 @@ export default function InterviewSessionPage() {
                 });
               }
             } catch (clipErr) {
-              console.warn("Clip extraction failed for event:", event.id, clipErr);
+              console.warn(
+                "Clip extraction failed for event:",
+                event.id,
+                clipErr,
+              );
             }
             setClipProgress({ current: i + 1, total: events.length });
           }
@@ -764,14 +792,34 @@ export default function InterviewSessionPage() {
   // ── Eye contact tier ──────────────────────────────────────
   const getEyeContactTier = (count) => {
     if (!eyeTrackingActive)
-      return { label: "Starting…", textClass: "text-slate-400", dotClass: "bg-slate-300" };
+      return {
+        label: "Starting…",
+        textClass: "text-slate-400",
+        dotClass: "bg-slate-300",
+      };
     if (count <= 2)
-      return { label: "Good", textClass: "text-green-600", dotClass: "bg-green-500" };
+      return {
+        label: "Good",
+        textClass: "text-green-600",
+        dotClass: "bg-green-500",
+      };
     if (count <= 5)
-      return { label: "Fair", textClass: "text-amber-500", dotClass: "bg-amber-400" };
+      return {
+        label: "Fair",
+        textClass: "text-amber-500",
+        dotClass: "bg-amber-400",
+      };
     if (count <= 9)
-      return { label: "Poor", textClass: "text-orange-500", dotClass: "bg-orange-400" };
-    return { label: "Very Poor", textClass: "text-red-500", dotClass: "bg-red-500" };
+      return {
+        label: "Poor",
+        textClass: "text-orange-500",
+        dotClass: "bg-orange-400",
+      };
+    return {
+      label: "Very Poor",
+      textClass: "text-red-500",
+      dotClass: "bg-red-500",
+    };
   };
 
   const eyeContactTier = getEyeContactTier(lookAwayCount);
@@ -803,7 +851,9 @@ export default function InterviewSessionPage() {
       <div className="flex h-screen items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
           <Loader2 size={32} className="text-main animate-spin" />
-          <span className="text-sm font-bold text-slate-400">Loading interview…</span>
+          <span className="text-sm font-bold text-slate-400">
+            Loading interview…
+          </span>
         </div>
       </div>
     );
@@ -812,401 +862,609 @@ export default function InterviewSessionPage() {
   return (
     <>
       <div className="flex flex-col h-dvh bg-white overflow-hidden portrait-lock-hide">
-      {/* ── Top Header ─────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-4 lg:px-6 py-2 lg:py-3 border-b-2 border-border bg-white z-10 shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-slate-800 tracking-tight text-base lg:text-lg">
-            Interview
-          </span>
+        {/* ── Top Header ─────────────────────────────────────── */}
+        <header className="flex items-center justify-between px-4 lg:px-6 py-2 lg:py-3 border-b-2 border-border bg-white z-10 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-slate-800 tracking-tight text-base lg:text-lg">
+              Interview
+            </span>
 
-          {/* Phase badge — desktop only */}
-          <span
-            className={`hidden lg:flex px-2.5 py-1 border text-xs font-bold rounded-md items-center gap-1.5 ${
-              phase === "user_answer"
-                ? "bg-red-50 border-red-200 text-red-600"
-                : phase === "interviewer"
-                  ? "bg-blue-50 border-blue-200 text-blue-600"
-                  : phase === "nodding"
-                    ? "bg-green-50 border-green-200 text-green-600"
-                    : "bg-slate-50 border-slate-200 text-slate-600"
-            }`}
-          >
+            {/* Phase badge — desktop only */}
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
+              className={`hidden lg:flex px-2.5 py-1 border text-xs font-bold rounded-md items-center gap-1.5 ${
                 phase === "user_answer"
-                  ? "bg-red-500 animate-pulse"
+                  ? "bg-red-50 border-red-200 text-red-600"
                   : phase === "interviewer"
-                    ? "bg-blue-500"
+                    ? "bg-blue-50 border-blue-200 text-blue-600"
                     : phase === "nodding"
-                      ? "bg-green-500"
-                      : "bg-slate-400"
+                      ? "bg-green-50 border-green-200 text-green-600"
+                      : "bg-slate-50 border-slate-200 text-slate-600"
               }`}
-            />
-            {phaseLabel}
-          </span>
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  phase === "user_answer"
+                    ? "bg-red-500 animate-pulse"
+                    : phase === "interviewer"
+                      ? "bg-blue-500"
+                      : phase === "nodding"
+                        ? "bg-green-500"
+                        : "bg-slate-400"
+                }`}
+              />
+              {phaseLabel}
+            </span>
 
-          {/* Question counter — desktop only */}
-          <span className="hidden lg:inline text-xs font-bold text-slate-400">
-            Q {Math.min(currentQuestionIndex + 1, questions.length)} / {questions.length}
-          </span>
-        </div>
-
-        {/* Eye Tracking Status — desktop only */}
-        {eyeTrackingActive && (
-          <span
-            className={`hidden lg:flex px-2.5 py-1 border text-xs font-bold rounded-md items-center gap-1.5 ${
-              trackerStatus === "warning"
-                ? "bg-orange-50 border-orange-200 text-orange-600"
-                : "bg-green-50 border-green-200 text-green-600"
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`} />
-            Eye Tracking {trackerStatus === "warning" ? "— Look Away!" : "Active"}
-          </span>
-        )}
-
-        {/* Timer — mobile only */}
-        <span className="flex lg:hidden items-center gap-1.5">
-          <span className="font-mono font-black text-lg text-main">
-            {formatTime(elapsed)}
-          </span>
-          <span className="font-mono font-bold text-xs text-slate-400">
-            / {formatTime(SESSION_TOTAL)}
-          </span>
-        </span>
-
-        {/* End Session — full label on desktop, icon-only on mobile */}
-        <Button
-          variant={"danger"}
-          size="sm"
-          className="flex items-center gap-1.5 font-bold shrink-0"
-          onClick={() => {
-            setIsEnding(true);
-            setPhase("ending");
-            handleEndSession();
-          }}
-        >
-          <MonitorX size={14} />
-          <span className="hidden lg:inline">End Session</span>
-        </Button>
-      </header>
-
-      {/* ── Phase Banner — Desktop ─────────────────────── */}
-      <div className="hidden lg:flex items-center gap-3 px-6 py-2.5 bg-violet-50 border-b-2 border-violet-100 shrink-0">
-        <div className="flex-1 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {phase === "interviewer" && (
-              <Volume2 size={14} className="text-violet-500 animate-pulse" />
-            )}
-            {phase === "user_answer" && (
-              <Mic size={14} className="text-red-500 animate-pulse" />
-            )}
-            {phase === "waiting_to_answer" && (
-              <MessageSquare size={14} className="text-main" />
-            )}
-            <span className="text-xs font-bold text-violet-700">
-              {phase === "interviewer"
-                ? "Listen carefully to the question…"
-                : phase === "user_answer"
-                  ? "Recording your answer — click Submit when done"
-                  : phase === "waiting_to_answer"
-                    ? "Click \"Answer\" when you're ready to respond"
-                    : phaseLabel}
+            {/* Question counter — desktop only */}
+            <span className="hidden lg:inline text-xs font-bold text-slate-400">
+              Q {Math.min(currentQuestionIndex + 1, questions.length)} /{" "}
+              {questions.length}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            {/* First-question guide — highlighted callout */}
-            {phase === "waiting_to_answer" && currentQuestionIndex === 0 && showFirstQuestionGuide && (
-              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-blue-50 border-2 border-blue-300 rounded-xl shadow-[0_0_12px_rgba(59,130,246,0.25)] transition-all duration-300">
-                <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-                  <Lightbulb size={13} className="text-white" fill="white" />
+
+          {/* Eye Tracking Status — desktop only */}
+          {eyeTrackingActive && (
+            <span
+              className={`hidden lg:flex px-2.5 py-1 border text-xs font-bold rounded-md items-center gap-1.5 ${
+                trackerStatus === "warning"
+                  ? "bg-orange-50 border-orange-200 text-orange-600"
+                  : "bg-green-50 border-green-200 text-green-600"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`}
+              />
+              Eye Tracking{" "}
+              {trackerStatus === "warning" ? "— Look Away!" : "Active"}
+            </span>
+          )}
+
+          {/* Timer — mobile only */}
+          <span className="flex lg:hidden items-center gap-1.5">
+            <span className="font-mono font-black text-lg text-main">
+              {formatTime(elapsed)}
+            </span>
+            <span className="font-mono font-bold text-xs text-slate-400">
+              / {formatTime(SESSION_TOTAL)}
+            </span>
+          </span>
+
+          {/* End Session — full label on desktop, icon-only on mobile */}
+          <Button
+            variant={"danger"}
+            size="sm"
+            className="flex items-center gap-1.5 font-bold shrink-0"
+            onClick={() => {
+              setIsEnding(true);
+              setPhase("ending");
+              handleEndSession();
+            }}
+          >
+            <MonitorX size={14} />
+            <span className="hidden lg:inline">End Session</span>
+          </Button>
+        </header>
+
+        {/* ── Phase Banner — Desktop ─────────────────────── */}
+        <div className="hidden lg:flex items-center gap-3 px-6 py-2.5 bg-violet-50 border-b-2 border-violet-100 shrink-0">
+          <div className="flex-1 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {phase === "interviewer" && (
+                <Volume2 size={14} className="text-violet-500 animate-pulse" />
+              )}
+              {phase === "user_answer" && (
+                <Mic size={14} className="text-red-500 animate-pulse" />
+              )}
+              {phase === "waiting_to_answer" && (
+                <MessageSquare size={14} className="text-main" />
+              )}
+              <span className="text-xs font-bold text-violet-700">
+                {phase === "interviewer"
+                  ? "Listen carefully to the question…"
+                  : phase === "user_answer"
+                    ? "Recording your answer — click Submit when done"
+                    : phase === "waiting_to_answer"
+                      ? 'Click "Answer" when you\'re ready to respond'
+                      : phaseLabel}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* First-question guide — highlighted callout */}
+              {phase === "waiting_to_answer" &&
+                currentQuestionIndex === 0 &&
+                showFirstQuestionGuide && (
+                  <div className="flex items-center gap-2.5 px-4 py-2.5 bg-blue-50 border-2 border-blue-300 rounded-xl shadow-[0_0_12px_rgba(59,130,246,0.25)] transition-all duration-300">
+                    <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                      <Lightbulb
+                        size={13}
+                        className="text-white"
+                        fill="white"
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-blue-800">
+                      Press{" "}
+                      <span className="inline-block px-1.5 py-0.5 bg-blue-500 text-white rounded-md text-[11px] font-black">
+                        Answer
+                      </span>{" "}
+                      to start recording, then{" "}
+                      <span className="inline-block px-1.5 py-0.5 bg-green-500 text-white rounded-md text-[11px] font-black">
+                        Submit Answer
+                      </span>{" "}
+                      when done.
+                    </span>
+                    <button
+                      onClick={() => setShowFirstQuestionGuide(false)}
+                      className="ml-1 p-1 rounded-full hover:bg-blue-200 text-blue-400 hover:text-blue-600 transition-colors cursor-pointer"
+                      aria-label="Dismiss"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                )}
+              {/* Action Buttons */}
+              {phase === "waiting_to_answer" && (
+                <div className="relative">
+                  {currentQuestionIndex === 0 && showFirstQuestionGuide && (
+                    <div className="absolute inset-0 rounded-xl ring-4 ring-blue-400/60 animate-pulse pointer-events-none" />
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleStartAnswer(currentQuestionIndex)}
+                    className="font-extrabold text-xs"
+                  >
+                    <Play size={14} fill="white" />
+                    Answer
+                  </Button>
                 </div>
-                <span className="text-xs font-bold text-blue-800">
-                  Press <span className="inline-block px-1.5 py-0.5 bg-blue-500 text-white rounded-md text-[11px] font-black">Answer</span> to start recording, then <span className="inline-block px-1.5 py-0.5 bg-green-500 text-white rounded-md text-[11px] font-black">Submit Answer</span> when done.
-                </span>
-                <button
-                  onClick={() => setShowFirstQuestionGuide(false)}
-                  className="ml-1 p-1 rounded-full hover:bg-blue-200 text-blue-400 hover:text-blue-600 transition-colors cursor-pointer"
-                  aria-label="Dismiss"
+              )}
+              {phase === "user_answer" && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleSubmitAnswer(currentQuestionIndex)}
+                  className="font-extrabold text-xs"
                 >
-                  <X size={13} />
-                </button>
+                  <CheckCircle size={14} />
+                  Submit Answer
+                </Button>
+              )}
+
+              <span className="text-[10px] text-slate-400 font-semibold italic">
+                Session in progress
+              </span>
+              {tts.fallbackActive && (
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                  <AlertTriangle size={10} />
+                  Browser TTS
+                </span>
+              )}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Time
+                </span>
+                <span className="font-mono font-black text-xl text-main">
+                  {formatTime(elapsed)}
+                </span>
+                <span className="font-mono font-bold text-slate-400">
+                  / {formatTime(SESSION_TOTAL)}
+                </span>
               </div>
-            )}
-            {/* Action Buttons */}
+            </div>
+          </div>
+        </div>
+
+        {/* First-question guide — Mobile */}
+        {phase === "waiting_to_answer" &&
+          currentQuestionIndex === 0 &&
+          showFirstQuestionGuide && (
+            <div className="flex lg:hidden items-center gap-2.5 px-4 py-3 bg-blue-50 border-b-2 border-blue-300 shadow-[0_2px_8px_rgba(59,130,246,0.2)] shrink-0 transition-all duration-300">
+              <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                <Lightbulb size={13} className="text-white" fill="white" />
+              </div>
+              <span className="text-[11px] font-bold text-blue-800 flex-1 leading-snug">
+                Press{" "}
+                <span className="inline-block px-1.5 py-0.5 bg-blue-500 text-white rounded-md text-[10px] font-black">
+                  Answer
+                </span>{" "}
+                to record, then{" "}
+                <span className="inline-block px-1.5 py-0.5 bg-green-500 text-white rounded-md text-[10px] font-black">
+                  Submit
+                </span>
+                .
+              </span>
+              <button
+                onClick={() => setShowFirstQuestionGuide(false)}
+                className="p-1 rounded-full hover:bg-blue-200 text-blue-400 hover:text-blue-600 transition-colors cursor-pointer"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+        {/* ── Phase Banner — Mobile (compact single row) ──── */}
+        <div className="flex lg:hidden items-center gap-2 px-4 py-2 bg-violet-50 border-b-2 border-violet-100 shrink-0">
+          <span className="text-xs font-bold text-violet-700 flex-1 truncate">
+            {phaseLabel}
+          </span>
+          <div className="flex items-center gap-2 shrink-0">
             {phase === "waiting_to_answer" && (
               <div className="relative">
                 {currentQuestionIndex === 0 && showFirstQuestionGuide && (
-                  <div className="absolute inset-0 rounded-xl ring-4 ring-blue-400/60 animate-pulse pointer-events-none" />
+                  <div className="absolute inset-0 rounded-lg ring-4 ring-blue-400/60 animate-pulse pointer-events-none" />
                 )}
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => handleStartAnswer(currentQuestionIndex)}
-                  className="h-9 bg-main hover:bg-blue-700 text-white font-extrabold text-xs px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_3px_0_#1e40af] active:translate-y-[2px] active:shadow-none"
+                  className="font-extrabold text-[11px] h-8"
                 >
-                  <Play size={14} fill="white" />
+                  <Play size={12} fill="white" />
                   Answer
-                </button>
+                </Button>
               </div>
             )}
             {phase === "user_answer" && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => handleSubmitAnswer(currentQuestionIndex)}
-                className="h-9 bg-[#58cc02] hover:bg-[#58a700] text-white font-extrabold text-xs px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_3px_0_#58a700] active:translate-y-[2px] active:shadow-none"
+                className="font-extrabold text-[11px] h-8"
               >
-                <CheckCircle size={14} />
-                Submit Answer
-              </button>
+                <CheckCircle size={12} />
+                Submit
+              </Button>
             )}
-
-            <span className="text-[10px] text-slate-400 font-semibold italic">
-              Session in progress
+            <span className="font-mono font-black text-sm text-main">
+              {formatTime(elapsed)}
             </span>
-            {tts.fallbackActive && (
-              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                <AlertTriangle size={10} />
-                Browser TTS
-              </span>
-            )}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Time
-              </span>
-              <span className="font-mono font-black text-xl text-main">
-                {formatTime(elapsed)}
-              </span>
-              <span className="font-mono font-bold text-slate-400">
-                / {formatTime(SESSION_TOTAL)}
-              </span>
-            </div>
           </div>
         </div>
-      </div>
 
-      {/* First-question guide — Mobile */}
-      {phase === "waiting_to_answer" && currentQuestionIndex === 0 && showFirstQuestionGuide && (
-        <div className="flex lg:hidden items-center gap-2.5 px-4 py-3 bg-blue-50 border-b-2 border-blue-300 shadow-[0_2px_8px_rgba(59,130,246,0.2)] shrink-0 transition-all duration-300">
-          <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-            <Lightbulb size={13} className="text-white" fill="white" />
-          </div>
-          <span className="text-[11px] font-bold text-blue-800 flex-1 leading-snug">
-            Press <span className="inline-block px-1.5 py-0.5 bg-blue-500 text-white rounded-md text-[10px] font-black">Answer</span> to record, then <span className="inline-block px-1.5 py-0.5 bg-green-500 text-white rounded-md text-[10px] font-black">Submit</span>.
-          </span>
-          <button
-            onClick={() => setShowFirstQuestionGuide(false)}
-            className="p-1 rounded-full hover:bg-blue-200 text-blue-400 hover:text-blue-600 transition-colors cursor-pointer"
-            aria-label="Dismiss"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-      {/* ── Phase Banner — Mobile (compact single row) ──── */}
-      <div className="flex lg:hidden items-center gap-2 px-4 py-2 bg-violet-50 border-b-2 border-violet-100 shrink-0">
-        <span className="text-xs font-bold text-violet-700 flex-1 truncate">
-          {phaseLabel}
-        </span>
-        <div className="flex items-center gap-2 shrink-0">
-          {phase === "waiting_to_answer" && (
-            <div className="relative">
-              {currentQuestionIndex === 0 && showFirstQuestionGuide && (
-                <div className="absolute inset-0 rounded-lg ring-4 ring-blue-400/60 animate-pulse pointer-events-none" />
-              )}
-            <button
-              onClick={() => handleStartAnswer(currentQuestionIndex)}
-              className="h-8 bg-main hover:bg-blue-700 text-white font-extrabold text-[11px] px-3 rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[0_2px_0_#1e40af] active:translate-y-[2px] active:shadow-none"
-            >
-              <Play size={12} fill="white" />
-              Answer
-            </button>
-            </div>
-          )}
-          {phase === "user_answer" && (
-            <button
-              onClick={() => handleSubmitAnswer(currentQuestionIndex)}
-              className="h-8 bg-[#58cc02] hover:bg-[#58a700] text-white font-extrabold text-[11px] px-3 rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[0_2px_0_#58a700] active:translate-y-[2px] active:shadow-none"
-            >
-              <CheckCircle size={12} />
-              Submit
-            </button>
-          )}
-          <span className="font-mono font-black text-sm text-main">
-            {formatTime(elapsed)}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Main Content ────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
-        {/* Left: Video Viewport + Camera + Live Feedback */}
-        <div className="flex-1 flex flex-col overflow-hidden p-0 lg:p-4 gap-0 lg:gap-4 bg-[#f3f7fd]">
-          {/* Interview Video + Facecam */}
-          <div
-            className="flex-1 min-h-0 w-full flex items-center justify-center"
-            style={{ containerType: "size" }}
-          >
+        {/* ── Main Content ────────────────────────────────────── */}
+        <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
+          {/* Left: Video Viewport + Camera + Live Feedback */}
+          <div className="flex-1 flex flex-col overflow-hidden p-0 lg:p-4 gap-0 lg:gap-4 bg-[#f3f7fd]">
+            {/* Interview Video + Facecam */}
             <div
-              className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-950 relative overflow-hidden"
-              style={{
-                width: "min(100cqw, calc(100cqh * 16 / 9))",
-                height: "min(100cqh, calc(100cqw * 9 / 16))",
-              }}
+              className="flex-1 min-h-0 w-full flex items-center justify-center"
+              style={{ containerType: "size" }}
             >
-              {/* Interviewer video */}
-              <video
-                ref={interviewVideoRef}
-                src="/interview.mp4"
-                className="absolute inset-0 w-full h-full object-cover"
-                muted
-                playsInline
-                preload="auto"
-                onLoadedData={videoController.onVideoReady}
-                onCanPlay={videoController.onVideoReady}
-                onTimeUpdate={videoController.handleTimeUpdate}
-                onError={(e) => console.error("Interview video failed to load:", e)}
-              />
+              <div
+                className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-950 relative overflow-hidden"
+                style={{
+                  width: "min(100cqw, calc(100cqh * 16 / 9))",
+                  height: "min(100cqh, calc(100cqw * 9 / 16))",
+                }}
+              >
+                {/* Interviewer video */}
+                <video
+                  ref={interviewVideoRef}
+                  src="/interview.mp4"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  muted
+                  playsInline
+                  preload="auto"
+                  onLoadedData={videoController.onVideoReady}
+                  onCanPlay={videoController.onVideoReady}
+                  onTimeUpdate={videoController.handleTimeUpdate}
+                  onError={(e) =>
+                    console.error("Interview video failed to load:", e)
+                  }
+                />
 
-              {/* Phase overlay */}
-              <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
-                <span
-                  className={`px-4 py-1.5 rounded-full text-xs font-black backdrop-blur-sm ${
-                    phase === "yawning"
-                      ? "bg-orange-500/80 text-white"
-                      : phase === "nodding"
-                        ? "bg-green-500/80 text-white"
-                        : phase === "user_answer"
-                          ? "bg-red-500/80 text-white"
-                          : "bg-white/80 text-slate-700"
-                  }`}
-                >
-                  {phaseLabel}
-                </span>
-              </div>
-
-              {/* Facecam + Live Feedback */}
-              <div className="absolute bottom-3 left-3 right-3 flex items-end gap-3 pointer-events-auto z-20">
-                {/* Facecam (bottom-left) */}
-                <div className="w-36 md:w-48 lg:w-72 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 relative overflow-hidden shadow-lg">
-                  <video
-                    ref={facecamRef}
-                    className="w-full h-full object-cover scale-x-[-1]"
-                    muted
-                    playsInline
-                    autoPlay
-                  />
-                  {!isFaceDetected && cameraReady && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
-                      <div className="flex flex-col items-center gap-1.5 text-white/80 text-[10px] font-bold">
-                        <ScanFace size={22} className="animate-pulse" />
-                        <span>Searching face…</span>
-                      </div>
-                    </div>
-                  )}
-                  {eyeTrackingActive && (
-                    <div
-                      className={`absolute top-2 left-2 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md z-10 ${
-                        trackerStatus === "warning"
-                          ? "bg-orange-500 text-white"
-                          : "bg-main/90 text-white"
-                      }`}
-                    >
-                      <Eye size={9} />
-                      <span>
-                        {trackerStatus === "warning" ? "DISTRACTED" : "TRACKING"}
-                      </span>
-                    </div>
-                  )}
+                {/* Phase overlay */}
+                <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                  <span
+                    className={`px-4 py-1.5 rounded-full text-xs font-black backdrop-blur-sm ${
+                      phase === "yawning"
+                        ? "bg-orange-500/80 text-white"
+                        : phase === "nodding"
+                          ? "bg-green-500/80 text-white"
+                          : phase === "user_answer"
+                            ? "bg-red-500/80 text-white"
+                            : "bg-white/80 text-slate-700"
+                    }`}
+                  >
+                    {phaseLabel}
+                  </span>
                 </div>
 
-                {/* Compact Live Feedback (bottom-right) */}
-                <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-xl px-3 py-2 shadow-lg">
-                  {/* Live label */}
-                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                    Live Analytics
-                  </span>
-                  {/* Divider */}
-                  <div className="w-px h-4 bg-white/20" />
-                  {/* Status icon */}
-                  <div className="shrink-0">
-                    {trackerStatus === "warning" ? (
-                      <AlertTriangle size={14} className="text-orange-400" />
-                    ) : (
-                      <CheckCircle size={14} className="text-emerald-400" />
+                {/* Facecam + Live Feedback */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-end gap-3 pointer-events-auto z-20">
+                  {/* Facecam (bottom-left) */}
+                  <div className="w-36 md:w-48 lg:w-72 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 relative overflow-hidden shadow-lg">
+                    <video
+                      ref={facecamRef}
+                      className="w-full h-full object-cover scale-x-[-1]"
+                      muted
+                      playsInline
+                      autoPlay
+                    />
+                    {!isFaceDetected && cameraReady && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                        <div className="flex flex-col items-center gap-1.5 text-white/80 text-[10px] font-bold">
+                          <ScanFace size={22} className="animate-pulse" />
+                          <span>Searching face…</span>
+                        </div>
+                      </div>
+                    )}
+                    {eyeTrackingActive && (
+                      <div
+                        className={`absolute top-2 left-2 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md z-10 ${
+                          trackerStatus === "warning"
+                            ? "bg-orange-500 text-white"
+                            : "bg-main/90 text-white"
+                        }`}
+                      >
+                        <Eye size={9} />
+                        <span>
+                          {trackerStatus === "warning"
+                            ? "DISTRACTED"
+                            : "TRACKING"}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  {/* Eye Contact */}
-                  <div className="flex items-center gap-1">
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`}
-                    />
-                    <span className="text-[10px] font-semibold text-white/70">
-                      {eyeContactStatus}
+
+                  {/* Compact Live Feedback (bottom-right) */}
+                  <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-xl px-3 py-2 shadow-lg">
+                    {/* Live label */}
+                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                      Live Analytics
                     </span>
+                    {/* Divider */}
+                    <div className="w-px h-4 bg-white/20" />
+                    {/* Status icon */}
+                    <div className="shrink-0">
+                      {trackerStatus === "warning" ? (
+                        <AlertTriangle size={14} className="text-orange-400" />
+                      ) : (
+                        <CheckCircle size={14} className="text-emerald-400" />
+                      )}
+                    </div>
+                    {/* Eye Contact */}
+                    <div className="flex items-center gap-1">
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full ${eyeContactIndicatorClass}`}
+                      />
+                      <span className="text-[10px] font-semibold text-white/70">
+                        {eyeContactStatus}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Calibration overlay */}
+                {showCalibration && (
+                  <CalibrationOverlay
+                    tracker={tracker}
+                    onCalibrated={handleCalibrated}
+                  />
+                )}
+
+                {/* Warning glow when distracted */}
+                {eyeTrackingActive && trackerStatus === "warning" && (
+                  <div className="absolute inset-0 border-4 border-orange-500 rounded-2xl pointer-events-none animate-pulse z-20" />
+                )}
               </div>
+            </div>
 
-              {/* Calibration overlay */}
-              {showCalibration && (
-                <CalibrationOverlay
-                  tracker={tracker}
-                  onCalibrated={handleCalibrated}
-                />
-              )}
+            {/* Equipment Status Bar — Desktop only */}
+            <div className="hidden lg:flex">
+              <EquipmentBar
+                internetSpeed={internetSpeed}
+                isCameraOn={cameraReady}
+                isMicOn={cameraReady}
+              />
+            </div>
 
-              {/* Warning glow when distracted */}
-              {eyeTrackingActive && trackerStatus === "warning" && (
-                <div className="absolute inset-0 border-4 border-orange-500 rounded-2xl pointer-events-none animate-pulse z-20" />
-              )}
+            {/* Equipment Strip — Mobile only */}
+            <div className="flex lg:hidden items-center justify-between px-4 py-1.5 bg-white border-t border-slate-200 shrink-0">
+              <div className="flex items-center gap-3 text-[11px]">
+                <span className="flex items-center gap-1 font-bold text-slate-600">
+                  <Camera
+                    size={12}
+                    className={cameraReady ? "text-green-600" : "text-red-500"}
+                  />
+                  {cameraReady ? "On" : "Off"}
+                </span>
+                <span className="flex items-center gap-1 font-bold text-slate-600">
+                  <Mic
+                    size={12}
+                    className={cameraReady ? "text-green-600" : "text-red-500"}
+                  />
+                  {cameraReady ? "On" : "Off"}
+                </span>
+              </div>
+              <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
+                <Wifi size={12} className="text-main" />
+                {internetSpeed} Mbps
+              </span>
             </div>
           </div>
 
-          {/* Equipment Status Bar — Desktop only */}
-          <div className="hidden lg:flex">
-            <EquipmentBar
-              internetSpeed={internetSpeed}
-              isCameraOn={cameraReady}
-              isMicOn={cameraReady}
-            />
-          </div>
-
-          {/* Equipment Strip — Mobile only */}
-          <div className="flex lg:hidden items-center justify-between px-4 py-1.5 bg-white border-t border-slate-200 shrink-0">
-            <div className="flex items-center gap-3 text-[11px]">
-              <span className="flex items-center gap-1 font-bold text-slate-600">
-                <Camera size={12} className={cameraReady ? "text-green-600" : "text-red-500"} />
-                {cameraReady ? "On" : "Off"}
-              </span>
-              <span className="flex items-center gap-1 font-bold text-slate-600">
-                <Mic size={12} className={cameraReady ? "text-green-600" : "text-red-500"} />
-                {cameraReady ? "On" : "Off"}
+          {/* ── Right Panel: Current Question — Desktop only ──────── */}
+          <div className="hidden lg:flex w-80 shrink-0 flex-col border-l-2 border-border bg-white overflow-hidden">
+            <div className="flex border-b-2 border-border px-4 pt-3 gap-4 shrink-0">
+              <span className="pb-2.5 text-sm font-bold border-b-2 transition-colors border-main text-main">
+                Current Question
               </span>
             </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
-              <Wifi size={12} className="text-main" />
-              {internetSpeed} Mbps
-            </span>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {questionsLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Loader2 size={32} className="text-main animate-spin" />
+                  <span className="text-xs font-bold text-slate-400">
+                    Loading questions…
+                  </span>
+                </div>
+              ) : questionsError ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3 px-4">
+                  <CircleAlert size={32} className="text-red-400" />
+                  <span className="text-xs font-bold text-red-500 text-center">
+                    {questionsError}
+                  </span>
+                  <button
+                    onClick={() => router.push("/interview/setup")}
+                    className="text-xs font-bold text-main underline cursor-pointer mt-2"
+                  >
+                    Go back to setup
+                  </button>
+                </div>
+              ) : questions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <FileText size={32} className="text-slate-300" />
+                  <span className="text-xs font-bold text-slate-400">
+                    No questions available
+                  </span>
+                </div>
+              ) : questions[currentQuestionIndex] ? (
+                (() => {
+                  const q = questions[currentQuestionIndex];
+                  const reasoning = q.reasoning || q.why_ask;
+                  const keyPoints = q.key_points;
+                  const tip = q.tip;
+                  return (
+                    <>
+                      <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
+                            Question {currentQuestionIndex + 1} of{" "}
+                            {questions.length}
+                          </p>
+                          {q.category && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
+                              {q.category}
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-semibold text-slate-800 leading-snug mt-2">
+                          {q.question || q.title || "Question text"}
+                        </p>
+
+                        {reasoning && (
+                          <>
+                            <div className="w-full border my-3 border-slate-300/50" />
+                            <div className="flex flex-col gap-3">
+                              <span className="text-xs font-bold text-slate-500">
+                                Why we ask this?
+                              </span>
+                              <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
+                                {reasoning}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {keyPoints && keyPoints.length > 0 && (
+                        <div>
+                          <div className="mb-3">
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                              Key Points
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            {keyPoints.map((point, i) => (
+                              <div key={i} className="flex items-start gap-3">
+                                <div className="flex flex-col items-center shrink-0">
+                                  <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
+                                  {i < keyPoints.length - 1 && (
+                                    <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
+                                  )}
+                                </div>
+                                <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
+                                  {point}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {tip && (
+                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
+                          <Lightbulb
+                            size={15}
+                            className="text-amber-500 shrink-0 mt-0.5"
+                          />
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">
+                              Tip
+                            </p>
+                            <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                              {tip}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              ) : null}
+            </div>
           </div>
         </div>
 
-        {/* ── Right Panel: Current Question — Desktop only ──────── */}
-        <div className="hidden lg:flex w-80 shrink-0 flex-col border-l-2 border-border bg-white overflow-hidden">
-          <div className="flex border-b-2 border-border px-4 pt-3 gap-4 shrink-0">
-            <span className="pb-2.5 text-sm font-bold border-b-2 transition-colors border-main text-main">
-              Current Question
-            </span>
+        {/* ── Mobile Bottom Sheet: Questions ─────────────────── */}
+        {/* Backdrop */}
+        {panelOpen && (
+          <div
+            className="fixed lg:hidden inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            onClick={() => setPanelOpen(false)}
+          />
+        )}
+
+        <div
+          className={`fixed lg:hidden inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl border-t-2 border-border shadow-2xl transition-transform duration-300 ease-out ${
+            panelOpen ? "translate-y-0" : "translate-y-[calc(100%-56px)]"
+          }`}
+          style={{ maxHeight: "70dvh" }}
+        >
+          {/* Drag handle */}
+          <div
+            className="flex items-center justify-center py-2.5 cursor-pointer shrink-0"
+            onClick={() => setPanelOpen(!panelOpen)}
+          >
+            <div className="w-10 h-1.5 rounded-full bg-slate-300" />
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Tab header */}
+          <div className="flex items-center justify-between border-b-2 border-border px-4 pb-2 gap-4 shrink-0">
+            <span className="text-sm font-bold text-main pb-2 border-b-2 border-main -mb-[2px]">
+              Current Question
+            </span>
+            {panelOpen && (
+              <button
+                onClick={() => setPanelOpen(false)}
+                className="p-1 rounded-md hover:bg-slate-100 cursor-pointer"
+              >
+                <X size={16} className="text-slate-400" />
+              </button>
+            )}
+          </div>
+
+          {/* Scrollable content */}
+          <div
+            className="overflow-y-auto p-4 space-y-4"
+            style={{ maxHeight: "calc(70dvh - 96px)" }}
+          >
             {questionsLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 size={32} className="text-main animate-spin" />
-                <span className="text-xs font-bold text-slate-400">Loading questions…</span>
+                <span className="text-xs font-bold text-slate-400">
+                  Loading questions…
+                </span>
               </div>
             ) : questionsError ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 px-4">
                 <CircleAlert size={32} className="text-red-400" />
-                <span className="text-xs font-bold text-red-500 text-center">{questionsError}</span>
+                <span className="text-xs font-bold text-red-500 text-center">
+                  {questionsError}
+                </span>
                 <button
                   onClick={() => router.push("/interview/setup")}
                   className="text-xs font-bold text-main underline cursor-pointer mt-2"
@@ -1217,257 +1475,134 @@ export default function InterviewSessionPage() {
             ) : questions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <FileText size={32} className="text-slate-300" />
-                <span className="text-xs font-bold text-slate-400">No questions available</span>
+                <span className="text-xs font-bold text-slate-400">
+                  No questions available
+                </span>
               </div>
-            ) : questions[currentQuestionIndex] ? (() => {
-              const q = questions[currentQuestionIndex];
-              const reasoning = q.reasoning || q.why_ask;
-              const keyPoints = q.key_points;
-              const tip = q.tip;
-              return (
-                <>
-                  <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
-                        Question {currentQuestionIndex + 1} of {questions.length}
+            ) : questions[currentQuestionIndex] ? (
+              (() => {
+                const q = questions[currentQuestionIndex];
+                const reasoning = q.reasoning || q.why_ask;
+                const keyPoints = q.key_points;
+                const tip = q.tip;
+                return (
+                  <>
+                    <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
+                          Question {currentQuestionIndex + 1} of{" "}
+                          {questions.length}
+                        </p>
+                        {q.category && (
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
+                            {q.category}
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-semibold text-slate-800 leading-snug mt-2">
+                        {q.question || q.title || "Question text"}
                       </p>
-                      {q.category && (
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
-                          {q.category}
-                        </span>
+                      {reasoning && (
+                        <>
+                          <div className="w-full border my-3 border-slate-300/50" />
+                          <div className="flex flex-col gap-3">
+                            <span className="text-xs font-bold text-slate-500">
+                              Why we ask this?
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
+                              {reasoning}
+                            </span>
+                          </div>
+                        </>
                       )}
                     </div>
-                    <p className="font-semibold text-slate-800 leading-snug mt-2">
-                      {q.question || q.title || "Question text"}
-                    </p>
-
-                    {reasoning && (
-                      <>
-                        <div className="w-full border my-3 border-slate-300/50" />
-                        <div className="flex flex-col gap-3">
-                          <span className="text-xs font-bold text-slate-500">
-                            Why we ask this?
-                          </span>
-                          <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
-                            {reasoning}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {keyPoints && keyPoints.length > 0 && (
-                    <div>
-                      <div className="mb-3">
-                        <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                          Key Points
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
-                        {keyPoints.map((point, i) => (
-                          <div key={i} className="flex items-start gap-3">
-                            <div className="flex flex-col items-center shrink-0">
-                              <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
-                              {i < keyPoints.length - 1 && (
-                                <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
-                              )}
-                            </div>
-                            <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
-                              {point}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {tip && (
-                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
-                      <Lightbulb size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                    {keyPoints && keyPoints.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">
-                          Tip
-                        </p>
-                        <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                          {tip}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })() : null}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Mobile Bottom Sheet: Questions ─────────────────── */}
-      {/* Backdrop */}
-      {panelOpen && (
-        <div
-          className="fixed lg:hidden inset-0 z-40 bg-black/40 backdrop-blur-sm"
-          onClick={() => setPanelOpen(false)}
-        />
-      )}
-
-      <div
-        className={`fixed lg:hidden inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl border-t-2 border-border shadow-2xl transition-transform duration-300 ease-out ${
-          panelOpen ? "translate-y-0" : "translate-y-[calc(100%-56px)]"
-        }`}
-        style={{ maxHeight: "70dvh" }}
-      >
-        {/* Drag handle */}
-        <div
-          className="flex items-center justify-center py-2.5 cursor-pointer shrink-0"
-          onClick={() => setPanelOpen(!panelOpen)}
-        >
-          <div className="w-10 h-1.5 rounded-full bg-slate-300" />
-        </div>
-
-        {/* Tab header */}
-        <div className="flex items-center justify-between border-b-2 border-border px-4 pb-2 gap-4 shrink-0">
-          <span className="text-sm font-bold text-main pb-2 border-b-2 border-main -mb-[2px]">
-            Current Question
-          </span>
-          {panelOpen && (
-            <button
-              onClick={() => setPanelOpen(false)}
-              className="p-1 rounded-md hover:bg-slate-100 cursor-pointer"
-            >
-              <X size={16} className="text-slate-400" />
-            </button>
-          )}
-        </div>
-
-        {/* Scrollable content */}
-        <div className="overflow-y-auto p-4 space-y-4" style={{ maxHeight: "calc(70dvh - 96px)" }}>
-          {questionsLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 size={32} className="text-main animate-spin" />
-              <span className="text-xs font-bold text-slate-400">Loading questions…</span>
-            </div>
-          ) : questionsError ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 px-4">
-              <CircleAlert size={32} className="text-red-400" />
-              <span className="text-xs font-bold text-red-500 text-center">{questionsError}</span>
-              <button
-                onClick={() => router.push("/interview/setup")}
-                className="text-xs font-bold text-main underline cursor-pointer mt-2"
-              >
-                Go back to setup
-              </button>
-            </div>
-          ) : questions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <FileText size={32} className="text-slate-300" />
-              <span className="text-xs font-bold text-slate-400">No questions available</span>
-            </div>
-          ) : questions[currentQuestionIndex] ? (() => {
-            const q = questions[currentQuestionIndex];
-            const reasoning = q.reasoning || q.why_ask;
-            const keyPoints = q.key_points;
-            const tip = q.tip;
-            return (
-              <>
-                <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
-                      Question {currentQuestionIndex + 1} of {questions.length}
-                    </p>
-                    {q.category && (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
-                        {q.category}
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-semibold text-slate-800 leading-snug mt-2">
-                    {q.question || q.title || "Question text"}
-                  </p>
-                  {reasoning && (
-                    <>
-                      <div className="w-full border my-3 border-slate-300/50" />
-                      <div className="flex flex-col gap-3">
-                        <span className="text-xs font-bold text-slate-500">Why we ask this?</span>
-                        <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
-                          {reasoning}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-                {keyPoints && keyPoints.length > 0 && (
-                  <div>
-                    <div className="mb-3">
-                      <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Key Points</span>
-                    </div>
-                    <div className="flex flex-col">
-                      {keyPoints.map((point, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="flex flex-col items-center shrink-0">
-                            <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
-                            {i < keyPoints.length - 1 && (
-                              <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
-                            )}
-                          </div>
-                          <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">{point}</p>
+                        <div className="mb-3">
+                          <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                            Key Points
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {tip && (
-                  <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
-                    <Lightbulb size={15} className="text-amber-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">Tip</p>
-                      <p className="text-xs text-amber-800 font-medium leading-relaxed">{tip}</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            );
-          })() : null}
-        </div>
-      </div>
-
-      {/* ── FAB: Open questions ──────────────────────────── */}
-      {!panelOpen && (
-        <button
-          className="fixed lg:hidden bottom-4 right-4 z-30 w-12 h-12 rounded-full bg-main text-white shadow-lg flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
-          onClick={() => setPanelOpen(true)}
-        >
-          <FileText size={20} />
-        </button>
-      )}
-
-      {/* Ending overlay */}
-      {isEnding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
-            <Loader2 size={40} className="text-main animate-spin" />
-            <p className="text-sm font-bold text-slate-700 text-center">
-              {clipProgress
-                ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
-                : "Analyzing your interview performance…"}
-            </p>
-            {clipProgress ? (
-              <div className="w-full bg-slate-200 rounded-full h-2.5">
-                <div
-                  className="bg-main h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(clipProgress.current / clipProgress.total) * 100}%` }}
-                />
-              </div>
-            ) : (
-              <div className="w-full space-y-2">
-                <div className="h-2 bg-slate-100 rounded animate-pulse" />
-                <div className="h-2 bg-slate-100 rounded animate-pulse w-4/5" />
-                <div className="h-2 bg-slate-100 rounded animate-pulse w-3/5" />
-              </div>
-            )}
+                        <div className="flex flex-col">
+                          {keyPoints.map((point, i) => (
+                            <div key={i} className="flex items-start gap-3">
+                              <div className="flex flex-col items-center shrink-0">
+                                <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
+                                {i < keyPoints.length - 1 && (
+                                  <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
+                                )}
+                              </div>
+                              <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
+                                {point}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {tip && (
+                      <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
+                        <Lightbulb
+                          size={15}
+                          className="text-amber-500 shrink-0 mt-0.5"
+                        />
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">
+                            Tip
+                          </p>
+                          <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                            {tip}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            ) : null}
           </div>
         </div>
-      )}
-    </div>
+
+        {/* ── FAB: Open questions ──────────────────────────── */}
+        {!panelOpen && (
+          <button
+            className="fixed lg:hidden bottom-4 right-4 z-30 w-12 h-12 rounded-full bg-main text-white shadow-lg flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+            onClick={() => setPanelOpen(true)}
+          >
+            <FileText size={20} />
+          </button>
+        )}
+
+        {/* Ending overlay */}
+        {isEnding && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+              <Loader2 size={40} className="text-main animate-spin" />
+              <p className="text-sm font-bold text-slate-700 text-center">
+                {clipProgress
+                  ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
+                  : "Analyzing your interview performance…"}
+              </p>
+              {clipProgress ? (
+                <div className="w-full bg-slate-200 rounded-full h-2.5">
+                  <div
+                    className="bg-main h-2.5 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(clipProgress.current / clipProgress.total) * 100}%`,
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full space-y-2">
+                  <div className="h-2 bg-slate-100 rounded animate-pulse" />
+                  <div className="h-2 bg-slate-100 rounded animate-pulse w-4/5" />
+                  <div className="h-2 bg-slate-100 rounded animate-pulse w-3/5" />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Portrait Lock Overlay ──────────────────────────── */}
       <div className="hidden portrait-lock-overlay fixed inset-0 z-[100] bg-slate-950 flex-col items-center justify-center gap-6 px-8 text-center">

@@ -7,26 +7,12 @@ export const SCORING_WEIGHTS = {
   efficiency: 0.15,
 };
 
-const PACE_RULES = [
-  { min: 120, max: 160, score: 100 },
-  { min: 100, max: 120, score: 85 },
-  { min: 160, max: 180, score: 85 },
-  { min: 80, max: 100, score: 70 },
-  { min: 180, max: 200, score: 70 },
-];
+// Smooth-curve constants
+const PACE_IDEAL = 140; // optimal WPM
+const PACE_SIGMA = 40; // width of the Gaussian
 
-const FILLER_RATE_RULES = [
-  { min: 0, max: 2, score: 100 },
-  { min: 3, max: 4, score: 90 },
-  { min: 5, max: 6, score: 80 },
-  { min: 7, max: 8, score: 70 },
-];
-
-const EFFICIENCY_RATE_RULES = [
-  { min: 0, max: 1, score: 100 },
-  { min: 2, max: 3, score: 90 },
-  { min: 4, max: 5, score: 80 },
-];
+const FILLER_DECAY = 0.35; // per-minute exponential decay
+const EFFICIENCY_DECAY = 0.8; // per-100-words exponential decay
 
 // ── Individual Score Functions ──────────────────────────────
 
@@ -48,65 +34,82 @@ export function calcFocusScore(distractedDurationSeconds, sessionDurationSeconds
  * Calculate Pace Score (speaking speed).
  * Weight: 25%
  *
- * Rule-based mapping:
- *   120–160 WPM → 100
- *   100–120 or 160–180 → 85
- *   80–100 or 180–200 → 70
- *   <80 or >200 → 50
+ * Gaussian curve centered at 140 WPM (ideal speaking speed).
+ * Smooth decay — no step-function cliffs.
+ *   score = 100 × exp(−0.5 × ((wpm − 140) / 40)²)
+ *
+ * Examples:
+ *   140 WPM → 100  (peak)
+ *   120 WPM → ~88
+ *   100 WPM → ~61
+ *    80 WPM → ~32
+ *    60 WPM → ~14
  */
 export function calcPaceScore(averageWpm) {
   if (averageWpm == null || averageWpm <= 0) return 0;
-  for (const rule of PACE_RULES) {
-    if (averageWpm >= rule.min && averageWpm <= rule.max) {
-      return rule.score;
-    }
-  }
-  return 50; // <80 or >=200
+  const deviation = (averageWpm - PACE_IDEAL) / PACE_SIGMA;
+  const raw = 100 * Math.exp(-0.5 * deviation * deviation);
+  return Math.max(0, Math.min(100, Math.round(raw)));
 }
 
 /**
  * Calculate Filler Score (filler word usage).
  * Weight: 20%
  *
- * Uses filler rate = (fillerWordCount / totalWords) * 100.
- * Rules:
- *   0–2 → 100
- *   3–4 → 90
- *   5–6 → 80
- *   7–8 → 70
- *   >8 → 50
+ * Uses fillers-per-minute rate for duration proportionality.
+ *   fillerRatePerMinute = fillerWordCount / (sessionDurationSeconds / 60)
+ *   score = 100 × exp(−0.35 × fillerRatePerMinute)
+ *
+ * Falls back to word-percentage method when sessionDurationSeconds is unavailable.
+ *
+ * Examples (per-minute):
+ *   0.0/min → 100
+ *   1.0/min → ~70
+ *   2.0/min → ~50
+ *   3.0/min → ~35
+ *   5.0/min → ~17
  */
-export function calcFillerScore(fillerWordCount, totalWords) {
-  if (!totalWords || totalWords <= 0) return 100;
-  const fillerRate = (fillerWordCount / totalWords) * 100;
-  for (const rule of FILLER_RATE_RULES) {
-    if (fillerRate >= rule.min && fillerRate <= rule.max) {
-      return rule.score;
+export function calcFillerScore(fillerWordCount, totalWords, sessionDurationSeconds) {
+  if (fillerWordCount == null || fillerWordCount <= 0) return 100;
+
+  // Primary: per-minute rate (requires duration)
+  if (sessionDurationSeconds != null && sessionDurationSeconds > 0) {
+    const minutes = sessionDurationSeconds / 60;
+    if (minutes > 0) {
+      const fillerRatePerMinute = fillerWordCount / minutes;
+      const raw = 100 * Math.exp(-FILLER_DECAY * fillerRatePerMinute);
+      return Math.max(0, Math.min(100, Math.round(raw)));
     }
   }
-  return 50; // >8
+
+  // Fallback: word-percentage based (graceful degradation)
+  if (!totalWords || totalWords <= 0) return 100;
+  const fillerRate = (fillerWordCount / totalWords) * 100;
+  const raw = 100 * Math.exp(-0.18 * fillerRate);
+  return Math.max(0, Math.min(100, Math.round(raw)));
 }
 
 /**
  * Calculate Efficiency Score (redundancy / pleonasm).
  * Weight: 15%
  *
- * Uses redundancy rate = (redundantPhraseCount / totalWords) * 100.
- * Rules:
- *   0–1 → 100
- *   2–3 → 90
- *   4–5 → 80
- *   >5 → 70
+ * Uses occurrences-per-100-words rate with smooth exponential decay.
+ *   redundancyPer100Words = (redundantPhraseCount / totalWords) × 100
+ *   score = 100 × exp(−0.8 × redundancyPer100Words)
+ *
+ * Examples (per 100 words):
+ *   0.0/100w → 100
+ *   0.5/100w → ~67
+ *   1.0/100w → ~45
+ *   2.0/100w → ~20
+ *   3.0/100w → ~9
  */
 export function calcEfficiencyScore(redundantPhraseCount, totalWords) {
   if (!totalWords || totalWords <= 0) return 100;
-  const redundancyRate = (redundantPhraseCount / totalWords) * 100;
-  for (const rule of EFFICIENCY_RATE_RULES) {
-    if (redundancyRate >= rule.min && redundancyRate <= rule.max) {
-      return rule.score;
-    }
-  }
-  return 70; // >5
+  if (redundantPhraseCount == null || redundantPhraseCount <= 0) return 100;
+  const redundancyPer100Words = (redundantPhraseCount / totalWords) * 100;
+  const raw = 100 * Math.exp(-EFFICIENCY_DECAY * redundancyPer100Words);
+  return Math.max(0, Math.min(100, Math.round(raw)));
 }
 
 // ── Orchestrator ────────────────────────────────────────────
@@ -137,7 +140,11 @@ export function calculateSessionScore(sessionData, analysisData) {
     sessionDurationSeconds
   );
   const paceScore = calcPaceScore(averageWpm);
-  const fillerScore = calcFillerScore(fillerWordCount, totalWordCount);
+  const fillerScore = calcFillerScore(
+    fillerWordCount,
+    totalWordCount,
+    sessionDurationSeconds
+  );
   const efficiencyScore = calcEfficiencyScore(
     redundantPhraseCount,
     totalWordCount

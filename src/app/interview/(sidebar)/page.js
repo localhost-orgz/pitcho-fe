@@ -28,6 +28,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/UI/button";
 import DocumentLibrary from "@/components/DocumentLibrary";
 import api from "@/lib/api";
 
@@ -260,7 +261,13 @@ export default function InterviewSetupPage() {
         ? (Number(fileSize) / 1024).toFixed(0) + " KB"
         : "?";
 
-    setUploadedFile({ name: fileName, pages: pages, size: sizeFormatted });
+    setUploadedFile({
+      name: fileName,
+      pages: pages,
+      size: sizeFormatted,
+      rawSize: fileSize,
+      fileType: doc.fileType || "application/pdf"
+    });
     setLibraryDocId(doc.id || doc._id);
     setRawFile(null);
     setUploadError("");
@@ -301,8 +308,10 @@ export default function InterviewSetupPage() {
         formData.append("fileSize", parseInt(rawFile.size, 10));
       } else if (libraryDocId) {
         formData.append("documentId", libraryDocId);
+        formData.append("document_id", libraryDocId);
         if (uploadedFile?.pages != null) formData.append("pageCount", parseInt(uploadedFile.pages, 10));
-        // fileSize from library doc is stored as formatted string, skip raw value
+        if (uploadedFile?.rawSize != null) formData.append("fileSize", parseInt(uploadedFile.rawSize, 10));
+        if (uploadedFile?.fileType != null) formData.append("fileType", uploadedFile.fileType);
       }
       formData.append("question_type", JSON.stringify(questionTypes));
       formData.append(
@@ -359,6 +368,7 @@ export default function InterviewSetupPage() {
     }
   }, [
     rawFile,
+    uploadedFile,
     libraryDocId,
     jobTitle,
     jobDescription,
@@ -827,18 +837,16 @@ export default function InterviewSetupPage() {
           </div>
         </div>
         <div className="flex flex-col justify-center items-center">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             disabled={cameraStatus !== "ready" || micStatus !== "ready" || isSubmitting || !uploadedFile}
             onClick={handleStartInterview}
-            className={`flex gap-2 items-center rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors ${
-              cameraStatus === "ready" && micStatus === "ready" && !isSubmitting && uploadedFile
-                ? "bg-main hover:bg-main/90 cursor-pointer"
-                : "bg-slate-300 cursor-not-allowed opacity-75"
-            }`}
+            className="font-semibold text-sm"
           >
             <Play size={17} />
             {isSubmitting ? "Generating..." : "Start Interview"}
-          </button>
+          </Button>
           <span className="text-xs text-slate-500 mt-1">
             {!uploadedFile
               ? "Upload your CV/Resume to start"

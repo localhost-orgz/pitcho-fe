@@ -36,6 +36,7 @@ import {
 import { Button } from "@/components/UI/button";
 import { getSessionVideo, getSessionClips } from "@/utils/videoStorage";
 import { saveSession, uploadClip } from "@/lib/api";
+import { calcFocusScore, calcPaceScore } from "@/utils/scoring";
 
 // ── Tabs ────────────────────────────────────────────────────
 const TABS = [
@@ -617,7 +618,38 @@ export default function InterviewResultPage() {
   const evaluateData = resultData?.evaluate_response?.data || resultData?.evaluate_response || {};
   const qaAnalysis = evaluateData?.qa_analysis || [];
   const overallScore = evaluateData?.overall_interview_score ?? 0;
+  const aiContentScore = overallScore; // AI content score from backend
   const metricsSummary = evaluateData?.metrics_summary || {};
+
+  // ── Compute Delivery Score from per-question data ────────────
+  const perQuestionDelivery = perQuestionData.map((q) => {
+    const distractSec = q.distract_duration_seconds || 0;
+    const answerSec = q.answer_duration_seconds || 0;
+    const focusScore = calcFocusScore(distractSec, answerSec);
+    const paceScore = calcPaceScore(q.wpm);
+    return { focusScore, paceScore };
+  });
+
+  const avgDeliveryFocus =
+    perQuestionDelivery.length > 0
+      ? Math.round(
+          perQuestionDelivery.reduce((s, d) => s + d.focusScore, 0) /
+            perQuestionDelivery.length
+        )
+      : 0;
+
+  const avgDeliveryPace =
+    perQuestionDelivery.length > 0
+      ? Math.round(
+          perQuestionDelivery.reduce((s, d) => s + d.paceScore, 0) /
+            perQuestionDelivery.length
+        )
+      : 0;
+
+  const deliveryScore = Math.round(avgDeliveryFocus * 0.5 + avgDeliveryPace * 0.5);
+  const combinedOverallScore = Math.round(
+    aiContentScore * 0.65 + deliveryScore * 0.35
+  );
 
   // ── Save session to backend ─────────────────────────────────
   const hasPostedRef = React.useRef(false);
@@ -740,7 +772,7 @@ export default function InterviewResultPage() {
                 )
               : 0,
           efficiency_score: evaluateData.efficiency_score ?? 0,
-          overall_score: overallScore,
+          overall_score: combinedOverallScore,
           filler_incidents: allFillerIncidents,
           word_findings: allWordFindings,
           interview_details: interviewDetails,
@@ -754,7 +786,7 @@ export default function InterviewResultPage() {
     }
 
     postSession();
-  }, [loading, error, resultData, perQuestionData, evaluateData, qaAnalysis, overallScore]);
+  }, [loading, error, resultData, perQuestionData, evaluateData, qaAnalysis, overallScore, combinedOverallScore]);
 
   // ── Loading state ──────────────────────────────────────────
   if (loading) {
@@ -813,7 +845,17 @@ export default function InterviewResultPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {/* Overall Score */}
         <div className="bg-white border-bold p-5 flex flex-col items-center">
-          <ScoreRing score={overallScore} size={100} strokeWidth={8} label="Overall Score" />
+          <ScoreRing score={combinedOverallScore} size={100} strokeWidth={8} label="Final Score" />
+          <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-bold">
+            <div className="text-center">
+              <span className="block text-base font-black text-main">{aiContentScore}</span>
+              <span className="text-[10px] text-slate-400">Content (65%)</span>
+            </div>
+            <div className="text-center">
+              <span className="block text-base font-black text-blue-500">{deliveryScore}</span>
+              <span className="text-[10px] text-slate-400">Delivery (35%)</span>
+            </div>
+          </div>
         </div>
 
         {/* Metric: Filler Words */}

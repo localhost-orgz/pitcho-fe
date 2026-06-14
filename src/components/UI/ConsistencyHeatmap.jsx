@@ -80,7 +80,14 @@ function HeatmapSkeleton() {
 
   return (
     <div className="relative select-none overflow-visible animate-pulse">
-      <div className="overflow-x-auto pb-1">
+      <style>{`
+        .heatmap-scroll::-webkit-scrollbar { height: 4px; }
+        .heatmap-scroll::-webkit-scrollbar-track { background: transparent; }
+        .heatmap-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .heatmap-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .heatmap-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+      `}</style>
+      <div className="overflow-x-auto pb-1 heatmap-scroll">
         <div
           className="flex flex-col"
           style={{ minWidth: skeletonWeeks * (CELL_SIZE + CELL_GAP) + 32 }}
@@ -199,7 +206,7 @@ export default function ConsistencyHeatmap({
       date: cell.date,
       seconds: cell.seconds,
       x: cellRect.left - containerRect.left + cellRect.width / 2,
-      y: cellRect.top - containerRect.top - 6,
+      y: cellRect.top - containerRect.top - 36,
     });
   };
 
@@ -212,6 +219,15 @@ export default function ConsistencyHeatmap({
       data-heatmap-container
       className="relative select-none overflow-visible"
     >
+      {/* ── Custom scrollbar styles ──────────────────────── */}
+      <style>{`
+        .heatmap-scroll::-webkit-scrollbar { height: 4px; }
+        .heatmap-scroll::-webkit-scrollbar-track { background: transparent; }
+        .heatmap-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .heatmap-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .heatmap-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+      `}</style>
+
       {/* ── Tooltip ────────────────────────────────────────── */}
       {tooltip && (
         <div
@@ -225,7 +241,7 @@ export default function ConsistencyHeatmap({
       )}
 
       {/* ── Scrollable grid area ───────────────────────────── */}
-      <div className="overflow-x-auto pb-1">
+      <div className="overflow-x-auto pb-1 heatmap-scroll">
         <div className="flex flex-col" style={{ minWidth: totalWeeks * (CELL_SIZE + CELL_GAP) + 32 }}>
           {/* Month labels */}
           <div
