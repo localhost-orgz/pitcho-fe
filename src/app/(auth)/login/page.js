@@ -188,7 +188,7 @@ export default function LoginPage() {
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
               <Mail
                 size={18}
-                className={touched.email ? "text-red-400" : "text-slate-400"}
+                className={touched.email && errors.email ? "text-red-400" : "text-slate-400"}
               />
             </div>
             <input
@@ -201,19 +201,19 @@ export default function LoginPage() {
               placeholder="you@example.com"
               autoComplete="email"
               className={`w-full rounded-xl border-2 px-3.5 py-2.5 pl-11 text-sm font-medium text-foreground placeholder:text-slate-400 transition-all duration-200 outline-none
+                ${
+                  touched.email && errors.email
+                    ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+                    : "border-slate-200 bg-white focus:border-main focus:ring-2 focus:ring-blue-100 hover:border-slate-300"
+                }
               `}
             />
           </div>
-          {/* ${
-            touched.email && errors.email
-              ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-200"
-              : "border-slate-200 bg-white focus:border-main focus:ring-2 focus:ring-blue-100 hover:border-slate-300"
-          } */}
-          {/* {touched.email && errors.email && (
+          {touched.email && errors.email && (
             <p className="mt-1.5 text-xs font-medium text-red-500 animate-fade-in">
               {errors.email}
             </p>
-          )} */}
+          )}
         </div>
 
         {/* Password */}
@@ -239,7 +239,7 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             onBlur={handleBlur}
             placeholder="Enter your password"
-            // error={touched.password ? errors.password : ""}
+            error={touched.password && errors.password ? errors.password : ""}
             autoComplete="current-password"
           />
         </div>

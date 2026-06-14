@@ -12,8 +12,8 @@ const buttonVariants = cva(
         default:
           "bg-white text-black border-slate-200 border-2 border-b-[5px] active:border-b-2 hover:bg-slate-100 text-slate-500",
         primary:
-          "bg-sky-400 text-primary-foreground hover:bg-sky-400/90 border-sky-500 border-b-[5px] active:border-b-0",
-        primaryOutline: "bg-white text-sky-500 hover:bg-slate-100",
+          "bg-main text-primary-foreground hover:bg-main/90 border-blue-600 border-b-[5px] active:border-b-0",
+        primaryOutline: "bg-white text-main hover:bg-slate-100",
         secondary:
           "bg-green-500 text-primary-foreground hover:bg-green-500/90 border-green-600 border-b-[5px] active:border-b-0",
         secondaryOutline: "bg-white text-green-500 hover:bg-slate-100",
@@ -24,9 +24,9 @@ const buttonVariants = cva(
         sidebar:
           "bg-transparent text-slate-500 border-2 border-transparent hover:bg-slate-100 transition-none cursor-pointer",
         sidebarOutline:
-          "bg-sky-500/15 text-sky-500 border-sky-300 border-[1.5px] hover:bg-sky-500/20 transition-none",
+          "bg-main/15 text-main border-blue-300 border-[1.5px] hover:bg-main/20 transition-none",
         lessonOpen:
-          "absolute bg-sky-400 shadow-[0_10px_0_#0084d1] active:shadow-[0_2px_0_#0084d1] active:translate-y-1 transition-all duration-100 flex items-center justify-center transform-[perspective(500px)_rotateX(30deg)] origin-bottom",
+          "absolute bg-main shadow-[0_10px_0_#0270d4] active:shadow-[0_2px_0_#0270d4] active:translate-y-1 transition-all duration-100 flex items-center justify-center transform-[perspective(500px)_rotateX(30deg)] origin-bottom",
         lessonLocked:
           "absolute bg-[#e5e5e5] shadow-[0_10px_0_#b7b7b7] active:shadow-[0_2px_0_#b7b7b7] active:translate-y-1 transition-all duration-100 flex items-center justify-center transform-[perspective(500px)_rotateX(30deg)] origin-bottom",
         uploadButton:

@@ -366,14 +366,7 @@ function HeroSection() {
       <div className="max-w-[1200px] mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center z-10">
         {/* Left Column: Text and Actions */}
         <div className="flex flex-col items-start text-left max-w-xl">
-          <div className="inline-flex items-center gap-2 bg-[#0388ff]/10 text-[#0388ff] font-bold text-xs px-3.5 py-1.5 rounded-full mb-6 border border-[#0388ff]/20">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0388ff] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0388ff]"></span>
-            </span>
-            Simulasi Latihan & Analisis Berbasis AI
-          </div>
-
+        
           <h1 className="heroTitle text-[clamp(2.2rem,4.5vw,3.6rem)] font-bold leading-[1.15] text-[#0f1d35] mt-0 mb-6 tracking-[-0.02em]">
             Latihan{" "}
             <span className="heroAccent font-extrabold text-[#fabf24] relative inline-block">
@@ -393,13 +386,11 @@ function HeroSection() {
               <span className="absolute bottom-1.5 left-0 w-full h-[6px] bg-[#fabf24]/20 -z-10 rounded"></span>
             </span>
           </h1>
-
           <p className="heroDesc text-[1.07rem] text-[#5a7090] leading-[1.75] mb-8">
             Pitcho menciptakan lingkungan latihan yang terasa seperti situasi
             sesungguhnya, wawancara, presentasi, pitching ide, dengan coach AI
             yang memberi feedback spesifik dan actionable.
           </p>
-
           <div className="heroBtns flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <a
               href="/signup"
@@ -420,67 +411,6 @@ function HeroSection() {
         <div className="relative w-full max-w-lg md:max-w-none mx-auto flex items-center justify-center">
           {/* Subtle glow / backdrop behind the image */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] h-[95%] bg-blue-400/10 rounded-full filter blur-3xl -z-10"></div>
-
-          {/* Floating AI Coach Card */}
-          <div
-            className="absolute left-[-25px] top-[10%] z-20 hidden lg:flex items-center gap-3.5 bg-white/90 backdrop-blur-md border border-white/50 shadow-[0_10px_30px_rgba(15,29,53,0.08)] rounded-2xl p-4 max-w-[260px] animate-float-bob"
-            style={{ animationDuration: "5s" }}
-          >
-            <div className="shrink-0 flex items-center justify-center bg-blue-50 text-[#0388ff] w-10 h-10 rounded-xl">
-              <IconBrain className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
-                COACH AI
-              </span>
-              <span className="text-xs font-bold text-slate-700 leading-tight">
-                "Bicara lebih lambat di slide ini (Pace: 115 WPM)"
-              </span>
-            </div>
-          </div>
-
-          {/* Floating Metrics Card */}
-          <div
-            className="absolute right-[-25px] bottom-[10%] z-20 hidden lg:flex flex-col gap-3.5 bg-slate-900/95 backdrop-blur-md border border-slate-800/80 shadow-[0_20px_40px_rgba(15,29,53,0.2)] rounded-2xl p-4 w-[210px] text-white animate-float-bob"
-            style={{ animationDuration: "6s", animationDelay: "2.5s" }}
-          >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-bold text-[#0388ff] uppercase tracking-widest leading-none mb-1">
-                  LIVE ANALISIS
-                </span>
-                <span className="text-xs font-bold text-slate-200">
-                  Performa Anda
-                </span>
-              </div>
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {/* Metric 1 */}
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 font-medium">Filler Words</span>
-                <span className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold text-[9px] tracking-wider uppercase">
-                  Aman (0)
-                </span>
-              </div>
-              {/* Metric 2 */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium">Eye Contact</span>
-                  <span className="font-extrabold text-[#fabf24]">95%</span>
-                </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#0388ff] to-[#fabf24] rounded-full"
-                    style={{ width: "95%" }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Main Hero Image Frame */}
           <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(15,29,53,0.12)] border border-slate-100/80 transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_25px_60px_rgba(15,29,53,0.15)]">
@@ -718,9 +648,7 @@ function HowItWorksSection() {
 
               {/* Connector line (kecuali setelah step terakhir) */}
               {i < steps.length - 1 && (
-                <div
-                  className="absolute left-[calc(50%+18px)] w-[calc(100%+28px-36px)] top-1/2 -translate-y-1/2 border-t-2 border-dashed border-[#b8cfe8] z-0"
-                />
+                <div className="absolute left-[calc(50%+18px)] w-[calc(100%+28px-36px)] top-1/2 -translate-y-1/2 border-t-2 border-dashed border-[#b8cfe8] z-0" />
               )}
             </div>
           ))}
