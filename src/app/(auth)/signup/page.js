@@ -383,10 +383,10 @@ export default function SignupPage() {
         {/* Submit */}
         <Button
           type="submit"
-          variant="secondary"
+          variant="primary"
           size="default"
           disabled={isLoading}
-          className="w-full h-12 text-base border-b-[5px] active:border-b-0"
+          className="w-full h-12 text-base"
         >
           {isLoading ? (
             <>
