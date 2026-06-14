@@ -53,7 +53,9 @@ function getViewportRect() {
 
 function computePosition(targetRect, preferredPosition, viewport) {
   const cardWidth = 320;
-  const cardMinHeight = 160;
+  // Use a realistic card height estimate — the actual rendered card is ~240px.
+  // Using a value too small causes top-placement cards to overlap the target.
+  const cardMinHeight = 240;
   const arrowSize = 10;
   const margin = 16;
 
@@ -94,8 +96,9 @@ function computePosition(targetRect, preferredPosition, viewport) {
       arrowPlacement = "top";
       break;
     case "top":
-      // Card sits ABOVE the target: position its bottom edge just above the target
-      cardTop = targetRect.top - TOOLTIP_GAP - cardMinHeight;
+      // Card sits ABOVE the target: position its bottom edge just above the target.
+      // Use a 2× gap for extra breathing room so it never overlaps the element.
+      cardTop = targetRect.top - TOOLTIP_GAP * 2 - cardMinHeight;
       cardLeft = targetRect.left + targetRect.width / 2 - cardWidth / 2;
       arrowPlacement = "bottom";
       break;

@@ -40,7 +40,9 @@ function DayCell({ day, status }) {
         <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-md ring-2 ring-emerald-200 ring-offset-1">
           <Check size={14} className="text-white" strokeWidth={3} />
         </div>
-        <span className="text-[10px] font-extrabold text-emerald-600">{day}</span>
+        <span className="text-[10px] font-extrabold text-emerald-600">
+          {day}
+        </span>
       </div>
     );
   }
@@ -80,12 +82,64 @@ function DayCell({ day, status }) {
 
 // ── Main component ───────────────────────────────────────────
 
+// ── Skeleton loader ────────────────────────────────────────────
+function StreakRingSkeleton() {
+  return (
+    <div className="flex flex-col h-full gap-4 animate-pulse">
+      {/* Title */}
+      <div className="h-4 w-16 bg-slate-200 rounded" />
+
+      {/* Flame counter + Best streak */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-slate-200" />
+          <div className="flex flex-col gap-1">
+            <div className="h-6 w-10 bg-slate-200 rounded" />
+            <div className="h-3 w-14 bg-slate-100 rounded" />
+          </div>
+        </div>
+        <div className="flex flex-col items-center rounded-xl px-3 py-2 gap-1">
+          <div className="h-4 w-8 bg-slate-200 rounded" />
+          <div className="h-2.5 w-6 bg-slate-100 rounded" />
+        </div>
+      </div>
+
+      {/* Motivational text */}
+      <div className="space-y-1.5">
+        <div className="h-3 w-full bg-slate-100 rounded" />
+        <div className="h-3 w-3/4 bg-slate-100 rounded" />
+      </div>
+
+      {/* 7-day mini calendar */}
+      <div className="flex items-center justify-between px-1">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-1">
+            <div className="w-8 h-8 rounded-full bg-slate-100" />
+            <div className="h-2.5 w-6 bg-slate-100 rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Status banner */}
+      <div className="flex items-center gap-3 rounded-xl px-4 py-3 bg-slate-50">
+        <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0" />
+        <div className="flex flex-col gap-1 flex-1">
+          <div className="h-3 w-32 bg-slate-200 rounded" />
+          <div className="h-2.5 w-40 bg-slate-100 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StreakRing({
   current = 0,
   best = 0,
   practicedToday = false,
   weeklyHistory = [],
+  loading = false,
 }) {
+  if (loading) return <StreakRingSkeleton />;
   const motivationalText = getMotivationalText(current, practicedToday);
 
   return (
@@ -99,11 +153,7 @@ export default function StreakRing({
         <div className="flex items-center gap-3">
           {/* Flame icon in orange circle */}
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-md shadow-orange-200">
-            <Flame
-              size={24}
-              className="text-white fill-white"
-              style={current > 0 ? { animation: "bounce 1s infinite" } : undefined}
-            />
+            <Flame size={24} className="text-white fill-white" />
           </div>
 
           {/* Count + label */}
@@ -118,13 +168,13 @@ export default function StreakRing({
         </div>
 
         {/* Best streak */}
-        <div className="flex flex-col items-center bg-amber-50 rounded-xl px-3 py-2 border border-amber-100">
+        {/* <div className="flex flex-col items-center bg-amber-50 rounded-xl px-3 py-2 border border-amber-100">
           <div className="flex items-center gap-1 text-amber-600 font-extrabold text-xs">
             <Trophy size={12} className="fill-amber-300 text-amber-600" />
             <span>{best}</span>
           </div>
           <span className="text-[9px] font-bold text-amber-400">best</span>
-        </div>
+        </div> */}
       </div>
 
       {/* ── Motivational text ───────────────────────────────── */}

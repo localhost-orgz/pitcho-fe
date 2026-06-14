@@ -72,12 +72,83 @@ function isLeapYear(year) {
 
 // ── Component ────────────────────────────────────────────────
 
+// ── Skeleton loader ────────────────────────────────────────────
+function HeatmapSkeleton() {
+  const skeletonWeeks = 53;
+  const CELL_SIZE = 12;
+  const CELL_GAP = 3;
+
+  return (
+    <div className="relative select-none overflow-visible animate-pulse">
+      <div className="overflow-x-auto pb-1">
+        <div
+          className="flex flex-col"
+          style={{ minWidth: skeletonWeeks * (CELL_SIZE + CELL_GAP) + 32 }}
+        >
+          {/* Month labels skeleton */}
+          <div
+            className="flex mb-[2px]"
+            style={{ paddingLeft: 32, gap: CELL_GAP }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-2.5 w-6 bg-slate-200 rounded shrink-0"
+                style={{ marginRight: (CELL_SIZE + CELL_GAP) * 3 }}
+              />
+            ))}
+          </div>
+
+          {/* Day rows skeleton */}
+          <div className="flex flex-col" style={{ gap: CELL_GAP }}>
+            {Array.from({ length: 7 }).map((_, rIdx) => (
+              <div
+                key={rIdx}
+                className="flex items-center"
+                style={{ gap: CELL_GAP }}
+              >
+                {/* Row label skeleton */}
+                <div
+                  className="h-2.5 w-5 bg-slate-100 rounded shrink-0"
+                  style={{ marginRight: 32 - CELL_GAP - 20, width: 20 }}
+                />
+
+                {/* Week cells skeleton */}
+                {Array.from({ length: skeletonWeeks }).map((_, cIdx) => (
+                  <div
+                    key={cIdx}
+                    className="shrink-0 rounded-sm bg-slate-100"
+                    style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Legend skeleton */}
+          <div className="flex items-center justify-end gap-1 mt-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-2.5 w-8 bg-slate-100 rounded shrink-0"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConsistencyHeatmap({
   year = new Date().getFullYear(),
   dailyData = {},
+  loading = false,
 }) {
   const containerRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
+
+  if (loading) return <HeatmapSkeleton />;
 
   // ── Build the 7‑row × N‑week grid ─────────────────────────
   const startOfYear = new Date(year, 0, 1);               // Jan 1

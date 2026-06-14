@@ -8,7 +8,7 @@ export default function GoogleButton() {
 
   function handleClick() {
     setLoading(true);
-    window.location.href = "http://localhost:3000/api/auth/google";
+    window.location.href = "https://pitcho-be.vercel.app/api/auth/google";
   }
 
   return (

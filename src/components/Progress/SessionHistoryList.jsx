@@ -23,7 +23,45 @@ function formatDuration(seconds) {
   return `${m} menit ${s} detik`;
 }
 
-export default function SessionHistoryList({ sessions, averageScores }) {
+// ── Skeleton loader ────────────────────────────────────────────
+function SessionHistorySkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border-bold flex flex-col animate-pulse">
+      {/* Header skeleton */}
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="h-4 w-28 bg-slate-200 rounded" />
+        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-6 w-20 bg-slate-200 rounded-md" />
+          ))}
+        </div>
+      </div>
+
+      {/* Session rows skeleton */}
+      <div className="divide-y divide-slate-50">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="w-full px-5 py-3.5 flex items-center gap-4"
+          >
+            {/* Date */}
+            <div className="h-3 w-[85px] bg-slate-100 rounded shrink-0" />
+            {/* Mode badge */}
+            <div className="h-5 w-[96px] bg-slate-100 rounded-full shrink-0" />
+            {/* Session name */}
+            <div className="h-3 flex-1 bg-slate-100 rounded min-w-0" />
+            {/* Score */}
+            <div className="h-4 w-[60px] bg-slate-100 rounded shrink-0" />
+            {/* Duration */}
+            <div className="h-3 w-[110px] bg-slate-100 rounded shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function SessionHistoryList({ sessions, averageScores, loading = false }) {
   const [sortBy, setSortBy] = React.useState("newest");
 
   const sortedSessions = useMemo(() => {
@@ -40,6 +78,9 @@ export default function SessionHistoryList({ sessions, averageScores }) {
     }
     return sorted;
   }, [sessions, sortBy]);
+
+  // Loading state
+  if (loading) return <SessionHistorySkeleton />;
 
   // Empty state
   if (!sessions || sessions.length === 0) {

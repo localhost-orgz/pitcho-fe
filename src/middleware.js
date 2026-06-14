@@ -30,7 +30,7 @@ function isPublicPath(pathname) {
   return false;
 }
 
-export function proxy(request) {
+export function middleware(request) {
   const { pathname } = request.nextUrl;
 
   // Read auth token from cookie (middleware runs on the server — no localStorage)

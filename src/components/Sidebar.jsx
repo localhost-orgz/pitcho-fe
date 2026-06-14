@@ -216,7 +216,7 @@ export default function Sidebar() {
         <div className="flex flex-col gap-y-2 lg:px-2">
           <div className="flex items-center gap-x-3 justify-center lg:justify-start">
             <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+              src="/dummy_ava.png"
               alt="Faza Mumtaz"
               className="size-10 rounded-full border border-slate-100 object-cover"
             />

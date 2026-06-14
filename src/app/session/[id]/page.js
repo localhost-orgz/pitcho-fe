@@ -696,13 +696,107 @@ export default function SessionDetailPage() {
         { id: "wordiness", label: "Wordiness", icon: FileText },
       ];
 
-  // ── Loading state ───────────────────────────────────────────
+  // ── Skeleton loader ────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 size={36} className="text-main animate-spin" />
-          <p className="text-sm font-bold text-slate-500">Loading session...</p>
+      <div className="w-full min-h-screen pb-16 font-sans animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div className="flex flex-col gap-2">
+            <div className="h-3.5 w-28 bg-slate-200 rounded" />
+            <div className="h-8 w-64 bg-slate-200 rounded-lg" />
+            <div className="flex items-center gap-2 mt-1">
+              <div className="h-5 w-24 bg-slate-200 rounded-md" />
+              <div className="w-1 h-1 rounded-full bg-slate-200" />
+              <div className="h-4 w-20 bg-slate-100 rounded" />
+              <div className="w-1 h-1 rounded-full bg-slate-200" />
+              <div className="h-4 w-14 bg-slate-100 rounded" />
+            </div>
+          </div>
+          <div className="h-9 w-36 bg-slate-200 rounded-lg" />
+        </div>
+
+        {/* Score overview skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Overall score ring */}
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center gap-3">
+            <div className="w-[100px] h-[100px] rounded-full bg-slate-200" />
+            <div className="h-3 w-16 bg-slate-200 rounded" />
+          </div>
+          {/* Filler words */}
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
+            <div className="w-5 h-5 bg-slate-200 rounded" />
+            <div className="h-8 w-10 bg-slate-200 rounded" />
+            <div className="h-3 w-24 bg-slate-100 rounded" />
+          </div>
+          {/* Distraction */}
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
+            <div className="w-5 h-5 bg-slate-200 rounded" />
+            <div className="h-8 w-14 bg-slate-200 rounded" />
+            <div className="h-3 w-24 bg-slate-100 rounded" />
+          </div>
+          {/* WPM */}
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
+            <div className="w-5 h-5 bg-slate-200 rounded" />
+            <div className="h-8 w-10 bg-slate-200 rounded" />
+            <div className="h-3 w-20 bg-slate-100 rounded" />
+          </div>
+        </div>
+
+        {/* Tab navigation skeleton */}
+        <div className="flex border-b-2 border-slate-200 mb-5 gap-2 overflow-x-auto">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-9 w-24 bg-slate-100 rounded-t-lg mb-[-2px]"
+            />
+          ))}
+        </div>
+
+        {/* Tab content skeleton */}
+        <div className="bg-white border-2 border-slate-200 rounded-2xl p-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Left: video placeholder */}
+            <div className="lg:col-span-8 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-48 bg-slate-200 rounded" />
+                <div className="h-3.5 w-20 bg-slate-100 rounded" />
+              </div>
+              <div className="aspect-video rounded-xl bg-slate-200 flex items-center justify-center">
+                <Loader2 size={32} className="text-slate-300 animate-spin" />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="h-8 w-28 bg-slate-100 rounded-lg" />
+                <div className="h-3.5 w-12 bg-slate-100 rounded" />
+                <div className="h-8 w-28 bg-slate-100 rounded-lg" />
+              </div>
+            </div>
+            {/* Right: clips + summary skeleton */}
+            <div className="lg:col-span-4 flex flex-col gap-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-32 bg-slate-200 rounded" />
+                  <div className="h-3.5 w-8 bg-slate-100 rounded" />
+                </div>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-xl border-2 border-slate-100 bg-white">
+                    <div className="w-16 aspect-video shrink-0 rounded-lg bg-slate-200" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="h-3 w-12 bg-slate-200 rounded" />
+                      <div className="h-2.5 w-16 bg-slate-100 rounded" />
+                    </div>
+                    <div className="w-6 h-6 rounded-full bg-slate-200 shrink-0" />
+                  </div>
+                ))}
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col gap-3">
+                <div className="h-4 w-28 bg-slate-200 rounded" />
+                <div className="h-3 w-full bg-slate-100 rounded" />
+                <div className="h-3 w-3/4 bg-slate-100 rounded" />
+                <div className="h-3 w-5/6 bg-slate-100 rounded" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -254,64 +254,71 @@ function useSessionData() {
           console.warn("Failed to parse speech analysis data:", e);
         }
 
-        // Load real clips from IndexedDB (extracted at session end)
-        let realClipsLoaded = false;
-        try {
-          const storedClips = await getSessionClips();
-          if (!cancelled && storedClips.length > 0) {
-            const events = data.lookAwayEvents || [];
-            const realClips = storedClips.map((storedClip, i) => {
-              const blobUrl = URL.createObjectURL(storedClip.blob);
-              blobUrlsRef.current.push(blobUrl);
-              const matchingEvent = events.find((e) => e.id === storedClip.id) || {};
-              return {
-                id: storedClip.id || `clip-${i}`,
-                timestamp: storedClip.timestamp || matchingEvent.timestamp || 0,
-                type: storedClip.type || matchingEvent.type || "Unknown",
-                duration: storedClip.duration || matchingEvent.duration || 0,
-                clipDuration: 6,
-                clipUrl: blobUrl, // real standalone clip video
-                thumbnail: null,
-                isRealClip: true,
-              };
-            });
-            if (!cancelled) {
-              setClips(realClips);
-              realClipsLoaded = true;
+        // Skip video/clip loading from IndexedDB when the tour is in progress.
+        // During the tour no real recording happens, so IndexedDB would only
+        // contain a stale video from the user's previous real session.
+        const tourInProgress = tourCompleted !== "true";
+
+        if (!tourInProgress) {
+          // Load real clips from IndexedDB (extracted at session end)
+          let realClipsLoaded = false;
+          try {
+            const storedClips = await getSessionClips();
+            if (!cancelled && storedClips.length > 0) {
+              const events = data.lookAwayEvents || [];
+              const realClips = storedClips.map((storedClip, i) => {
+                const blobUrl = URL.createObjectURL(storedClip.blob);
+                blobUrlsRef.current.push(blobUrl);
+                const matchingEvent = events.find((e) => e.id === storedClip.id) || {};
+                return {
+                  id: storedClip.id || `clip-${i}`,
+                  timestamp: storedClip.timestamp || matchingEvent.timestamp || 0,
+                  type: storedClip.type || matchingEvent.type || "Unknown",
+                  duration: storedClip.duration || matchingEvent.duration || 0,
+                  clipDuration: 6,
+                  clipUrl: blobUrl, // real standalone clip video
+                  thumbnail: null,
+                  isRealClip: true,
+                };
+              });
+              if (!cancelled) {
+                setClips(realClips);
+                realClipsLoaded = true;
+              }
             }
+          } catch (e) {
+            console.warn("Failed to load clips from IndexedDB, falling back to full video:", e);
           }
-        } catch (e) {
-          console.warn("Failed to load clips from IndexedDB, falling back to full video:", e);
-        }
 
-        // Fallback: if no real clips loaded, use full video + timeline windowing
-        if (!cancelled && !realClipsLoaded) {
-          const blob = await getSessionVideo();
-          if (blob) {
-            setVideoBlob(blob);
-            const url = URL.createObjectURL(blob);
-            blobUrlsRef.current.push(url);
-            setVideoUrl(url);
+          // Fallback: if no real clips loaded, use full video + timeline windowing
+          if (!cancelled && !realClipsLoaded) {
+            const blob = await getSessionVideo();
+            if (blob) {
+              setVideoBlob(blob);
+              const url = URL.createObjectURL(blob);
+              blobUrlsRef.current.push(url);
+              setVideoUrl(url);
 
-            const events = data.lookAwayEvents || [];
-            const extracted = events.map((evt) => {
-              const ts = evt.timestamp || 0;
-              const clipStart = Math.max(0, ts - 3);
-              const clipEnd = ts + 3;
-              return {
-                id: evt.id,
-                timestamp: ts,
-                type: evt.type || "Unknown",
-                duration: evt.duration || 0,
-                clipStart,
-                clipEnd,
-                clipDuration: clipEnd - clipStart,
-                clipUrl: url,
-                thumbnail: null,
-                isRealClip: false,
-              };
-            });
-            if (!cancelled) setClips(extracted);
+              const events = data.lookAwayEvents || [];
+              const extracted = events.map((evt) => {
+                const ts = evt.timestamp || 0;
+                const clipStart = Math.max(0, ts - 3);
+                const clipEnd = ts + 3;
+                return {
+                  id: evt.id,
+                  timestamp: ts,
+                  type: evt.type || "Unknown",
+                  duration: evt.duration || 0,
+                  clipStart,
+                  clipEnd,
+                  clipDuration: clipEnd - clipStart,
+                  clipUrl: url,
+                  thumbnail: null,
+                  isRealClip: false,
+                };
+              });
+              if (!cancelled) setClips(extracted);
+            }
           }
         }
       } catch (err) {
