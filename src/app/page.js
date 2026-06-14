@@ -348,35 +348,78 @@ function Navbar() {
 // ── Hero Section ────────────────────────────────────────────────────────────
 function HeroSection() {
   return (
-    <section className="hero max-w-[800px] mx-auto pt-16 px-5 pb-12 md:pt-24 md:px-6 md:pb-20 flex flex-col items-center text-center">
-      <div className="flex flex-col items-center">
-        <h1 className="heroTitle text-[clamp(2.2rem,5vw,3.6rem)] font-black leading-[1.15] text-[#0f1d35] mt-0 mx-0 mb-6 tracking-[-0.02em]">
-          Latihan <span className="heroAccent text-[#fabf24]">ngomong.</span>
-          <br />
-          Lawan <span className="heroAccent text-[#0388ff]">gangguan.</span>
-          <br />
-          Lewat <span className="heroAccent text-[#fabf24]">feedback.</span>
-        </h1>
+    <section className="hero relative overflow-hidden w-full min-h-[calc(100vh-4rem)] flex items-center py-12 md:py-16 px-6 md:px-12 lg:px-20 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/20">
+      {/* Decorative Blob Accents */}
+      <div 
+        className="absolute top-[-10%] left-[-5%] w-[350px] h-[350px] bg-[#fabf24]/10 rounded-full filter blur-[100px] -z-10 animate-float-bob"
+        style={{ animationDuration: '8s' }}
+      ></div>
+      <div 
+        className="absolute bottom-[-15%] right-[20%] w-[500px] h-[500px] bg-[#0388ff]/8 rounded-full filter blur-[130px] -z-10 animate-float-bob"
+        style={{ animationDuration: '12s', animationDelay: '2s' }}
+      ></div>
+      <div 
+        className="absolute top-[20%] right-[-5%] w-[300px] h-[300px] bg-indigo-200/20 rounded-full filter blur-[90px] -z-10 animate-float-bob"
+        style={{ animationDuration: '10s', animationDelay: '1s' }}
+      ></div>
 
-        <p className="heroDesc text-[1.05rem] text-[#5a7090] leading-[1.7] mb-8 max-w-[620px] mx-auto">
-          Pitcho menciptakan lingkungan latihan yang terasa seperti situasi
-          sesungguhnya, wawancara, presentasi, pitching ide, dengan coach AI
-          yang memberi feedback spesifik dan actionable.
-        </p>
+      <div className="max-w-[1200px] mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center z-10">
+        {/* Left Column: Text and Actions */}
+        <div className="flex flex-col items-start text-left max-w-xl">
+          <h1 className="heroTitle text-[clamp(2.2rem,4.5vw,3.6rem)] font-bold leading-[1.15] text-[#0f1d35] mt-0 mb-6 tracking-[-0.02em]">
+            Latihan{" "}
+            <span className="heroAccent font-extrabold text-[#fabf24] relative inline-block">
+              ngomong.
+              <span className="absolute bottom-1.5 left-0 w-full h-[6px] bg-[#fabf24]/20 -z-10 rounded"></span>
+            </span>
+            <br />
+            Lawan{" "}
+            <span className="heroAccent font-extrabold text-[#0388ff] relative inline-block">
+              gangguan.
+              <span className="absolute bottom-1.5 left-0 w-full h-[6px] bg-[#0388ff]/20 -z-10 rounded"></span>
+            </span>
+            <br />
+            Lewat{" "}
+            <span className="heroAccent font-extrabold text-[#fabf24] relative inline-block">
+              feedback.
+              <span className="absolute bottom-1.5 left-0 w-full h-[6px] bg-[#fabf24]/20 -z-10 rounded"></span>
+            </span>
+          </h1>
 
-        <div className="heroBtns flex gap-3.5 flex-wrap mb-10 justify-center">
-          <a
-            href="/signup"
-            className="btnHeroPrimary inline-flex items-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-3.5 px-7 rounded-xl no-underline shadow-[0_4px_20px_rgba(3,136,255,0.3)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
-          >
-            Coba Latihan Gratis <IconArrowRight />
-          </a>
-          <a
-            href=""
-            className="btnHeroSecondary inline-flex items-center gap-2 text-[#0f1d35] font-bold text-base py-[13px] px-6 rounded-xl border-2 border-[#d5dff5] bg-white no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
-          >
-            Lihat Demo
-          </a>
+          <p className="heroDesc text-[1.07rem] text-[#5a7090] leading-[1.75] mb-8">
+            Pitcho menciptakan lingkungan latihan yang terasa seperti situasi
+            sesungguhnya, wawancara, presentasi, pitching ide, dengan coach AI
+            yang memberi feedback spesifik dan actionable.
+          </p>
+
+          <div className="heroBtns flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <a
+              href="/signup"
+              className="btnHeroPrimary inline-flex items-center justify-center gap-2 bg-[#0388ff] text-white font-extrabold text-base py-4 px-8 rounded-xl no-underline shadow-[0_4px_20px_rgba(3,136,255,0.35)] hover:bg-[#0270d4] hover:shadow-[0_6px_24px_rgba(3,136,255,0.45)] transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
+            >
+              Coba Latihan Gratis <IconArrowRight />
+            </a>
+            <a
+              href=""
+              className="btnHeroSecondary inline-flex items-center justify-center gap-2 text-[#0f1d35] font-bold text-base py-[15px] px-8 rounded-xl border-2 border-[#d5dff5] bg-white no-underline hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0388ff]"
+            >
+              Lihat Demo
+            </a>
+          </div>
+        </div>
+
+        {/* Right Column: Hero Image */}
+        <div className="relative w-full max-w-lg md:max-w-none mx-auto flex items-center justify-center">
+          {/* Subtle glow / backdrop behind the image */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] h-[95%] bg-blue-400/10 rounded-full filter blur-3xl -z-10"></div>
+
+          <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(15,29,53,0.12)] border border-slate-100/80 transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_25px_60px_rgba(15,29,53,0.15)]">
+            <img
+              src="/hero-image.jpeg"
+              alt="Latihan Presentasi dengan Pitcho AI"
+              className="w-full h-full object-cover block"
+            />
+          </div>
         </div>
       </div>
     </section>

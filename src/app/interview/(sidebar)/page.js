@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowLeft,
-  HelpCircle,
   Lightbulb,
   Upload,
   Check,
@@ -453,26 +452,6 @@ export default function InterviewSetupPage() {
           </p>
         </div>
 
-        {/* Top Right Buttons & Tips */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <button className="flex items-center justify-center gap-2 border-2 border-slate-200 hover:border-slate-350 hover:bg-slate-50 rounded-xl px-4 py-2 text-sm font-bold text-slate-600 transition-all cursor-pointer">
-            <HelpCircle size={18} className="text-slate-400" />
-            <span>How it works</span>
-          </button>
-
-          <div className="flex items-center gap-3 p-3 bg-violet-50 border border-violet-100 rounded-2xl max-w-sm">
-            <div className="p-2 bg-violet-100 rounded-xl shrink-0">
-              <Lightbulb size={20} className="text-violet-600" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-black text-violet-800">Tip</span>
-              <p className="text-[11px] text-violet-600 font-bold leading-normal">
-                The more details you provide, the more realistic your mock
-                interview will be.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Main Grid: 3 Columns */}

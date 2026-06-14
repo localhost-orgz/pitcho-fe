@@ -30,7 +30,6 @@ import {
   Volume2,
   MessageSquare,
   MicOff,
-  Check,
   Play,
   RotateCw,
 } from "lucide-react";
@@ -40,6 +39,7 @@ import { useInterviewVideoController } from "@/hooks/useInterviewVideoController
 import { analyzeSpeech } from "@/utils/speechAnalysis";
 import { saveSessionVideo, saveSessionClips } from "@/utils/videoStorage";
 import { extractClip } from "@/utils/clipExtractor";
+import { useTTS } from "@/hooks/useTTS";
 
 // ── Equipment Status Bar ───────────────────────────────────
 function EquipmentBar({ internetSpeed, isCameraOn, isMicOn }) {
@@ -263,45 +263,6 @@ function CalibrationOverlay({ tracker, onCalibrated }) {
   );
 }
 
-// ── TTS helper ─────────────────────────────────────────────
-let ttsVoicesCache = null;
-function getIndonesianMaleVoice() {
-  if (!ttsVoicesCache) {
-    ttsVoicesCache = window.speechSynthesis.getVoices();
-  }
-  // Prefer male Indonesian voice
-  const maleVoice = ttsVoicesCache.find(
-    (v) =>
-      v.lang.startsWith("id") &&
-      (v.name.toLowerCase().includes("male") ||
-        v.name.toLowerCase().includes("pria") ||
-        v.name.toLowerCase().includes("damar") ||
-        v.name.toLowerCase().includes("arif"))
-  );
-  if (maleVoice) return maleVoice;
-  // Fallback: any Indonesian voice
-  return ttsVoicesCache.find((v) => v.lang.startsWith("id")) || null;
-}
-
-function speakText(text) {
-  return new Promise((resolve) => {
-    if (!window.speechSynthesis) {
-      resolve();
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "id-ID";
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    const voice = getIndonesianMaleVoice();
-    if (voice) utterance.voice = voice;
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.speak(utterance);
-  });
-}
-
 // ── Main Page ──────────────────────────────────────────────
 export default function InterviewSessionPage() {
   const router = useRouter();
@@ -355,6 +316,7 @@ export default function InterviewSessionPage() {
   // "idle" | "interviewer" | "waiting_to_answer" | "user_answer" | "nodding" | "yawning" | "ending"
   const [phase, setPhase] = useState("idle");
   const [completedQuestions, setCompletedQuestions] = useState(new Set());
+  const [showFirstQuestionGuide, setShowFirstQuestionGuide] = useState(true);
 
   // ── Infrastructure hooks ──────────────────────────────────
   const internetSpeed = useInternetSpeed();
@@ -365,6 +327,20 @@ export default function InterviewSessionPage() {
   // ── Interview video ───────────────────────────────────────
   const interviewVideoRef = useRef(null);
   const videoController = useInterviewVideoController(interviewVideoRef);
+
+  // ── ElevenLabs TTS ─────────────────────────────────────────
+  const tts = useTTS();
+
+  // Pre-generate audio for all questions in the background.
+  // Runs during calibration so audio is ready before question 1.
+  // Failed generations fall back to browser SpeechSynthesis at play time.
+  useEffect(() => {
+    if (questions.length > 0) {
+      tts.preGenerateAll(questions);
+    }
+    // tts.preGenerateAll is a stable ref (memoized by useCallback)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions]);
 
   // ── Eye tracker ───────────────────────────────────────────
   const tracker = useFaceTracker();
@@ -402,18 +378,6 @@ export default function InterviewSessionPage() {
 
   // ── Yawning 45s timer ─────────────────────────────────────
   const yawnTimerRef = useRef(null);
-
-  // ── TTS voices ────────────────────────────────────────────
-  useEffect(() => {
-    const loadVoices = () => {
-      ttsVoicesCache = window.speechSynthesis.getVoices();
-    };
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }, []);
 
   // ── Start camera + load model ─────────────────────────────
   useEffect(() => {
@@ -512,18 +476,22 @@ export default function InterviewSessionPage() {
       const q = questions[questionIdx];
       const questionText = q.question || q.title || `Question ${questionIdx + 1}`;
 
-      // Read the question via TTS
-      await speakText(questionText);
+      // Read the question via ElevenLabs TTS (falls back to browser SpeechSynthesis)
+      await tts.play(questionText, q.id);
 
       // TTS done → wait for user to click "Answer"
       setPhase("waiting_to_answer");
     },
-    [questions, videoController]
+    [questions, videoController, tts]
   );
 
   // ── User clicks "Answer" → start recording ────────────────
   const handleStartAnswer = useCallback(
     (questionIdx) => {
+      // Dismiss first-question guide when user clicks Answer
+      if (questionIdx === 0) {
+        setShowFirstQuestionGuide(false);
+      }
       setPhase("user_answer");
       answerStartTimeRef.current = Date.now();
       startPerQuestionRecording();
@@ -947,15 +915,38 @@ export default function InterviewSessionPage() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {/* First-question guide — highlighted callout */}
+            {phase === "waiting_to_answer" && currentQuestionIndex === 0 && showFirstQuestionGuide && (
+              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-blue-50 border-2 border-blue-300 rounded-xl shadow-[0_0_12px_rgba(59,130,246,0.25)] transition-all duration-300">
+                <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                  <Lightbulb size={13} className="text-white" fill="white" />
+                </div>
+                <span className="text-xs font-bold text-blue-800">
+                  Press <span className="inline-block px-1.5 py-0.5 bg-blue-500 text-white rounded-md text-[11px] font-black">Answer</span> to start recording, then <span className="inline-block px-1.5 py-0.5 bg-green-500 text-white rounded-md text-[11px] font-black">Submit Answer</span> when done.
+                </span>
+                <button
+                  onClick={() => setShowFirstQuestionGuide(false)}
+                  className="ml-1 p-1 rounded-full hover:bg-blue-200 text-blue-400 hover:text-blue-600 transition-colors cursor-pointer"
+                  aria-label="Dismiss"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
             {/* Action Buttons */}
             {phase === "waiting_to_answer" && (
-              <button
-                onClick={() => handleStartAnswer(currentQuestionIndex)}
-                className="h-9 bg-main hover:bg-blue-700 text-white font-extrabold text-xs px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_3px_0_#1e40af] active:translate-y-[2px] active:shadow-none"
-              >
-                <Play size={14} fill="white" />
-                Answer
-              </button>
+              <div className="relative">
+                {currentQuestionIndex === 0 && showFirstQuestionGuide && (
+                  <div className="absolute inset-0 rounded-xl ring-4 ring-blue-400/60 animate-pulse pointer-events-none" />
+                )}
+                <button
+                  onClick={() => handleStartAnswer(currentQuestionIndex)}
+                  className="h-9 bg-main hover:bg-blue-700 text-white font-extrabold text-xs px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_3px_0_#1e40af] active:translate-y-[2px] active:shadow-none"
+                >
+                  <Play size={14} fill="white" />
+                  Answer
+                </button>
+              </div>
             )}
             {phase === "user_answer" && (
               <button
@@ -970,6 +961,12 @@ export default function InterviewSessionPage() {
             <span className="text-[10px] text-slate-400 font-semibold italic">
               Session in progress
             </span>
+            {tts.fallbackActive && (
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                <AlertTriangle size={10} />
+                Browser TTS
+              </span>
+            )}
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Time
@@ -985,6 +982,24 @@ export default function InterviewSessionPage() {
         </div>
       </div>
 
+      {/* First-question guide — Mobile */}
+      {phase === "waiting_to_answer" && currentQuestionIndex === 0 && showFirstQuestionGuide && (
+        <div className="flex lg:hidden items-center gap-2.5 px-4 py-3 bg-blue-50 border-b-2 border-blue-300 shadow-[0_2px_8px_rgba(59,130,246,0.2)] shrink-0 transition-all duration-300">
+          <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+            <Lightbulb size={13} className="text-white" fill="white" />
+          </div>
+          <span className="text-[11px] font-bold text-blue-800 flex-1 leading-snug">
+            Press <span className="inline-block px-1.5 py-0.5 bg-blue-500 text-white rounded-md text-[10px] font-black">Answer</span> to record, then <span className="inline-block px-1.5 py-0.5 bg-green-500 text-white rounded-md text-[10px] font-black">Submit</span>.
+          </span>
+          <button
+            onClick={() => setShowFirstQuestionGuide(false)}
+            className="p-1 rounded-full hover:bg-blue-200 text-blue-400 hover:text-blue-600 transition-colors cursor-pointer"
+            aria-label="Dismiss"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {/* ── Phase Banner — Mobile (compact single row) ──── */}
       <div className="flex lg:hidden items-center gap-2 px-4 py-2 bg-violet-50 border-b-2 border-violet-100 shrink-0">
         <span className="text-xs font-bold text-violet-700 flex-1 truncate">
@@ -992,6 +1007,10 @@ export default function InterviewSessionPage() {
         </span>
         <div className="flex items-center gap-2 shrink-0">
           {phase === "waiting_to_answer" && (
+            <div className="relative">
+              {currentQuestionIndex === 0 && showFirstQuestionGuide && (
+                <div className="absolute inset-0 rounded-lg ring-4 ring-blue-400/60 animate-pulse pointer-events-none" />
+              )}
             <button
               onClick={() => handleStartAnswer(currentQuestionIndex)}
               className="h-8 bg-main hover:bg-blue-700 text-white font-extrabold text-[11px] px-3 rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[0_2px_0_#1e40af] active:translate-y-[2px] active:shadow-none"
@@ -999,6 +1018,7 @@ export default function InterviewSessionPage() {
               <Play size={12} fill="white" />
               Answer
             </button>
+            </div>
           )}
           {phase === "user_answer" && (
             <button
@@ -1169,15 +1189,12 @@ export default function InterviewSessionPage() {
           </div>
         </div>
 
-        {/* ── Right Panel: Questions — Desktop only ──────── */}
+        {/* ── Right Panel: Current Question — Desktop only ──────── */}
         <div className="hidden lg:flex w-80 shrink-0 flex-col border-l-2 border-border bg-white overflow-hidden">
           <div className="flex border-b-2 border-border px-4 pt-3 gap-4 shrink-0">
-            <button
-              onClick={() => {}}
-              className="pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer border-main text-main"
-            >
-              Questions
-            </button>
+            <span className="pb-2.5 text-sm font-bold border-b-2 transition-colors border-main text-main">
+              Current Question
+            </span>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -1202,139 +1219,84 @@ export default function InterviewSessionPage() {
                 <FileText size={32} className="text-slate-300" />
                 <span className="text-xs font-bold text-slate-400">No questions available</span>
               </div>
-            ) : (
-              <>
-                {/* Question List */}
-                <div>
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2 block">
-                    Questions ({questions.length})
-                  </span>
-                  <div className="flex flex-col gap-1.5">
-                    {questions.map((q, i) => {
-                      const isCompleted = completedQuestions.has(i);
-                      const isCurrent = i === currentQuestionIndex;
-                      return (
-                        <button
-                          key={q.id || i}
-                          onClick={() => {
-                            // Allow clicking to review, but don't interrupt active session
-                            setCurrentQuestionIndex(i);
-                          }}
-                          className={`w-full text-left p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                            isCurrent
-                              ? "border-main bg-main/10"
-                              : isCompleted
-                                ? "border-green-200 bg-green-50/50"
-                                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-[10px] font-black shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                                isCurrent
-                                  ? "bg-main text-white"
-                                  : isCompleted
-                                    ? "bg-green-500 text-white"
-                                    : "bg-slate-200 text-slate-500"
-                              }`}
-                            >
-                              {isCompleted ? <Check size={10} strokeWidth={3} /> : i + 1}
-                            </span>
-                            <span
-                              className={`text-xs font-semibold leading-snug line-clamp-2 ${
-                                isCurrent ? "text-main" : "text-slate-600"
-                              }`}
-                            >
-                              {q.question || q.title || `Question ${i + 1}`}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
+            ) : questions[currentQuestionIndex] ? (() => {
+              const q = questions[currentQuestionIndex];
+              const reasoning = q.reasoning || q.why_ask;
+              const keyPoints = q.key_points;
+              const tip = q.tip;
+              return (
+                <>
+                  <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
+                        Question {currentQuestionIndex + 1} of {questions.length}
+                      </p>
+                      {q.category && (
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
+                          {q.category}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-semibold text-slate-800 leading-snug mt-2">
+                      {q.question || q.title || "Question text"}
+                    </p>
+
+                    {reasoning && (
+                      <>
+                        <div className="w-full border my-3 border-slate-300/50" />
+                        <div className="flex flex-col gap-3">
+                          <span className="text-xs font-bold text-slate-500">
+                            Why we ask this?
+                          </span>
+                          <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
+                            {reasoning}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
 
-                {/* Current Question Detail */}
-                {questions[currentQuestionIndex] && (() => {
-                  const q = questions[currentQuestionIndex];
-                  const reasoning = q.reasoning || q.why_ask;
-                  const keyPoints = q.key_points;
-                  const tip = q.tip;
-                  return (
-                    <>
-                      <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
-                            Current Question
-                          </p>
-                          {q.category && (
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
-                              {q.category}
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-semibold text-slate-800 leading-snug mt-2">
-                          {q.question || q.title || "Question text"}
-                        </p>
-
-                        {reasoning && (
-                          <>
-                            <div className="w-full border my-3 border-slate-300/50" />
-                            <div className="flex flex-col gap-3">
-                              <span className="text-xs font-bold text-slate-500">
-                                Why we ask this?
-                              </span>
-                              <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
-                                {reasoning}
-                              </span>
-                            </div>
-                          </>
-                        )}
+                  {keyPoints && keyPoints.length > 0 && (
+                    <div>
+                      <div className="mb-3">
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                          Key Points
+                        </span>
                       </div>
-
-                      {keyPoints && keyPoints.length > 0 && (
-                        <div>
-                          <div className="mb-3">
-                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                              Key Points
-                            </span>
-                          </div>
-                          <div className="flex flex-col">
-                            {keyPoints.map((point, i) => (
-                              <div key={i} className="flex items-start gap-3">
-                                <div className="flex flex-col items-center shrink-0">
-                                  <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
-                                  {i < keyPoints.length - 1 && (
-                                    <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
-                                  )}
-                                </div>
-                                <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
-                                  {point}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {tip && (
-                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
-                          <Lightbulb size={15} className="text-amber-500 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">
-                              Tip
-                            </p>
-                            <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                              {tip}
+                      <div className="flex flex-col">
+                        {keyPoints.map((point, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <div className="flex flex-col items-center shrink-0">
+                              <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
+                              {i < keyPoints.length - 1 && (
+                                <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
+                              )}
+                            </div>
+                            <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">
+                              {point}
                             </p>
                           </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </>
-            )}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {tip && (
+                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
+                      <Lightbulb size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">
+                          Tip
+                        </p>
+                        <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                          {tip}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })() : null}
           </div>
         </div>
       </div>
@@ -1365,7 +1327,7 @@ export default function InterviewSessionPage() {
         {/* Tab header */}
         <div className="flex items-center justify-between border-b-2 border-border px-4 pb-2 gap-4 shrink-0">
           <span className="text-sm font-bold text-main pb-2 border-b-2 border-main -mb-[2px]">
-            Questions
+            Current Question
           </span>
           {panelOpen && (
             <button
@@ -1400,123 +1362,71 @@ export default function InterviewSessionPage() {
               <FileText size={32} className="text-slate-300" />
               <span className="text-xs font-bold text-slate-400">No questions available</span>
             </div>
-          ) : (
-            <>
-              {/* Question List */}
-              <div>
-                <span className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2 block">
-                  Questions ({questions.length})
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  {questions.map((q, i) => {
-                    const isCompleted = completedQuestions.has(i);
-                    const isCurrent = i === currentQuestionIndex;
-                    return (
-                      <button
-                        key={q.id || i}
-                        onClick={() => setCurrentQuestionIndex(i)}
-                        className={`w-full text-left p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                          isCurrent
-                            ? "border-main bg-main/10"
-                            : isCompleted
-                              ? "border-green-200 bg-green-50/50"
-                              : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[10px] font-black shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                              isCurrent
-                                ? "bg-main text-white"
-                                : isCompleted
-                                  ? "bg-green-500 text-white"
-                                  : "bg-slate-200 text-slate-500"
-                            }`}
-                          >
-                            {isCompleted ? <Check size={10} strokeWidth={3} /> : i + 1}
-                          </span>
-                          <span
-                            className={`text-xs font-semibold leading-snug line-clamp-2 ${
-                              isCurrent ? "text-main" : "text-slate-600"
-                            }`}
-                          >
-                            {q.question || q.title || `Question ${i + 1}`}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
+          ) : questions[currentQuestionIndex] ? (() => {
+            const q = questions[currentQuestionIndex];
+            const reasoning = q.reasoning || q.why_ask;
+            const keyPoints = q.key_points;
+            const tip = q.tip;
+            return (
+              <>
+                <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
+                      Question {currentQuestionIndex + 1} of {questions.length}
+                    </p>
+                    {q.category && (
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
+                        {q.category}
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-semibold text-slate-800 leading-snug mt-2">
+                    {q.question || q.title || "Question text"}
+                  </p>
+                  {reasoning && (
+                    <>
+                      <div className="w-full border my-3 border-slate-300/50" />
+                      <div className="flex flex-col gap-3">
+                        <span className="text-xs font-bold text-slate-500">Why we ask this?</span>
+                        <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
+                          {reasoning}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-
-              {/* Current Question Detail */}
-              {questions[currentQuestionIndex] && (() => {
-                const q = questions[currentQuestionIndex];
-                const reasoning = q.reasoning || q.why_ask;
-                const keyPoints = q.key_points;
-                const tip = q.tip;
-                return (
-                  <>
-                    <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
-                          Current Question
-                        </p>
-                        {q.category && (
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-700">
-                            {q.category}
-                          </span>
-                        )}
-                      </div>
-                      <p className="font-semibold text-slate-800 leading-snug mt-2">
-                        {q.question || q.title || "Question text"}
-                      </p>
-                      {reasoning && (
-                        <>
-                          <div className="w-full border my-3 border-slate-300/50" />
-                          <div className="flex flex-col gap-3">
-                            <span className="text-xs font-bold text-slate-500">Why we ask this?</span>
-                            <span className="text-xs font-semibold text-slate-500 leading-snug tracking-[0.3px]">
-                              {reasoning}
-                            </span>
-                          </div>
-                        </>
-                      )}
+                {keyPoints && keyPoints.length > 0 && (
+                  <div>
+                    <div className="mb-3">
+                      <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Key Points</span>
                     </div>
-                    {keyPoints && keyPoints.length > 0 && (
-                      <div>
-                        <div className="mb-3">
-                          <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Key Points</span>
+                    <div className="flex flex-col">
+                      {keyPoints.map((point, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="flex flex-col items-center shrink-0">
+                            <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
+                            {i < keyPoints.length - 1 && (
+                              <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
+                            )}
+                          </div>
+                          <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">{point}</p>
                         </div>
-                        <div className="flex flex-col">
-                          {keyPoints.map((point, i) => (
-                            <div key={i} className="flex items-start gap-3">
-                              <div className="flex flex-col items-center shrink-0">
-                                <div className="w-4 h-4 rounded-full border-2 border-main bg-main/20 shrink-0 mt-0.5" />
-                                {i < keyPoints.length - 1 && (
-                                  <div className="w-px flex-1 border-l-2 border-dashed border-main/40 my-1 min-h-5" />
-                                )}
-                              </div>
-                              <p className="pb-4 text-sm text-slate-500 font-medium leading-snug">{point}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {tip && (
-                      <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
-                        <Lightbulb size={15} className="text-amber-500 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">Tip</p>
-                          <p className="text-xs text-amber-800 font-medium leading-relaxed">{tip}</p>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </>
-          )}
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {tip && (
+                  <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
+                    <Lightbulb size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">Tip</p>
+                      <p className="text-xs text-amber-800 font-medium leading-relaxed">{tip}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })() : null}
         </div>
       </div>
 
