@@ -239,18 +239,19 @@ function Navbar() {
         >
           <li>
             <a
-              href="#how-it-works"
-              className="text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
-            >
-              Cara Kerja
-            </a>
-          </li>
-          <li>
-            <a
               href="#features"
               className="text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
             >
               Fitur
+            </a>
+          </li>
+
+          <li>
+            <a
+              href="#how-it-works"
+              className="text-sm font-medium text-slate-600 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0388ff] focus-visible:rounded-sm"
+            >
+              Cara Kerja
             </a>
           </li>
           <li>

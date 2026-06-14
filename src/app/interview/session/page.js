@@ -1036,11 +1036,11 @@ export default function InterviewSessionPage() {
                 ref={interviewVideoRef}
                 src="/interview.mp4"
                 className="absolute inset-0 w-full h-full object-cover"
+                autoPlay
                 muted
                 playsInline
                 preload="auto"
                 onLoadedData={videoController.onVideoReady}
-                onCanPlay={videoController.onVideoReady}
                 onTimeUpdate={videoController.handleTimeUpdate}
                 onError={(e) => console.error("Interview video failed to load:", e)}
               />
@@ -1062,42 +1062,7 @@ export default function InterviewSessionPage() {
                 </span>
               </div>
 
-              {/* Facecam */}
-              <div className="absolute bottom-3 left-3 w-36 md:w-48 lg:w-72 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 relative overflow-hidden shadow-lg z-10">
-                <video
-                  ref={facecamRef}
-                  className="w-full h-full object-cover scale-x-[-1]"
-                  muted
-                  playsInline
-                  autoPlay
-                />
-                {!isFaceDetected && cameraReady && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
-                    <div className="flex flex-col items-center gap-1.5 text-white/80 text-[10px] font-bold">
-                      <ScanFace size={22} className="animate-pulse" />
-                      <span>Searching face…</span>
-                    </div>
-                  </div>
-                )}
-                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-md z-10">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  Live
-                </div>
-                {eyeTrackingActive && (
-                  <div
-                    className={`absolute top-2 left-2 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md z-10 ${
-                      trackerStatus === "warning"
-                        ? "bg-orange-500 text-white"
-                        : "bg-main/90 text-white"
-                    }`}
-                  >
-                    <Eye size={9} />
-                    <span>
-                      {trackerStatus === "warning" ? "DISTRACTED" : "TRACKING"}
-                    </span>
-                  </div>
-                )}
-              </div>
+              {/* Facecam — fixed bottom-left of page */}
 
               {/* Calibration overlay */}
               {showCalibration && (
@@ -1113,6 +1078,43 @@ export default function InterviewSessionPage() {
               )}
             </div>
           </div>
+
+          {/* ── Facecam (bottom-left of viewport) ────────────── */}
+          {cameraReady && (
+            <div className="fixed bottom-4 left-4 w-36 md:w-48 lg:w-56 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 overflow-hidden shadow-2xl z-50">
+              <video
+                ref={facecamRef}
+                className="w-full h-full object-cover scale-x-[-1]"
+                muted
+                playsInline
+                autoPlay
+              />
+              {!isFaceDetected && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                  <div className="flex flex-col items-center gap-1.5 text-white/80 text-[10px] font-bold">
+                    <ScanFace size={22} className="animate-pulse" />
+                    <span>Searching face…</span>
+                  </div>
+                </div>
+              )}
+              <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-green-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md z-10">
+                <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
+                Live
+              </div>
+              {eyeTrackingActive && (
+                <div
+                  className={`absolute top-1.5 left-1.5 flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded-md z-10 ${
+                    trackerStatus === "warning"
+                      ? "bg-orange-500 text-white"
+                      : "bg-main/90 text-white"
+                  }`}
+                >
+                  <Eye size={9} />
+                  <span>{trackerStatus === "warning" ? "DISTRACTED" : "TRACKING"}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Equipment Status Bar — Desktop only */}
           <div className="hidden lg:flex">
