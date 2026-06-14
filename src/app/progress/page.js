@@ -609,7 +609,7 @@ export default function ProgressPage() {
         )}
 
         {/* Session History — full width with pagination */}
-        <div className="flex flex-col gap-4">
+        <div id="session-history" className="flex flex-col gap-4 scroll-mt-20">
           <SessionHistoryList
             sessions={paginatedSessions}
             averageScores={averageScores}

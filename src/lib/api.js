@@ -165,6 +165,51 @@ export async function fetchHistory({ limit } = {}) {
   }
 }
 
+/**
+ * Fetch session history AND aggregate stats from the backend.
+ * GETs JSON from /api/history (optionally limited to last N).
+ * Returns { sessions: Array, stats: { averageDistract, averageFiller, averageWpm } | null }.
+ *
+ * @param {Object} opts - { limit?: number }
+ * @returns {Promise<{sessions: Array, stats: Object|null}>}
+ */
+export async function fetchHistoryWithStats({ limit } = {}) {
+  const token = getAuthToken();
+
+  if (!token) return { sessions: [], stats: null };
+
+  try {
+    const url = new URL("https://pitcho-be.vercel.app/api/history");
+    if (limit != null) url.searchParams.set("limit", String(limit));
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) return { sessions: [], stats: null };
+
+    const json = await res.json();
+
+    if (Array.isArray(json)) {
+      return { sessions: json, stats: null };
+    }
+
+    const sessions = json.data ?? [];
+    const stats = {
+      averageDistract: json.averageDistract ?? null,
+      averageFiller: json.averageFiller ?? null,
+      averageWpm: json.averageWpm ?? null,
+    };
+
+    return { sessions, stats };
+  } catch {
+    return { sessions: [], stats: null };
+  }
+}
+
 const api = axios.create({
   baseURL: "https://pitcho-be.vercel.app/api",
   // baseURL: "http://localhost:3000/api",

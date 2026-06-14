@@ -23,10 +23,118 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import PerformanceCircle from "@/components/UI/PerformanceCircle";
-import MiniLineChart from "@/components/UI/MiniLineChart";
-import { fetchHistory } from "@/lib/api";
+import { fetchHistoryWithStats } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTour } from "@/components/Tour/TourContext";
+
+// ── Skeleton loader ────────────────────────────────────────────
+function StudioSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* Welcome Banner skeleton */}
+      <div className="w-full relative py-6 lg:py-10 bg-transparent rounded-2xl p-4 lg:p-0 border border-slate-100 mb-20">
+        <div className="flex flex-col gap-3 max-w-lg">
+          <div className="h-6 w-40 bg-slate-200 rounded-lg" />
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-48 bg-slate-200 rounded-lg" />
+            <div className="h-7 w-7 bg-slate-200 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-80 bg-slate-100 rounded" />
+            <div className="h-4 w-64 bg-slate-100 rounded" />
+          </div>
+        </div>
+      </div>
+
+      {/* Grid container */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-6 gap-3">
+        {/* Mobile streak skeleton (hidden on desktop) */}
+        <div className="order-1 lg:hidden flex gap-4 w-full bg-white p-4 rounded-2xl">
+          <div className="flex-1 flex items-center gap-3">
+            <div className="w-9 h-9 bg-slate-200 rounded-full shrink-0" />
+            <div className="space-y-1.5">
+              <div className="h-4 w-28 bg-slate-200 rounded" />
+              <div className="h-3 w-20 bg-slate-100 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Practice cards skeleton */}
+        <div className="order-2 lg:order-1 lg:col-span-2 px-5 py-6 bg-white rounded-2xl border-bold">
+          <div className="h-7 w-56 bg-slate-200 rounded-lg" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
+            <div className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 h-[180px] flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="h-7 w-40 bg-slate-200 rounded-lg" />
+                <div className="h-4 w-[60%] bg-slate-100 rounded" />
+                <div className="h-4 w-[45%] bg-slate-100 rounded" />
+              </div>
+              <div className="h-9 w-32 bg-slate-200 rounded-2xl" />
+            </div>
+            <div className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 h-[180px] flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="h-7 w-36 bg-slate-200 rounded-lg" />
+                <div className="h-4 w-[60%] bg-slate-100 rounded" />
+                <div className="h-4 w-[45%] bg-slate-100 rounded" />
+              </div>
+              <div className="h-9 w-32 bg-slate-200 rounded-2xl" />
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop sidebar skeleton (hidden on mobile) */}
+        <div className="hidden lg:flex flex-col gap-3 lg:order-2 lg:col-span-1">
+          <div className="w-full rounded-2xl border-bold p-6 flex items-center gap-3 bg-white">
+            <div className="w-9 h-9 bg-slate-200 rounded-full shrink-0" />
+            <div className="space-y-1.5">
+              <div className="h-4 w-28 bg-slate-200 rounded" />
+              <div className="h-3 w-20 bg-slate-100 rounded" />
+            </div>
+          </div>
+          <div className="w-full rounded-2xl border-bold p-6 flex items-center gap-3 bg-white">
+            <div className="w-9 h-9 bg-slate-200 rounded-full shrink-0" />
+            <div className="space-y-1.5">
+              <div className="h-4 w-20 bg-slate-200 rounded" />
+              <div className="h-3 w-18 bg-slate-100 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Speaking Summary skeleton */}
+        <div className="order-3 lg:col-span-2 p-6 rounded-2xl border-bold bg-white">
+          <div className="h-7 w-52 bg-slate-200 rounded-lg" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-7">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl bg-slate-50 border border-slate-100 p-4 min-h-[100px] space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-slate-200 rounded-full w-8 h-8" />
+                  <div className="h-4 w-20 bg-slate-200 rounded" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <div className="h-8 w-12 bg-slate-200 rounded" />
+                  <div className="h-3 w-14 bg-slate-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Sessions skeleton */}
+        <div className="order-4 lg:col-span-1 px-5 py-4 bg-white border-bold">
+          <div className="flex items-center justify-between">
+            <div className="h-7 w-40 bg-slate-200 rounded-lg" />
+            <div className="h-4 w-14 bg-slate-100 rounded" />
+          </div>
+          <div className="w-full border-2 border-dashed border-slate-100 rounded-xl py-6 px-4 flex flex-col items-center justify-center h-[185px] mt-6 gap-3">
+            <div className="w-16 h-16 rounded-full bg-slate-200" />
+            <div className="h-4 w-28 bg-slate-200 rounded" />
+            <div className="h-3 w-44 bg-slate-100 rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function StationPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -36,6 +144,9 @@ export default function StationPage() {
   const [slideDirection, setSlideDirection] = useState("right");
   const [recentSessions, setRecentSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [aggregateStats, setAggregateStats] = useState(null); // { averageDistract, averageFiller, averageWpm }
+  const [streakCurrent, setStreakCurrent] = useState(null);   // { current, best }
+  const [unlockedBadgeCount, setUnlockedBadgeCount] = useState(0);
 
   // ── Auto-trigger tour when user has zero sessions ─────────────
   // We wait for the history fetch to resolve (sessionsLoading = false) so we
@@ -89,18 +200,23 @@ export default function StationPage() {
     },
   ];
 
-  const eyeContactData = [70, 75, 82, 79, 85, 83, 88];
-  const fillerWordsData = [10, 8, 9, 7, 6, 5, 10];
-  const speakingPaceData = [142, 138, 135, 130, 128, 122, 125];
 
-  // ── Fetch last 5 sessions from /api/history ────────────────
+  // ── Fetch last 5 sessions + aggregate stats from /api/history ─
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setSessionsLoading(true);
       try {
-        const raw = await fetchHistory({ limit: 5 });
+        const { sessions: raw, stats } = await fetchHistoryWithStats({ limit: 5 });
         if (cancelled) return;
+
+        if (stats) {
+          setAggregateStats({
+            averageDistract: stats.averageDistract != null ? Math.round(stats.averageDistract) : null,
+            averageFiller: stats.averageFiller != null ? Math.round(stats.averageFiller) : null,
+            averageWpm: stats.averageWpm != null ? Math.round(stats.averageWpm) : null,
+          });
+        }
 
         const mapped = raw.map((s) => {
           const score = s.overallScore ?? s.overall_score ?? s.score ?? 0;
@@ -162,8 +278,59 @@ export default function StationPage() {
     };
   }, []);
 
+  // ── Fetch current streak from /api/streak/current ──────────
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/streak/current");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const raw = data.data ?? data;
+        if (!cancelled) {
+          setStreakCurrent({
+            current: raw.streak ?? raw.current ?? 0,
+            best: raw.best ?? 0,
+          });
+        }
+      } catch {
+        // silently ignore
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Fetch badges and count unlocked ────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/badges/my-badges");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const badges = data.badges || data.data?.badges || data.data || [];
+        if (!cancelled) {
+          const count = Array.isArray(badges)
+            ? badges.filter((b) => b.unlocked === true || b.unlocked === "true").length
+            : 0;
+          setUnlockedBadgeCount(count);
+        }
+      } catch {
+        // silently ignore
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
   const activeSession =
     recentSessions.length > 0 ? recentSessions[activeSessionIndex] : null;
+
+  // ── Skeleton while auth is resolving ─────────────────────────
+  if (isLoading) {
+    return <StudioSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -274,7 +441,7 @@ export default function StationPage() {
             />
             <div className="flex flex-col">
               <span className="font-bold text-sm text-slate-800">
-                12 Days Streak
+                {streakCurrent?.current ?? "—"} Days Streak
               </span>
               <span className="text-[11px] text-slate-500 font-bold leading-none">
                 Keep it going!
@@ -370,7 +537,7 @@ export default function StationPage() {
               alt="streak"
             />
             <div className="flex flex-col">
-              <span className="font-bold">12 Days Streak</span>
+              <span className="font-bold">{streakCurrent?.current ?? "—"} Days Streak</span>
               <span className="text-sm text-slate-500">keep it going!</span>
             </div>
           </div>
@@ -383,7 +550,7 @@ export default function StationPage() {
               alt="badge"
             />
             <div className="flex flex-col">
-              <span className="font-bold">12 Badges</span>
+              <span className="font-bold">{unlockedBadgeCount} Badges</span>
               <span className="text-sm text-slate-500">owned now!</span>
             </div>
           </div>
@@ -394,35 +561,30 @@ export default function StationPage() {
           <h3 className="text-xl font-bold">Your Speaking Summary</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-7">
-            <div className="rounded-xl bg-blue-50/50 border border-blue-100/30 p-4 flex flex-col justify-between min-h-[140px]">
+            {/* Distractions per session */}
+            <div className="rounded-xl bg-blue-50/50 border border-blue-100/30 p-4 flex flex-col gap-3 min-h-[100px]">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-blue-500/10 w-fit rounded-full">
                     <Eye size={20} className="text-blue-500" />
                   </div>
                   <span className="font-bold text-slate-700 text-sm">
-                    Eye Contact
+                    Gangguan
                   </span>
                 </div>
                 <div className="flex items-baseline mt-4 gap-1">
                   <span className="font-extrabold text-2xl text-slate-800 ">
-                    88
+                    {user?.averageDistract != null ? Math.round(user.averageDistract) : (aggregateStats?.averageDistract ?? "—")}
                   </span>
                   <span className="text-xs font-bold text-slate-400">
-                    % average
+                    x /sesi
                   </span>
                 </div>
               </div>
-              <div className="w-full h-8 mt-4">
-                <MiniLineChart
-                  data={eyeContactData}
-                  color="#3b82f6"
-                  strokeWidth={1.8}
-                />
-              </div>
             </div>
 
-            <div className="rounded-xl bg-orange-50/50 border border-orange-100/30 p-4 flex flex-col justify-between min-h-[140px]">
+            {/* Filler words per session */}
+            <div className="rounded-xl bg-orange-50/50 border border-orange-100/30 p-4 flex flex-col gap-3 min-h-[100px]">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-orange-500/10 w-fit rounded-full">
@@ -434,23 +596,17 @@ export default function StationPage() {
                 </div>
                 <div className="flex items-baseline mt-4 gap-1">
                   <span className="font-extrabold text-2xl text-slate-800 ">
-                    4
+                    {user?.averageFiller != null ? Math.round(user.averageFiller) : (aggregateStats?.averageFiller ?? "—")}
                   </span>
                   <span className="text-xs font-bold text-slate-400">
-                    times average
+                    kata/ sesi
                   </span>
                 </div>
               </div>
-              <div className="w-full h-8 mt-4">
-                <MiniLineChart
-                  data={fillerWordsData}
-                  color="#ea580c"
-                  strokeWidth={1.8}
-                />
-              </div>
             </div>
 
-            <div className="rounded-xl bg-emerald-50/50 border border-emerald-100/30 p-4 flex flex-col justify-between min-h-[140px]">
+            {/* Speaking pace — wpm */}
+            <div className="rounded-xl bg-emerald-50/50 border border-emerald-100/30 p-4 flex flex-col gap-3 min-h-[100px]">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-emerald-500/10 w-fit rounded-full">
@@ -462,19 +618,12 @@ export default function StationPage() {
                 </div>
                 <div className="flex items-baseline mt-4 gap-1">
                   <span className="font-extrabold text-2xl text-slate-800 ">
-                    125
+                    {user?.averageWpm != null ? Math.round(user.averageWpm) : (aggregateStats?.averageWpm ?? "—")}
                   </span>
                   <span className="text-xs font-bold text-slate-400">
-                    wpm average
+                    wpm
                   </span>
                 </div>
-              </div>
-              <div className="w-full h-8 mt-4">
-                <MiniLineChart
-                  data={speakingPaceData}
-                  color="#10b981"
-                  strokeWidth={1.8}
-                />
               </div>
             </div>
           </div>
@@ -485,10 +634,10 @@ export default function StationPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Recent Sessions</h2>
             <Link
-              href="/presentation/result"
+              href="/progress#session-history"
               className="flex items-center text-main hover:underline text-sm font-semibold gap-1"
             >
-              <span>View all</span>
+              <span>See all</span>
               <ChevronRight size={18} />
             </Link>
           </div>

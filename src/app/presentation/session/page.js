@@ -27,6 +27,7 @@ import {
   Crosshair,
   FileText,
   Loader2,
+  RotateCw,
 } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
@@ -528,6 +529,7 @@ export default function PresentationSessionPage() {
   // ── End Session handler ─────────────────────────────────
   const [isEnding, setIsEnding] = useState(false);
   const [clipProgress, setClipProgress] = useState(null); // { current, total }
+  const [panelOpen, setPanelOpen] = useState(false); // mobile bottom sheet
 
   const handleEndSession = useCallback(async () => {
     if (isEnding) return;
@@ -704,7 +706,8 @@ export default function PresentationSessionPage() {
       : eyeContactTier.dotClass;
 
   return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden relative">
+    <>
+      <div className="flex flex-col h-dvh bg-white overflow-hidden relative portrait-lock-hide">
       {totalSessionTime > sessionDuration && (
         <>
           {/* Pulsing Red Border and Inset Glow with Ping animation */}
@@ -720,14 +723,14 @@ export default function PresentationSessionPage() {
         </>
       )}
       {/* ── Top Header ─────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 border-b-2 border-border bg-white z-10 shrink-0">
+      <header className="flex items-center justify-between px-4 lg:px-6 py-2 lg:py-3 border-b-2 border-border bg-white z-10 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-slate-800 tracking-tight text-lg">
-            Presentation Simulation
+          <span className="font-bold text-slate-800 tracking-tight text-base lg:text-lg">
+            Presentation
           </span>
-          {/* Distraction Badge */}
+          {/* Distraction Badge — desktop only */}
           <span
-            className={`px-2.5 py-1 text-xs font-bold rounded-md border ${
+            className={`hidden lg:flex px-2.5 py-1 text-xs font-bold rounded-md border ${
               distractionLevel === "Low Distraction"
                 ? "bg-green-50 border-green-200 text-green-600"
                 : distractionLevel === "Medium Distraction"
@@ -738,10 +741,10 @@ export default function PresentationSessionPage() {
             {distractionLevel}
           </span>
 
-          {/* Eye Tracking Status Badge */}
+          {/* Eye Tracking Status Badge — desktop only */}
           {eyeTrackingActive && (
             <span
-              className={`px-2.5 py-1 border text-xs font-bold rounded-md flex items-center gap-1.5 ${
+              className={`hidden lg:flex px-2.5 py-1 border text-xs font-bold rounded-md flex items-center gap-1.5 ${
                 trackerStatus === "warning"
                   ? "bg-orange-50 border-orange-200 text-orange-600"
                   : "bg-green-50 border-green-200 text-green-600"
@@ -760,27 +763,37 @@ export default function PresentationSessionPage() {
           )}
         </div>
 
+        {/* Timer — mobile only */}
+        <span className="flex lg:hidden items-center gap-1.5">
+          <span className="font-mono font-black text-lg text-main">
+            {formatTime(elapsed)}
+          </span>
+          <span className="font-mono font-bold text-xs text-slate-400">
+            / {formatTime(sessionDuration)}
+          </span>
+        </span>
+
         {/* End Session Button */}
         <div data-tour="end-session-btn">
           <Button
             variant={"danger"}
             size="sm"
-            className="flex items-center gap-1.5 font-bold"
+            className="flex items-center gap-1.5 font-bold shrink-0"
             onClick={handleEndSession}
             disabled={isEnding}
           >
             <MonitorX size={14} />
-            {isEnding
+            <span className="hidden lg:inline">{isEnding
               ? clipProgress
                 ? `Processing clip ${clipProgress.current}/${clipProgress.total}...`
                 : "Ending..."
-              : "End Session"}
+              : "End Session"}</span>
           </Button>
         </div>
       </header>
 
-      {/* ── Audience Alert Banner ───────────────────────────── */}
-      <div className="flex items-center gap-3 px-6 py-2.5 bg-violet-50 border-b-2 border-violet-100 shrink-0">
+      {/* ── Audience Alert Banner — Desktop ─────────────── */}
+      <div className="hidden lg:flex items-center gap-3 px-6 py-2.5 bg-violet-50 border-b-2 border-violet-100 shrink-0">
         <div className="p-1.5 bg-violet-100 rounded-full">
           <CircleAlert size={15} className="text-violet-600" />
         </div>
@@ -814,9 +827,19 @@ export default function PresentationSessionPage() {
         </div>
       </div>
 
+      {/* ── Audience Alert Banner — Mobile (compact) ────── */}
+      <div className="flex lg:hidden items-center gap-2 px-4 py-2 bg-violet-50 border-b-2 border-violet-100 shrink-0">
+        <span className="text-xs font-bold text-violet-700 flex-1 truncate">
+          Audience distractions active — stay focused!
+        </span>
+        <span className="font-mono font-black text-sm text-main shrink-0">
+          {formatTime(elapsed)}
+        </span>
+      </div>
+
       {/* ── Speech Recognition Compatibility Banner ──────────── */}
       {!isSpeechSupported && (
-        <div className="flex items-center gap-2 px-6 py-1.5 bg-amber-50 border-b border-amber-100 shrink-0">
+        <div className="flex items-center gap-2 px-4 lg:px-6 py-1.5 bg-amber-50 border-b border-amber-100 shrink-0">
           <CircleAlert size={12} className="text-amber-500 shrink-0" />
           <span className="text-[10px] font-semibold text-amber-700">
             Speech recognition is not supported in this browser. WPM tracking
@@ -826,9 +849,9 @@ export default function PresentationSessionPage() {
       )}
 
       {/* ── Main Content ────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
         {/* Left: Classroom Viewport + Camera + Live Feedback */}
-        <div className="flex-1 flex flex-col overflow-hidden p-4 gap-4 bg-[#f3f7fd]">
+        <div className="flex-1 flex flex-col overflow-hidden p-0 lg:p-4 gap-0 lg:gap-4 bg-[#f3f7fd]">
           {/* Classroom Video Viewport */}
           <div
             className="flex-1 min-h-0 w-full flex items-center justify-center"
@@ -859,7 +882,7 @@ export default function PresentationSessionPage() {
               {/* ── Facecam + Feedback overlays ── */}
               <div className="absolute bottom-3 left-3 right-3 flex items-end gap-3 pointer-events-auto z-20">
                 {/* Facecam (bottom-left) */}
-                <div className="w-72 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 relative overflow-hidden shadow-lg">
+                <div className="w-36 md:w-48 lg:w-72 aspect-video shrink-0 rounded-2xl border-2 border-white/30 bg-slate-950 relative overflow-hidden shadow-lg">
                   <video
                     ref={facecamRef}
                     className="w-full h-full object-cover scale-x-[-1]"
@@ -933,18 +956,38 @@ export default function PresentationSessionPage() {
             </div>
           </div>
 
-          {/* Equipment Status Bar */}
-          <EquipmentBar
-            internetSpeed={internetSpeed}
-            isCameraOn={cameraReady}
-            isMicOn={cameraReady}
-          />
+          {/* Equipment Status Bar — Desktop only */}
+          <div className="hidden lg:flex">
+            <EquipmentBar
+              internetSpeed={internetSpeed}
+              isCameraOn={cameraReady}
+              isMicOn={cameraReady}
+            />
+          </div>
+
+          {/* Equipment Strip — Mobile only */}
+          <div className="flex lg:hidden items-center justify-between px-4 py-1.5 bg-white border-t border-slate-200 shrink-0">
+            <div className="flex items-center gap-3 text-[11px]">
+              <span className="flex items-center gap-1 font-bold text-slate-600">
+                <Camera size={12} className={cameraReady ? "text-green-600" : "text-red-500"} />
+                {cameraReady ? "On" : "Off"}
+              </span>
+              <span className="flex items-center gap-1 font-bold text-slate-600">
+                <Mic size={12} className={cameraReady ? "text-green-600" : "text-red-500"} />
+                {cameraReady ? "On" : "Off"}
+              </span>
+            </div>
+            <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
+              <Wifi size={12} className="text-main" />
+              {internetSpeed} Mbps
+            </span>
+          </div>
         </div>
 
-        {/* ── Right Panel: Cue Card / Notes ─────────────────── */}
+        {/* ── Right Panel: Cue Card / Notes — Desktop only ─ */}
         <div
           data-tour="cue-card-panel"
-          className="w-80 shrink-0 flex flex-col border-l-2 border-border bg-white overflow-hidden"
+          className="hidden lg:flex w-80 shrink-0 flex-col border-l-2 border-border bg-white overflow-hidden"
         >
           {/* Tab Header */}
           {sessionCueCards.length > 0 && (
@@ -1206,6 +1249,157 @@ export default function PresentationSessionPage() {
         </div>
       </div>
 
+      {/* ── Mobile Bottom Sheet: Cue Cards / Notes ──────────── */}
+      {/* Backdrop */}
+      {panelOpen && (
+        <div
+          className="fixed lg:hidden inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={() => setPanelOpen(false)}
+        />
+      )}
+
+      <div
+        className={`fixed lg:hidden inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl border-t-2 border-border shadow-2xl transition-transform duration-300 ease-out ${
+          panelOpen ? "translate-y-0" : "translate-y-[calc(100%-56px)]"
+        }`}
+        style={{ maxHeight: "70dvh" }}
+      >
+        {/* Drag handle */}
+        <div
+          className="flex items-center justify-center py-2.5 cursor-pointer shrink-0"
+          onClick={() => setPanelOpen(!panelOpen)}
+        >
+          <div className="w-10 h-1.5 rounded-full bg-slate-300" />
+        </div>
+
+        {/* Tab header */}
+        <div className="flex items-center justify-between border-b-2 border-border px-4 gap-4 shrink-0">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveTab("cuecard")}
+              className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+                activeTab === "cuecard"
+                  ? "border-main text-main"
+                  : "border-transparent text-slate-400"
+              }`}
+            >
+              Cue Card
+            </button>
+            {sessionCueCards.length > 0 && (
+              <button
+                onClick={() => setActiveTab("notes")}
+                className={`pb-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+                  activeTab === "notes"
+                    ? "border-main text-main"
+                    : "border-transparent text-slate-400"
+                }`}
+              >
+                Notes
+              </button>
+            )}
+          </div>
+          {panelOpen && (
+            <button
+              onClick={() => setPanelOpen(false)}
+              className="p-1 rounded-md hover:bg-slate-100 cursor-pointer"
+            >
+              <X size={16} className="text-slate-400" />
+            </button>
+          )}
+        </div>
+
+        {/* Scrollable content */}
+        <div className="overflow-y-auto p-4 space-y-4" style={{ maxHeight: "calc(70dvh - 96px)", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
+          {sessionCueCards.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center gap-4">
+              <div className="p-4 bg-slate-100 rounded-full text-slate-400">
+                <FileText size={36} />
+              </div>
+              <h5 className="font-bold text-slate-800 text-sm">No Material Uploaded</h5>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                You are not uploading a material. Add material to unlock this feature.
+              </p>
+            </div>
+          ) : activeTab === "cuecard" ? (
+            <>
+              <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl">
+                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Presentation Title</p>
+                <p className="font-bold text-slate-800 text-sm leading-snug break-words">{presentationTitle}</p>
+              </div>
+              {sessionCueCards.length > 0 && (() => {
+                const activeSlide = sessionCueCards[sessionActiveSlide] || {};
+                const isSlideObject = typeof activeSlide === "object" && activeSlide !== null;
+                const title = isSlideObject ? activeSlide.title || `Slide ${sessionActiveSlide + 1}` : activeSlide;
+                const talkingPoints = isSlideObject ? activeSlide.talking_points || [] : [];
+                const transitionSentence = isSlideObject ? activeSlide.transition_sentence : "";
+                return (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <span className="text-xs font-bold text-slate-700">Slide {sessionActiveSlide + 1} of {sessionCueCards.length}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => setSessionActiveSlide((prev) => Math.max(0, prev - 1))} disabled={sessionActiveSlide === 0} className="p-1 rounded-md border border-slate-200 bg-white disabled:opacity-40 cursor-pointer hover:bg-slate-100">
+                          <ChevronLeft size={14} className="text-slate-600" />
+                        </button>
+                        <button onClick={() => setSessionActiveSlide((prev) => Math.min(sessionCueCards.length - 1, prev + 1))} disabled={sessionActiveSlide === sessionCueCards.length - 1} className="p-1 rounded-md border border-slate-200 bg-white disabled:opacity-40 cursor-pointer hover:bg-slate-100">
+                          <ChevronRight size={14} className="text-slate-600" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Slide Title</span>
+                      <h5 className="text-xs font-bold text-slate-800 leading-snug bg-slate-50 p-2.5 rounded-lg border border-slate-200/50">{title}</h5>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Speaking Guide</span>
+                      <div className="flex flex-col gap-2 bg-slate-50/50 p-2.5 rounded-lg border border-slate-200/50 min-h-[80px]">
+                        {talkingPoints.length > 0 ? talkingPoints.map((point, index) => (
+                          <div key={index} className="flex items-start gap-2">
+                            <span className="text-main font-bold shrink-0 mt-0.5">•</span>
+                            <span className="text-xs text-slate-600 font-medium leading-relaxed">{point}</span>
+                          </div>
+                        )) : <span className="text-xs text-slate-400 italic">No speaking notes.</span>}
+                      </div>
+                    </div>
+                    {transitionSentence && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Next Slide Bridge</span>
+                        <div className="text-xs text-slate-700 font-medium italic leading-relaxed bg-amber-50 border border-amber-100 p-2.5 rounded-lg flex items-start gap-2">
+                          <span className="text-amber-500 shrink-0 mt-0.5">🔗</span>
+                          <span>"{transitionSentence}"</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5">
+                <Lightbulb size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-0.5">Tip</p>
+                  <p className="text-xs text-amber-800 font-medium leading-relaxed">Glance at your notes, then look back at your audience!</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-bold text-slate-400">Your personal notes for this session.</p>
+              <textarea className="w-full h-64 text-sm text-slate-700 border-2 border-border rounded-xl p-3 resize-none focus:outline-none focus:border-main font-medium placeholder:text-slate-300" placeholder="Type your notes here..." />
+              <p className="text-[10px] text-slate-300 font-medium">Notes are only visible to you.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── FAB: Open cue cards ────────────────────────────── */}
+      {!panelOpen && sessionCueCards.length > 0 && (
+        <button
+          className="fixed lg:hidden bottom-4 right-4 z-30 w-12 h-12 rounded-full bg-main text-white shadow-lg flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+          onClick={() => setPanelOpen(true)}
+        >
+          <FileText size={20} />
+        </button>
+      )}
+
       {/* Ending overlay */}
       {isEnding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -1234,5 +1428,26 @@ export default function PresentationSessionPage() {
         </div>
       )}
     </div>
+
+      {/* ── Portrait Lock Overlay ──────────────────────────── */}
+      <div className="hidden portrait-lock-overlay fixed inset-0 z-[100] bg-slate-950 flex-col items-center justify-center gap-6 px-8 text-center">
+        <div className="animate-spin">
+          <RotateCw size={56} className="text-main" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-white font-black text-xl tracking-tight">
+            Please rotate your device
+          </h2>
+          <p className="text-slate-400 font-medium text-sm max-w-64">
+            This practice session works best in landscape mode
+          </p>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <div className="w-8 h-12 rounded-md border-2 border-slate-500 flex items-center justify-center rotate-90">
+            <span className="text-slate-400 text-lg">📱</span>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

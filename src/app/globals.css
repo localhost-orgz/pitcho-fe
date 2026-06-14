@@ -479,3 +479,12 @@ body {
   animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+/* ── Portrait lock for session pages ────────────────────────── */
+@media (max-width: 1023px) and (orientation: portrait) {
+  .portrait-lock-overlay {
+    display: flex !important;
+  }
+  .portrait-lock-hide {
+    display: none !important;
+  }
+}
