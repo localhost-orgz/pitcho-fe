@@ -30,14 +30,33 @@ import { useTour } from "@/components/Tour/TourContext";
 
 export default function StationPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const { isTourActive, startTour, isNewUser } = useTour();
+  const { isTourActive, startTour } = useTour();
 
-  // ── Auto-trigger tour for new users ──────────────────────────
+  const [activeSessionIndex, setActiveSessionIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState("right");
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+
+  // ── Auto-trigger tour when user has zero sessions ─────────────
+  // We wait for the history fetch to resolve (sessionsLoading = false) so we
+  // have real data before deciding. This prevents false-positives while loading.
   React.useEffect(() => {
-    if (!isLoading && isAuthenticated && isNewUser && !isTourActive) {
+    if (isLoading) return;          // auth not ready yet
+    if (!isAuthenticated) return;   // not logged in
+    if (isTourActive) return;       // tour already running
+    if (sessionsLoading) return;    // history not fetched yet
+
+    // Only auto-start if the user truly has no sessions
+    const hasNoSessions = recentSessions.length === 0;
+    if (hasNoSessions) {
+      // Guard: don't re-trigger if they already completed the tour once
+      try {
+        if (localStorage.getItem("pitcho_tour_completed") === "true") return;
+      } catch {}
       startTour();
     }
-  }, [isLoading, isAuthenticated, isNewUser, isTourActive, startTour]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isAuthenticated, isTourActive, sessionsLoading, recentSessions.length]);
   React.useEffect(() => {
     const originalBg = document.body.style.backgroundColor;
     document.body.style.backgroundColor = "#f3f7fd";
@@ -74,12 +93,7 @@ export default function StationPage() {
   const fillerWordsData = [10, 8, 9, 7, 6, 5, 10];
   const speakingPaceData = [142, 138, 135, 130, 128, 122, 125];
 
-  const [activeSessionIndex, setActiveSessionIndex] = useState(0);
-  const [slideDirection, setSlideDirection] = useState("right");
-  const [recentSessions, setRecentSessions] = useState([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
-
-  // ── Fetch last 5 sessions from /api/history ──────────────
+  // ── Fetch last 5 sessions from /api/history ────────────────
   useEffect(() => {
     let cancelled = false;
     async function load() {
